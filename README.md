@@ -6,3 +6,10 @@
 [![IRC](https://img.shields.io/badge/irc-%23rust--av-blue.svg)](http://webchat.freenode.net?channels=%23rust-av&uio=d4)
 
 ## Video Metrics implemented
+
+ - [ ] PSNR (correct calculation)
+ - [ ] APSNR (this is what we were previously display as PSNR)
+ - [ ] PSNR HVS
+ - [ ] SSIM
+ - [ ] MSSSIM
+ - [ ] CIEDE2000
