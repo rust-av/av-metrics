@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
 edition = "2018"
 description = "A collection of algorithms for measuring audio/video metrics"
-license = "BSD-2-Clause"
+license = "MIT"
 repository = "https://github.com/rust-av/av-metrics"
 
 [dependencies]
