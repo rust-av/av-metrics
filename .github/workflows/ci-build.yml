@@ -1,0 +1,27 @@
+name: ci-build
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build System Info
+      run: |
+        rustc --version
+    - name: Lint
+      run: cargo clippy --all-features --tests --benches
+    - name: Style Check
+      run: cargo fmt -- --check
+    - name: Build
+      run: cargo build --all-features --tests --benches
+    - name: Run tests
+      run: cargo test --all-features
