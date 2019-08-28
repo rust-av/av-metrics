@@ -7,9 +7,9 @@
 
 ## Video Metrics implemented
 
- - [ ] PSNR
- - [ ] APSNR
- - [ ] PSNR HVS
- - [ ] SSIM
- - [ ] MSSSIM
- - [ ] CIEDE2000
+ - [X] PSNR
+ - [X] APSNR
+ - [X] PSNR HVS
+ - [X] SSIM
+ - [X] MSSSIM
+ - [X] CIEDE2000

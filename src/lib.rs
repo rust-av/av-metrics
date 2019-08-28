@@ -1,7 +1,16 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
+#![allow(clippy::cast_lossless)]
+#![allow(clippy::needless_range_loop)]
+#![allow(clippy::unreadable_literal)]
+
+#[macro_use]
+extern crate failure;
+#[macro_use]
+extern crate itertools;
+
+pub mod video;
+
+#[derive(Debug, Fail)]
+pub enum MetricsError {
+    #[fail(display = "{}", reason)]
+    InputMismatch { reason: &'static str },
 }
