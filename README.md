@@ -7,8 +7,8 @@
 
 ## Video Metrics implemented
 
- - [ ] PSNR (correct calculation)
- - [ ] APSNR (this is what we were previously display as PSNR)
+ - [ ] PSNR
+ - [ ] APSNR
  - [ ] PSNR HVS
  - [ ] SSIM
  - [ ] MSSSIM
