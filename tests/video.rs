@@ -303,7 +303,7 @@ fn ciede2000_yuv420p10() {
     let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
     let result = video::calculate_video_ciede::<_, u16>(&mut dec1, &mut dec2, None, false).unwrap();
-    assert_metric_eq(36.5142, result);
+    assert_metric_eq(36.3691, result);
 }
 
 #[test]
@@ -313,5 +313,5 @@ fn ciede2000_yuv420p10_simd() {
     let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
     let result = video::calculate_video_ciede::<_, u16>(&mut dec1, &mut dec2, None, true).unwrap();
-    assert_metric_eq(36.5142, result);
+    assert_metric_eq(36.3691, result);
 }
