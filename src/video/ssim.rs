@@ -3,8 +3,8 @@ use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
 use crate::video::{FrameInfo, PlanarMetrics, PlaneData};
 use crate::MetricsError;
-use failure::Error;
 use std::cmp;
+use std::error::Error;
 use std::f64::consts::{E, PI};
 
 #[cfg(feature = "decode")]
@@ -13,7 +13,7 @@ pub fn calculate_video_ssim<D: Decoder<T>, T: Pixel>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
-) -> Result<PlanarMetrics, Error> {
+) -> Result<PlanarMetrics, Box<dyn Error>> {
     let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
     let mut frame_no = 0;
     let mut cweight = None;
@@ -34,7 +34,7 @@ pub fn calculate_video_ssim<D: Decoder<T>, T: Pixel>(
         break;
     }
     if frame_no == 0 {
-        return Err(MetricsError::InputMismatch {
+        return Err(MetricsError::UnsupportedInput {
             reason: "No readable frames found in one or more input files",
         }
         .into());
@@ -59,7 +59,7 @@ pub fn calculate_video_ssim<D: Decoder<T>, T: Pixel>(
 pub fn calculate_frame_ssim<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
-) -> Result<PlanarMetrics, Error> {
+) -> Result<PlanarMetrics, Box<dyn Error>> {
     let metrics = calculate_frame_ssim_inner(frame1, frame2)?;
     let cweight = frame1.chroma_sampling.get_chroma_weight();
     Ok(PlanarMetrics {
@@ -76,8 +76,8 @@ pub fn calculate_frame_ssim<T: Pixel>(
 fn calculate_frame_ssim_inner<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
-) -> Result<PlanarMetrics, Error> {
-    frame1.can_compare(&frame2).map_err(Error::from)?;
+) -> Result<PlanarMetrics, Box<dyn Error>> {
+    frame1.can_compare(&frame2)?;
 
     const KERNEL_SHIFT: usize = 8;
     const KERNEL_WEIGHT: usize = 1 << KERNEL_SHIFT;
@@ -134,7 +134,7 @@ pub fn calculate_video_msssim<D: Decoder<T>, T: Pixel>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
-) -> Result<PlanarMetrics, Error> {
+) -> Result<PlanarMetrics, Box<dyn Error>> {
     let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
     let mut frame_no = 0;
     let mut cweight = None;
@@ -155,7 +155,7 @@ pub fn calculate_video_msssim<D: Decoder<T>, T: Pixel>(
         break;
     }
     if frame_no == 0 {
-        return Err(MetricsError::InputMismatch {
+        return Err(MetricsError::UnsupportedInput {
             reason: "No readable frames found in one or more input files",
         }
         .into());
@@ -180,7 +180,7 @@ pub fn calculate_video_msssim<D: Decoder<T>, T: Pixel>(
 pub fn calculate_frame_msssim<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
-) -> Result<PlanarMetrics, Error> {
+) -> Result<PlanarMetrics, Box<dyn Error>> {
     let metrics = calculate_frame_msssim_inner(frame1, frame2)?;
     let cweight = frame1.chroma_sampling.get_chroma_weight();
     Ok(PlanarMetrics {
@@ -197,8 +197,8 @@ pub fn calculate_frame_msssim<T: Pixel>(
 fn calculate_frame_msssim_inner<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
-) -> Result<PlanarMetrics, Error> {
-    frame1.can_compare(&frame2).map_err(Error::from)?;
+) -> Result<PlanarMetrics, Box<dyn Error>> {
+    frame1.can_compare(&frame2)?;
     let bit_depth = frame1.bit_depth;
     Ok(PlanarMetrics {
         y: calculate_plane_msssim(&frame1.planes[0], &frame2.planes[0], bit_depth),

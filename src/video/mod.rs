@@ -34,7 +34,7 @@ impl<T: Pixel> FrameInfo<T> {
             });
         }
         if self.bit_depth > 16 {
-            return Err(MetricsError::InputMismatch {
+            return Err(MetricsError::UnsupportedInput {
                 reason: "Bit depths above 16 are not supported",
             });
         }

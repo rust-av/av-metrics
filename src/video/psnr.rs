@@ -3,7 +3,7 @@ use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
 use crate::video::{FrameInfo, PlanarMetrics, PlaneData};
 use crate::MetricsError;
-use failure::Error;
+use std::error::Error;
 
 /// Contains different methods of calculating PSNR over a whole video.
 /// Each method uses the same per-frame metrics, but combines them differently.
@@ -21,7 +21,7 @@ pub fn calculate_video_psnr<D: Decoder<T>, T: Pixel>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
-) -> Result<PsnrResults, Error> {
+) -> Result<PsnrResults, Box<dyn Error>> {
     let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
     let mut frame_no = 0;
     while frame_limit.map(|limit| limit > frame_no).unwrap_or(true) {
@@ -38,7 +38,7 @@ pub fn calculate_video_psnr<D: Decoder<T>, T: Pixel>(
         break;
     }
     if frame_no == 0 {
-        return Err(MetricsError::InputMismatch {
+        return Err(MetricsError::UnsupportedInput {
             reason: "No readable frames found in one or more input files",
         }
         .into());
@@ -72,7 +72,7 @@ pub fn calculate_video_psnr<D: Decoder<T>, T: Pixel>(
 pub fn calculate_frame_psnr<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
-) -> Result<PlanarMetrics, Error> {
+) -> Result<PlanarMetrics, Box<dyn Error>> {
     let metrics = calculate_frame_psnr_inner(frame1, frame2)?;
     Ok(PlanarMetrics {
         y: calculate_psnr(metrics[0]),
@@ -92,8 +92,8 @@ struct PsnrMetrics {
 fn calculate_frame_psnr_inner<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
-) -> Result<[PsnrMetrics; 3], Error> {
-    frame1.can_compare(&frame2).map_err(Error::from)?;
+) -> Result<[PsnrMetrics; 3], Box<dyn Error>> {
+    frame1.can_compare(&frame2)?;
 
     let bit_depth = frame1.bit_depth;
     let y = calculate_plane_psnr_metrics(&frame1.planes[0], &frame2.planes[0], bit_depth);

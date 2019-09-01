@@ -3,7 +3,7 @@ use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
 use crate::video::{FrameInfo, PlanarMetrics, PlaneData};
 use crate::MetricsError;
-use failure::Error;
+use std::error::Error;
 
 #[cfg(feature = "decode")]
 #[inline]
@@ -11,7 +11,7 @@ pub fn calculate_video_psnr_hvs<D: Decoder<T>, T: Pixel>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
-) -> Result<PlanarMetrics, Error> {
+) -> Result<PlanarMetrics, Box<dyn Error>> {
     let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
     let mut frame_no = 0;
     let mut cweight = None;
@@ -32,7 +32,7 @@ pub fn calculate_video_psnr_hvs<D: Decoder<T>, T: Pixel>(
         break;
     }
     if frame_no == 0 {
-        return Err(MetricsError::InputMismatch {
+        return Err(MetricsError::UnsupportedInput {
             reason: "No readable frames found in one or more input files",
         }
         .into());
@@ -57,7 +57,7 @@ pub fn calculate_video_psnr_hvs<D: Decoder<T>, T: Pixel>(
 pub fn calculate_frame_psnr_hvs<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
-) -> Result<PlanarMetrics, Error> {
+) -> Result<PlanarMetrics, Box<dyn Error>> {
     let result = calculate_frame_psnr_hvs_inner(frame1, frame2)?;
     let cweight = frame1.chroma_sampling.get_chroma_weight();
     Ok(PlanarMetrics {
@@ -76,8 +76,8 @@ pub fn calculate_frame_psnr_hvs<T: Pixel>(
 fn calculate_frame_psnr_hvs_inner<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
-) -> Result<PlanarMetrics, Error> {
-    frame1.can_compare(&frame2).map_err(Error::from)?;
+) -> Result<PlanarMetrics, Box<dyn Error>> {
+    frame1.can_compare(&frame2)?;
 
     let bit_depth = frame1.bit_depth;
     let y = calculate_plane_psnr_hvs(&frame1.planes[0], &frame2.planes[0], 0, bit_depth);

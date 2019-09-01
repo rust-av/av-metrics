@@ -7,7 +7,6 @@ use crate::video::decode::Decoder;
 use crate::video::pixel::{CastFromPrimitive, Pixel};
 use crate::video::FrameInfo;
 use crate::MetricsError;
-use failure::Error;
 use std::f64;
 
 mod rgbtolab;
@@ -30,7 +29,7 @@ pub fn calculate_video_ciede<D: Decoder<T>, T: Pixel>(
     decoder2: &mut D,
     frame_limit: Option<usize>,
     use_simd: bool,
-) -> Result<f64, Error> {
+) -> Result<f64, Box<dyn Error>> {
     let mut sum = 0f64;
     let mut frame_no = 0;
     while frame_limit.map(|limit| limit > frame_no).unwrap_or(true) {
@@ -47,7 +46,7 @@ pub fn calculate_video_ciede<D: Decoder<T>, T: Pixel>(
         break;
     }
     if frame_no == 0 {
-        return Err(MetricsError::InputMismatch {
+        return Err(MetricsError::MalformedInput {
             reason: "No readable frames found in one or more input files",
         }
         .into());
@@ -61,8 +60,8 @@ pub fn calculate_frame_ciede<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
     use_simd: bool,
-) -> Result<f64, Error> {
-    frame1.can_compare(&frame2).map_err(Error::from)?;
+) -> Result<f64, Box<dyn Error>> {
+    frame1.can_compare(&frame2)?;
 
     let dec = frame1.chroma_sampling.get_decimation().unwrap_or((1, 1));
     let y_width = frame1.planes[0].width;
@@ -268,6 +267,7 @@ impl DeltaEScalar for BD12_444 {}
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use self::avx2::*;
+use std::error::Error;
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod avx2 {
