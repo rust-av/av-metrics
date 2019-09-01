@@ -13,4 +13,6 @@ pub mod video;
 pub enum MetricsError {
     #[fail(display = "{}", reason)]
     InputMismatch { reason: &'static str },
+    #[fail(display = "{}", reason)]
+    UnsupportedInput { reason: &'static str }
 }

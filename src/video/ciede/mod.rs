@@ -5,7 +5,7 @@
 #[cfg(feature = "decode")]
 use crate::video::decode::Decoder;
 use crate::video::pixel::{CastFromPrimitive, Pixel};
-use crate::video::FrameInfo;
+use crate::video::{FrameInfo, ChromaSampling};
 use crate::MetricsError;
 use failure::Error;
 use std::f64;
@@ -63,6 +63,9 @@ pub fn calculate_frame_ciede<T: Pixel>(
     use_simd: bool,
 ) -> Result<f64, Error> {
     frame1.can_compare(&frame2).map_err(Error::from)?;
+    if frame1.chroma_sampling == ChromaSampling::Cs422 {
+        return Err(MetricsError::UnsupportedInput { reason: "CIEDE2000 does not currently support YUV422 inputs" }.into());
+    }
 
     let dec = frame1.chroma_sampling.get_decimation().unwrap_or((1, 1));
     let y_width = frame1.planes[0].width;
