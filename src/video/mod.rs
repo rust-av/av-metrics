@@ -133,6 +133,29 @@ impl ChromaSampling {
     }
 }
 
+/// Sample position for subsampled chroma
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum ChromaSamplePosition {
+    /// The source video transfer function must be signaled
+    /// outside the AV1 bitstream.
+    Unknown,
+    /// Horizontally co-located with (0, 0) luma sample, vertically positioned
+    /// in the middle between two luma samples.
+    Vertical,
+    /// Co-located with (0, 0) luma sample.
+    Colocated,
+    /// Bilaterally located chroma plane in the diagonal space between luma samples.
+    Bilateral,
+    /// Interlaced content with interpolated chroma samples
+    Interpolated,
+}
+
+impl Default for ChromaSamplePosition {
+    fn default() -> Self {
+        ChromaSamplePosition::Unknown
+    }
+}
+
 /// Certain metrics return a value per plane. This struct contains the output
 /// for those metrics per plane, as well as a weighted average of the planes.
 #[derive(Debug, Clone, Copy)]

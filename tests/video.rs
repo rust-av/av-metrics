@@ -89,7 +89,6 @@ fn ciede2000_yuv420p8_simd() {
 }
 
 #[test]
-#[ignore]
 fn psnr_yuv422p8() {
     let mut file1 = File::open("./testfiles/yuv422p8_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -107,7 +106,6 @@ fn psnr_yuv422p8() {
 }
 
 #[test]
-#[ignore]
 fn psnr_hvs_yuv422p8() {
     let mut file1 = File::open("./testfiles/yuv422p8_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -121,7 +119,6 @@ fn psnr_hvs_yuv422p8() {
 }
 
 #[test]
-#[ignore]
 fn ssim_yuv422p8() {
     let mut file1 = File::open("./testfiles/yuv422p8_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -135,7 +132,6 @@ fn ssim_yuv422p8() {
 }
 
 #[test]
-#[ignore]
 fn msssim_yuv422p8() {
     let mut file1 = File::open("./testfiles/yuv422p8_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -148,31 +144,7 @@ fn msssim_yuv422p8() {
     assert_metric_eq(28.3027, result.avg);
 }
 
-//#[test]
-//#[ignore]
-// The daala tools impl doesn't support yuv422 ciede
-//fn ciede2000_yuv422p8() {
-//    let mut file1 = File::open("./testfiles/yuv422p8_input.y4m").unwrap();
-//    let mut dec1 = Decoder::new(&mut file1).unwrap();
-//    let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
-//    let mut dec2 = Decoder::new(&mut file2).unwrap();
-//    let result = video::calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, false).unwrap();
-//    assert_metric_eq(1.0000, result);
-//}
-
-//#[test]
-//#[ignore]
-//fn ciede2000_yuv422p8_simd() {
-//    let mut file1 = File::open("./testfiles/yuv422p8_input.y4m").unwrap();
-//    let mut dec1 = Decoder::new(&mut file1).unwrap();
-//    let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
-//    let mut dec2 = Decoder::new(&mut file2).unwrap();
-//    let result = video::calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, true).unwrap();
-//    assert_metric_eq(1.0000, result);
-//}
-
 #[test]
-#[ignore]
 fn psnr_yuv444p8() {
     let mut file1 = File::open("./testfiles/yuv444p8_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -190,7 +162,6 @@ fn psnr_yuv444p8() {
 }
 
 #[test]
-#[ignore]
 fn psnr_hvs_yuv444p8() {
     let mut file1 = File::open("./testfiles/yuv444p8_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -204,7 +175,6 @@ fn psnr_hvs_yuv444p8() {
 }
 
 #[test]
-#[ignore]
 fn ssim_yuv444p8() {
     let mut file1 = File::open("./testfiles/yuv444p8_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -218,7 +188,6 @@ fn ssim_yuv444p8() {
 }
 
 #[test]
-#[ignore]
 fn msssim_yuv444p8() {
     let mut file1 = File::open("./testfiles/yuv444p8_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -232,7 +201,6 @@ fn msssim_yuv444p8() {
 }
 
 #[test]
-#[ignore]
 fn ciede2000_yuv444p8() {
     let mut file1 = File::open("./testfiles/yuv444p8_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -243,7 +211,6 @@ fn ciede2000_yuv444p8() {
 }
 
 #[test]
-#[ignore]
 fn ciede2000_yuv444p8_simd() {
     let mut file1 = File::open("./testfiles/yuv444p8_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -254,7 +221,6 @@ fn ciede2000_yuv444p8_simd() {
 }
 
 #[test]
-#[ignore]
 fn psnr_yuv420p10() {
     let mut file1 = File::open("./testfiles/yuv420p10_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -272,7 +238,6 @@ fn psnr_yuv420p10() {
 }
 
 #[test]
-#[ignore]
 fn psnr_hvs_yuv420p10() {
     let mut file1 = File::open("./testfiles/yuv420p10_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -286,7 +251,6 @@ fn psnr_hvs_yuv420p10() {
 }
 
 #[test]
-#[ignore]
 fn ssim_yuv420p10() {
     let mut file1 = File::open("./testfiles/yuv420p10_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -300,7 +264,6 @@ fn ssim_yuv420p10() {
 }
 
 #[test]
-#[ignore]
 fn msssim_yuv420p10() {
     let mut file1 = File::open("./testfiles/yuv420p10_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -314,7 +277,6 @@ fn msssim_yuv420p10() {
 }
 
 #[test]
-#[ignore]
 fn ciede2000_yuv420p10() {
     let mut file1 = File::open("./testfiles/yuv420p10_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
@@ -325,7 +287,6 @@ fn ciede2000_yuv420p10() {
 }
 
 #[test]
-#[ignore]
 fn ciede2000_yuv420p10_simd() {
     let mut file1 = File::open("./testfiles/yuv420p10_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
