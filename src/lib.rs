@@ -14,5 +14,5 @@ pub enum MetricsError {
     #[fail(display = "{}", reason)]
     InputMismatch { reason: &'static str },
     #[fail(display = "{}", reason)]
-    UnsupportedInput { reason: &'static str }
+    UnsupportedInput { reason: &'static str },
 }

@@ -145,6 +145,26 @@ fn msssim_yuv422p8() {
 }
 
 #[test]
+fn ciede2000_yuv422p8() {
+    let mut file1 = File::open("./testfiles/yuv422p8_input.y4m").unwrap();
+    let mut dec1 = Decoder::new(&mut file1).unwrap();
+    let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
+    let mut dec2 = Decoder::new(&mut file2).unwrap();
+    let result = video::calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, false).unwrap();
+    assert_metric_eq(43.9618, result);
+}
+
+#[test]
+fn ciede2000_yuv422p8_simd() {
+    let mut file1 = File::open("./testfiles/yuv422p8_input.y4m").unwrap();
+    let mut dec1 = Decoder::new(&mut file1).unwrap();
+    let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
+    let mut dec2 = Decoder::new(&mut file2).unwrap();
+    let result = video::calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, true).unwrap();
+    assert_metric_eq(43.9618, result);
+}
+
+#[test]
 fn psnr_yuv444p8() {
     let mut file1 = File::open("./testfiles/yuv444p8_input.y4m").unwrap();
     let mut dec1 = Decoder::new(&mut file1).unwrap();
