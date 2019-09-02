@@ -8,6 +8,6 @@ license = "MIT"
 repository = "https://github.com/rust-av/av-metrics"
 
 [dependencies]
-av-metrics = { path = "../av_metrics" }
+av-metrics = "0.2"
 clap = "2.33"
 y4m = "0.4"
