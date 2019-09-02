@@ -18,7 +18,7 @@ jobs:
       run: |
         rustc --version
     - name: Style Check
-      run: cargo fmt -- --check
+      run: cargo fmt -- --check --verbose
     - name: No Default Features
       run: cargo clippy --no-default-features
     - name: Lint

@@ -28,22 +28,40 @@ use delta_e::*;
 /// `frame_limit` frames in each video.
 #[cfg(feature = "decode")]
 #[inline]
-pub fn calculate_video_ciede<D: Decoder<T>, T: Pixel>(
+pub fn calculate_video_ciede<D: Decoder>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
     use_simd: bool,
 ) -> Result<f64, Box<dyn Error>> {
+    if decoder1.get_bit_depth() != decoder2.get_bit_depth() {
+        return Err(Box::new(MetricsError::InputMismatch {
+            reason: "Bit depths do not match",
+        }));
+    }
+
     let mut sum = 0f64;
     let mut frame_no = 0;
     while frame_limit.map(|limit| limit > frame_no).unwrap_or(true) {
-        let frame1 = decoder1.read_video_frame();
-        let frame2 = decoder2.read_video_frame();
-        if let Ok(frame1) = frame1 {
-            if let Ok(frame2) = frame2 {
-                sum += calculate_frame_ciede(&frame1, &frame2, use_simd)?;
-                frame_no += 1;
-                continue;
+        if decoder1.get_bit_depth() > 8 {
+            let frame1 = decoder1.read_video_frame::<u16>();
+            let frame2 = decoder2.read_video_frame::<u16>();
+            if let Ok(frame1) = frame1 {
+                if let Ok(frame2) = frame2 {
+                    sum += calculate_frame_ciede(&frame1, &frame2, use_simd)?;
+                    frame_no += 1;
+                    continue;
+                }
+            }
+        } else {
+            let frame1 = decoder1.read_video_frame::<u8>();
+            let frame2 = decoder2.read_video_frame::<u8>();
+            if let Ok(frame1) = frame1 {
+                if let Ok(frame2) = frame2 {
+                    sum += calculate_frame_ciede(&frame1, &frame2, use_simd)?;
+                    frame_no += 1;
+                    continue;
+                }
             }
         }
         // At end of video

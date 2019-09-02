@@ -1,30 +1,9 @@
-[package]
-name = "av-metrics"
-version = "0.1.0"
-authors = ["Josh Holmer <jholmer.in@gmail.com>"]
-edition = "2018"
-description = "A collection of algorithms for measuring audio/video metrics"
-license = "MIT"
-repository = "https://github.com/rust-av/av-metrics"
+[workspace]
 
-[dependencies]
-err-derive = "0.1.5"
-itertools = "0.8.0"
-lab = "0.7.1"
-num-traits = "0.2"
-y4m = { version = "0.4", optional = true }
-
-[dev-dependencies]
-criterion = "0.3"
-
-[features]
-default = ["y4m-decode"]
-decode = []
-y4m-decode = ["y4m", "decode"]
-
-[[bench]]
-name = "bench"
-harness = false
+members = [
+    "av_metrics",
+    "av_metrics_tool"
+]
 
 [profile.dev]
 opt-level = 1

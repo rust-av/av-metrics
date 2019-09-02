@@ -12,9 +12,11 @@ pub use self::y4m::*;
 /// Currently, y4m decoding support using the `y4m` crate is built-in
 /// to this crate. This trait is extensible so users may implement
 /// their own decoders.
-pub trait Decoder<T: Pixel> {
+pub trait Decoder {
     /// Read the next frame from the input video.
     ///
     /// Expected to return `Err` if the end of the video is reached.
-    fn read_video_frame(&mut self) -> Result<FrameInfo<T>, ()>;
+    fn read_video_frame<T: Pixel>(&mut self) -> Result<FrameInfo<T>, ()>;
+    /// Get the bit depth of the video.
+    fn get_bit_depth(&self) -> usize;
 }

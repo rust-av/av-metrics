@@ -18,25 +18,46 @@ use std::error::Error;
 /// Calculates the PSNR-HVS score between two videos. Higher is better.
 #[cfg(feature = "decode")]
 #[inline]
-pub fn calculate_video_psnr_hvs<D: Decoder<T>, T: Pixel>(
+pub fn calculate_video_psnr_hvs<D: Decoder>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
+    if decoder1.get_bit_depth() != decoder2.get_bit_depth() {
+        return Err(Box::new(MetricsError::InputMismatch {
+            reason: "Bit depths do not match",
+        }));
+    }
+
     let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
     let mut frame_no = 0;
     let mut cweight = None;
     while frame_limit.map(|limit| limit > frame_no).unwrap_or(true) {
-        let frame1 = decoder1.read_video_frame();
-        let frame2 = decoder2.read_video_frame();
-        if let Ok(frame1) = frame1 {
-            if let Ok(frame2) = frame2 {
-                if cweight.is_none() {
-                    cweight = Some(frame1.chroma_sampling.get_chroma_weight());
+        if decoder1.get_bit_depth() > 8 {
+            let frame1 = decoder1.read_video_frame::<u16>();
+            let frame2 = decoder2.read_video_frame::<u16>();
+            if let Ok(frame1) = frame1 {
+                if let Ok(frame2) = frame2 {
+                    if cweight.is_none() {
+                        cweight = Some(frame1.chroma_sampling.get_chroma_weight());
+                    }
+                    metrics.push(calculate_frame_psnr_hvs_inner(&frame1, &frame2)?);
+                    frame_no += 1;
+                    continue;
                 }
-                metrics.push(calculate_frame_psnr_hvs_inner(&frame1, &frame2)?);
-                frame_no += 1;
-                continue;
+            }
+        } else {
+            let frame1 = decoder1.read_video_frame::<u8>();
+            let frame2 = decoder2.read_video_frame::<u8>();
+            if let Ok(frame1) = frame1 {
+                if let Ok(frame2) = frame2 {
+                    if cweight.is_none() {
+                        cweight = Some(frame1.chroma_sampling.get_chroma_weight());
+                    }
+                    metrics.push(calculate_frame_psnr_hvs_inner(&frame1, &frame2)?);
+                    frame_no += 1;
+                    continue;
+                }
             }
         }
         // At end of video

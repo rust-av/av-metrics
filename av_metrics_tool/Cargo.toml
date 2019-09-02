@@ -1,0 +1,13 @@
+[package]
+name = "av-metrics-tool"
+version = "0.2.0"
+authors = ["Josh Holmer <jholmer.in@gmail.com>"]
+edition = "2018"
+description = "A CLI tool for measuring audio/video metrics"
+license = "MIT"
+repository = "https://github.com/rust-av/av-metrics"
+
+[dependencies]
+av-metrics = { path = "../av_metrics" }
+clap = "2.33"
+y4m = "0.4"
