@@ -5,7 +5,7 @@
 #![allow(clippy::cast_lossless)]
 #![allow(clippy::needless_range_loop)]
 #![allow(clippy::unreadable_literal)]
-#![warn(missing_docs)]
+#![deny(missing_docs)]
 
 #[macro_use]
 extern crate err_derive;
