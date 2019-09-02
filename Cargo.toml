@@ -12,7 +12,7 @@ err-derive = "0.1.5"
 itertools = "0.8.0"
 lab = "0.7.1"
 num-traits = "0.2"
-y4m = { version = "0.3.3", optional = true }
+y4m = { version = "0.4", optional = true }
 
 [dev-dependencies]
 criterion = "0.3"
