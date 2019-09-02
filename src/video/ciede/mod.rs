@@ -9,6 +9,7 @@
 use crate::video::decode::Decoder;
 use crate::video::pixel::{CastFromPrimitive, Pixel};
 use crate::video::FrameInfo;
+#[cfg(feature = "decode")]
 use crate::MetricsError;
 use std::f64;
 

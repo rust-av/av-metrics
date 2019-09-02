@@ -8,10 +8,12 @@
 //!
 //! See https://en.wikipedia.org/wiki/Structural_similarity for more details.
 
+#[cfg(feature = "decode")]
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
 use crate::video::{FrameInfo, PlanarMetrics, PlaneData};
+#[cfg(feature = "decode")]
 use crate::MetricsError;
 use std::cmp;
 use std::error::Error;

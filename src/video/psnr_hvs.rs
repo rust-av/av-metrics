@@ -6,10 +6,12 @@
 //!
 //! See https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio for more details.
 
+#[cfg(feature = "decode")]
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
 use crate::video::{FrameInfo, PlanarMetrics, PlaneData};
+#[cfg(feature = "decode")]
 use crate::MetricsError;
 use std::error::Error;
 

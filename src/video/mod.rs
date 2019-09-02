@@ -120,6 +120,7 @@ impl ChromaSampling {
     }
 
     /// Calculates the size of a chroma plane for this sampling type, given the luma plane dimensions.
+    #[cfg(feature = "decode")]
     pub(crate) fn get_chroma_dimensions(
         self,
         luma_width: usize,
