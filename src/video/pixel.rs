@@ -5,7 +5,11 @@
 use num_traits::{AsPrimitive, PrimInt};
 use std::fmt::{Debug, Display};
 
+/// Defines a type which supports being cast to from a generic integer type.
+///
+/// Intended for casting to and from a [`Pixel`](trait.Pixel.html).
 pub trait CastFromPrimitive<T>: Copy + 'static {
+    /// Cast from a generic integer type to the given type.
     fn cast_from(v: T) -> Self;
 }
 
@@ -32,11 +36,16 @@ impl_cast_from_primitive!(i16 => { i8, i16, i32, i64, isize });
 impl_cast_from_primitive!(i32 => { u32, u64, usize });
 impl_cast_from_primitive!(i32 => { i8, i16, i32, i64, isize });
 
+#[doc(hidden)]
 pub enum PixelType {
     U8,
     U16,
 }
 
+/// A trait for types which may represent a pixel in a video.
+/// Currently implemented for `u8` and `u16`.
+/// `u8` should be used for low-bit-depth video, and `u16`
+/// for high-bit-depth video.
 pub trait Pixel:
     PrimInt
     + Into<u32>
@@ -59,6 +68,7 @@ pub trait Pixel:
     + Sync
     + 'static
 {
+    #[doc(hidden)]
     fn type_enum() -> PixelType;
 }
 

@@ -1,3 +1,13 @@
+//! Structural Similarity index.
+//!
+//! The SSIM index is a full reference metric; in other words, the measurement
+//! or prediction of image quality is based on an initial uncompressed or
+//! distortion-free image as reference. SSIM is designed to improve on
+//! traditional methods such as peak signal-to-noise ratio (PSNR) and mean
+//! squared error (MSE).
+//!
+//! See https://en.wikipedia.org/wiki/Structural_similarity for more details.
+
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
@@ -7,6 +17,7 @@ use std::cmp;
 use std::error::Error;
 use std::f64::consts::{E, PI};
 
+/// Calculates the SSIM score between two videos. Higher is better.
 #[cfg(feature = "decode")]
 #[inline]
 pub fn calculate_video_ssim<D: Decoder<T>, T: Pixel>(
@@ -55,6 +66,7 @@ pub fn calculate_video_ssim<D: Decoder<T>, T: Pixel>(
     })
 }
 
+/// Calculates the SSIM score between two video frames. Higher is better.
 #[inline]
 pub fn calculate_frame_ssim<T: Pixel>(
     frame1: &FrameInfo<T>,
@@ -128,6 +140,11 @@ fn calculate_frame_ssim_inner<T: Pixel>(
     })
 }
 
+/// Calculates the MSSSIM score between two videos. Higher is better.
+///
+/// MSSSIM is a variant of SSIM computed over subsampled versions
+/// of an image. It is designed to be a more accurate metric
+/// than SSIM.
 #[cfg(feature = "decode")]
 #[inline]
 pub fn calculate_video_msssim<D: Decoder<T>, T: Pixel>(
@@ -176,6 +193,11 @@ pub fn calculate_video_msssim<D: Decoder<T>, T: Pixel>(
     })
 }
 
+/// Calculates the MSSSIM score between two video frames. Higher is better.
+///
+/// MSSSIM is a variant of SSIM computed over subsampled versions
+/// of an image. It is designed to be a more accurate metric
+/// than SSIM.
 #[inline]
 pub fn calculate_frame_msssim<T: Pixel>(
     frame1: &FrameInfo<T>,

@@ -22,7 +22,7 @@ fn get_chroma_sampling<R: Read>(
     }
 }
 
-pub fn copy_from_raw_u8<T: Pixel>(source: &[u8], pixel_width: usize) -> Vec<T> {
+fn copy_from_raw_u8<T: Pixel>(source: &[u8], pixel_width: usize) -> Vec<T> {
     match pixel_width {
         1 => {
             assert!(mem::size_of::<T>() == 1);

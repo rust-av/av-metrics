@@ -1,6 +1,9 @@
 #![allow(clippy::cast_ptr_alignment)]
 
-// CIEDE2000 implementation adapted from Kyle Siefring's (https://github.com/KyleSiefring/dump_ciede2000)
+//! The CIEDE2000 color difference formula.
+//!
+//! CIEDE2000 implementation adapted from
+//! [Kyle Siefring's](https://github.com/KyleSiefring/dump_ciede2000).
 
 #[cfg(feature = "decode")]
 use crate::video::decode::Decoder;
@@ -15,7 +18,7 @@ use rgbtolab::*;
 mod delta_e;
 use delta_e::*;
 
-/// Calculate the CIEDE2000 metric between two video clips.
+/// Calculate the CIEDE2000 metric between two video clips. Higher is better.
 ///
 /// This will return at the end of the shorter of the two clips,
 /// comparing any frames up to that point.
@@ -54,7 +57,7 @@ pub fn calculate_video_ciede<D: Decoder<T>, T: Pixel>(
     Ok(sum / frame_no as f64)
 }
 
-/// Calculate the CIEDE2000 metric between two video frames.
+/// Calculate the CIEDE2000 metric between two video frames. Higher is better.
 #[inline]
 pub fn calculate_frame_ciede<T: Pixel>(
     frame1: &FrameInfo<T>,
@@ -138,7 +141,7 @@ fn get_delta_e_row_fn<T: Pixel>(bit_depth: usize, xdec: usize, simd: bool) -> De
     }
 }
 
-pub trait Colorspace {
+pub(crate) trait Colorspace {
     const BIT_DEPTH: u32;
     const X_DECIMATION: u32;
 }

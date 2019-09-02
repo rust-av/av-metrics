@@ -1,4 +1,7 @@
-use av_metrics::video;
+use av_metrics::video::ciede::calculate_video_ciede;
+use av_metrics::video::psnr::calculate_video_psnr;
+use av_metrics::video::psnr_hvs::calculate_video_psnr_hvs;
+use av_metrics::video::ssim::{calculate_video_msssim, calculate_video_ssim};
 use std::fs::File;
 use y4m::Decoder;
 
@@ -18,7 +21,7 @@ fn psnr_yuv420p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv420p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_psnr::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_psnr::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(32.5281, result.psnr.y);
     assert_metric_eq(36.4083, result.psnr.u);
     assert_metric_eq(39.8238, result.psnr.v);
@@ -35,7 +38,7 @@ fn psnr_hvs_yuv420p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv420p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_psnr_hvs::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_psnr_hvs::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(34.3227, result.y);
     assert_metric_eq(37.7400, result.u);
     assert_metric_eq(40.5570, result.v);
@@ -48,7 +51,7 @@ fn ssim_yuv420p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv420p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_ssim::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_ssim::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(13.2572, result.y);
     assert_metric_eq(10.8624, result.u);
     assert_metric_eq(12.8369, result.v);
@@ -61,7 +64,7 @@ fn msssim_yuv420p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv420p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_msssim::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_msssim::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(18.8343, result.y);
     assert_metric_eq(16.6943, result.u);
     assert_metric_eq(18.7662, result.v);
@@ -74,7 +77,7 @@ fn ciede2000_yuv420p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv420p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, false).unwrap();
+    let result = calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, false).unwrap();
     assert_metric_eq(36.2821, result);
 }
 
@@ -84,7 +87,7 @@ fn ciede2000_yuv420p8_simd() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv420p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, true).unwrap();
+    let result = calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, true).unwrap();
     assert_metric_eq(36.2821, result);
 }
 
@@ -94,7 +97,7 @@ fn psnr_yuv422p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_psnr::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_psnr::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(38.6740, result.psnr.y);
     assert_metric_eq(47.5219, result.psnr.u);
     assert_metric_eq(48.8615, result.psnr.v);
@@ -111,7 +114,7 @@ fn psnr_hvs_yuv422p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_psnr_hvs::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_psnr_hvs::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(45.3473, result.y);
     assert_metric_eq(46.3951, result.u);
     assert_metric_eq(45.1177, result.v);
@@ -124,7 +127,7 @@ fn ssim_yuv422p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_ssim::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_ssim::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(21.1130, result.y);
     assert_metric_eq(21.9978, result.u);
     assert_metric_eq(22.7898, result.v);
@@ -137,7 +140,7 @@ fn msssim_yuv422p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_msssim::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_msssim::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(28.6035, result.y);
     assert_metric_eq(28.0332, result.u);
     assert_metric_eq(28.0097, result.v);
@@ -150,7 +153,7 @@ fn ciede2000_yuv422p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, false).unwrap();
+    let result = calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, false).unwrap();
     assert_metric_eq(43.9618, result);
 }
 
@@ -160,7 +163,7 @@ fn ciede2000_yuv422p8_simd() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, true).unwrap();
+    let result = calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, true).unwrap();
     assert_metric_eq(43.9618, result);
 }
 
@@ -170,7 +173,7 @@ fn psnr_yuv444p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv444p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_psnr::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_psnr::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(32.4235, result.psnr.y);
     assert_metric_eq(40.1212, result.psnr.u);
     assert_metric_eq(43.1900, result.psnr.v);
@@ -187,7 +190,7 @@ fn psnr_hvs_yuv444p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv444p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_psnr_hvs::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_psnr_hvs::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(34.1887, result.y);
     assert_metric_eq(38.0190, result.u);
     assert_metric_eq(40.4087, result.v);
@@ -200,7 +203,7 @@ fn ssim_yuv444p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv444p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_ssim::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_ssim::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(13.2989, result.y);
     assert_metric_eq(14.0089, result.u);
     assert_metric_eq(15.7419, result.v);
@@ -213,7 +216,7 @@ fn msssim_yuv444p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv444p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_msssim::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_msssim::<_, u8>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(18.8897, result.y);
     assert_metric_eq(17.6092, result.u);
     assert_metric_eq(19.2732, result.v);
@@ -226,7 +229,7 @@ fn ciede2000_yuv444p8() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv444p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, false).unwrap();
+    let result = calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, false).unwrap();
     assert_metric_eq(37.5106, result);
 }
 
@@ -236,7 +239,7 @@ fn ciede2000_yuv444p8_simd() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv444p8_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, true).unwrap();
+    let result = calculate_video_ciede::<_, u8>(&mut dec1, &mut dec2, None, true).unwrap();
     assert_metric_eq(37.5106, result);
 }
 
@@ -246,7 +249,7 @@ fn psnr_yuv420p10() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_psnr::<_, u16>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_psnr::<_, u16>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(32.5421, result.psnr.y);
     assert_metric_eq(36.4922, result.psnr.u);
     assert_metric_eq(39.8558, result.psnr.v);
@@ -263,7 +266,7 @@ fn psnr_hvs_yuv420p10() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_psnr_hvs::<_, u16>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_psnr_hvs::<_, u16>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(34.4843, result.y);
     assert_metric_eq(38.1651, result.u);
     assert_metric_eq(41.0645, result.v);
@@ -276,7 +279,7 @@ fn ssim_yuv420p10() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_ssim::<_, u16>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_ssim::<_, u16>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(13.3603, result.y);
     assert_metric_eq(10.9323, result.u);
     assert_metric_eq(12.8685, result.v);
@@ -289,7 +292,7 @@ fn msssim_yuv420p10() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_msssim::<_, u16>(&mut dec1, &mut dec2, None).unwrap();
+    let result = calculate_video_msssim::<_, u16>(&mut dec1, &mut dec2, None).unwrap();
     assert_metric_eq(19.0390, result.y);
     assert_metric_eq(16.8539, result.u);
     assert_metric_eq(18.8647, result.v);
@@ -302,7 +305,7 @@ fn ciede2000_yuv420p10() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_ciede::<_, u16>(&mut dec1, &mut dec2, None, false).unwrap();
+    let result = calculate_video_ciede::<_, u16>(&mut dec1, &mut dec2, None, false).unwrap();
     assert_metric_eq(36.3691, result);
 }
 
@@ -312,6 +315,6 @@ fn ciede2000_yuv420p10_simd() {
     let mut dec1 = Decoder::new(&mut file1).unwrap();
     let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
     let mut dec2 = Decoder::new(&mut file2).unwrap();
-    let result = video::calculate_video_ciede::<_, u16>(&mut dec1, &mut dec2, None, true).unwrap();
+    let result = calculate_video_ciede::<_, u16>(&mut dec1, &mut dec2, None, true).unwrap();
     assert_metric_eq(36.3691, result);
 }

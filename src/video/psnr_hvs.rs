@@ -1,3 +1,11 @@
+//! Peak Signal-to-Noise Ratio metric accounting for the Human Visual System.
+//!
+//! Humans perceive larger differences from certain factors of an image compared
+//! to other factors. This metric attempts to take the human perception factor
+//! into account.
+//!
+//! See https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio for more details.
+
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
@@ -5,6 +13,7 @@ use crate::video::{FrameInfo, PlanarMetrics, PlaneData};
 use crate::MetricsError;
 use std::error::Error;
 
+/// Calculates the PSNR-HVS score between two videos. Higher is better.
 #[cfg(feature = "decode")]
 #[inline]
 pub fn calculate_video_psnr_hvs<D: Decoder<T>, T: Pixel>(
@@ -53,6 +62,7 @@ pub fn calculate_video_psnr_hvs<D: Decoder<T>, T: Pixel>(
     })
 }
 
+/// Calculates the PSNR-HVS score between two video frames. Higher is better.
 #[inline]
 pub fn calculate_frame_psnr_hvs<T: Pixel>(
     frame1: &FrameInfo<T>,
@@ -71,7 +81,7 @@ pub fn calculate_frame_psnr_hvs<T: Pixel>(
     })
 }
 
-/// Returns the *unweighted* SSIM scores. Depending on whether we output per-frame
+/// Returns the *unweighted* scores. Depending on whether we output per-frame
 /// or per-video, these will be weighted at different points.
 fn calculate_frame_psnr_hvs_inner<T: Pixel>(
     frame1: &FrameInfo<T>,

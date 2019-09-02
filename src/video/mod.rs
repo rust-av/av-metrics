@@ -1,28 +1,33 @@
-mod ciede;
+//! Contains metrics related to video/image quality.
+
+pub mod ciede;
 #[cfg(feature = "decode")]
-pub mod decode;
-pub mod pixel;
-mod psnr;
-mod psnr_hvs;
-mod ssim;
+mod decode;
+mod pixel;
+pub mod psnr;
+pub mod psnr_hvs;
+pub mod ssim;
 
-use crate::video::pixel::Pixel;
 use crate::MetricsError;
-pub use ciede::*;
-pub use psnr::*;
-pub use psnr_hvs::*;
-pub use ssim::*;
+#[cfg(feature = "decode")]
+pub use decode::*;
+pub use pixel::*;
 
+/// A container holding the data for one video frame. This includes all planes
+/// of the video. Currently, only YUV/YCbCr format is supported. Bit depths up to 16-bit
+/// are supported.
 #[derive(Clone, Debug)]
 pub struct FrameInfo<T: Pixel> {
     /// A container holding three planes worth of video data.
     /// The indices in the array correspond to the following planes:
     ///
-    /// 0 - Y/Luma plane
-    /// 1 - U/Cb plane
-    /// 2 - V/Cr plane
+    /// - 0 - Y/Luma plane
+    /// - 1 - U/Cb plane
+    /// - 2 - V/Cr plane
     pub planes: [PlaneData<T>; 3],
+    /// The number of bits per pixel.
     pub bit_depth: usize,
+    /// The chroma sampling format of the video. Most videos are in 4:2:0 format.
     pub chroma_sampling: ChromaSampling,
 }
 
@@ -51,13 +56,17 @@ impl<T: Pixel> FrameInfo<T> {
     }
 }
 
+/// Contains the data for one plane in a video frame. For chroma planes, this data is
+/// represented in the original chroma sampling. E.g. if this is a 4:2:0 video clip,
+/// the chroma planes will have half the resolution, in each dimension, of the luma
+/// plane.
 #[derive(Clone, Debug)]
 pub struct PlaneData<T: Pixel> {
     /// The width, in pixels, of this plane.
     pub width: usize,
     /// The height, in pixels, of this plane.
     pub height: usize,
-    /// Each plane's pixels should be contained in a `Vec`, in row-major order.
+    /// A plane's pixels are contained in this `Vec`, in row-major order.
     /// A `u8` should be used for low-bit-depth video, and `u16` for high-bit-depth.
     pub data: Vec<T>,
 }
@@ -74,6 +83,7 @@ impl<T: Pixel> PlaneData<T> {
     }
 }
 
+/// Available chroma sampling formats.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ChromaSampling {
     /// Both vertically and horizontally subsampled.
@@ -136,8 +146,9 @@ impl ChromaSampling {
 /// Sample position for subsampled chroma
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ChromaSamplePosition {
-    /// The source video transfer function must be signaled
-    /// outside the AV1 bitstream.
+    /// The source video transfer function is not signaled. This crate will assume
+    /// no transformation needs to be done on this data, but there is a risk of metric
+    /// calculations being inaccurate.
     Unknown,
     /// Horizontally co-located with (0, 0) luma sample, vertically positioned
     /// in the middle between two luma samples.
@@ -146,7 +157,7 @@ pub enum ChromaSamplePosition {
     Colocated,
     /// Bilaterally located chroma plane in the diagonal space between luma samples.
     Bilateral,
-    /// Interlaced content with interpolated chroma samples
+    /// Interlaced content with interpolated chroma samples.
     Interpolated,
 }
 
@@ -166,6 +177,6 @@ pub struct PlanarMetrics {
     pub u: f64,
     /// Metric value for the V/Cb plane.
     pub v: f64,
-    /// Weighted average of the three planes for this frame
+    /// Weighted average of the three planes.
     pub avg: f64,
 }

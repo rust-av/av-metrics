@@ -1,3 +1,9 @@
+//! Peak Signal-to-Noise Ratio metric.
+//!
+//! PSNR is most easily defined via the mean squared error between two images.
+//!
+//! See https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio for more details.
+
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
@@ -5,7 +11,7 @@ use crate::video::{FrameInfo, PlanarMetrics, PlaneData};
 use crate::MetricsError;
 use std::error::Error;
 
-/// Contains different methods of calculating PSNR over a whole video.
+/// Contains different methods of calculating PSNR over a pair of videos.
 /// Each method uses the same per-frame metrics, but combines them differently.
 #[derive(Debug, Clone, Copy)]
 pub struct PsnrResults {
@@ -15,6 +21,11 @@ pub struct PsnrResults {
     pub apsnr: PlanarMetrics,
 }
 
+/// Calculates the PSNR for two videos. Higher is better.
+///
+/// PSNR is capped at 100 in order to avoid skewed statistics
+/// from e.g. all black frames, which would
+/// otherwise show a PSNR of infinity.
 #[cfg(feature = "decode")]
 #[inline]
 pub fn calculate_video_psnr<D: Decoder<T>, T: Pixel>(
@@ -63,11 +74,11 @@ pub fn calculate_video_psnr<D: Decoder<T>, T: Pixel>(
     Ok(PsnrResults { psnr, apsnr })
 }
 
-/// Calculates the PSNR for a `Frame` by comparing the original (uncompressed) to the compressed
-/// version of the frame. Higher PSNR is better--PSNR is capped at 100 in order to avoid skewed
-/// statistics from e.g. all black frames, which would otherwise show a PSNR of infinity.
+/// Calculates the PSNR for two video frames. Higher is better.
 ///
-/// See https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio for more details.
+/// PSNR is capped at 100 in order to avoid skewed statistics
+/// from e.g. all black frames, which would
+/// otherwise show a PSNR of infinity.
 #[inline]
 pub fn calculate_frame_psnr<T: Pixel>(
     frame1: &FrameInfo<T>,
