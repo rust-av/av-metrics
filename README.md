@@ -15,3 +15,23 @@
  - [X] SSIM
  - [X] MSSSIM
  - [X] CIEDE2000
+
+## Installation
+
+### As a library
+
+Add the following to your Cargo.toml
+```toml
+av-metrics = "0.2"
+```
+
+Then check out [the API docs](https://docs.rs/av-metrics/).
+
+### As a binary
+
+Pre-built binaries are coming soon. In the meantime, have the latest stable Rust
+installed and run the following:
+
+```
+cargo install av-metrics-tool
+```
