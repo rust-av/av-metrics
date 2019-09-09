@@ -11,7 +11,9 @@ use crate::video::pixel::Pixel;
 use crate::video::{FrameInfo, PlanarMetrics, PlaneData};
 #[cfg(feature = "decode")]
 use crate::MetricsError;
+use rayon::prelude::*;
 use std::error::Error;
+use std::iter;
 
 /// Contains different methods of calculating PSNR over a pair of videos.
 /// Each method uses the same per-frame metrics, but combines them differently.
@@ -41,34 +43,44 @@ pub fn calculate_video_psnr<D: Decoder>(
         }));
     }
 
-    let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
-    let mut frame_no = 0;
-    while frame_limit.map(|limit| limit > frame_no).unwrap_or(true) {
-        if decoder1.get_bit_depth() > 8 {
-            let frame1 = decoder1.read_video_frame::<u16>();
-            let frame2 = decoder2.read_video_frame::<u16>();
-            if let Ok(frame1) = frame1 {
-                if let Ok(frame2) = frame2 {
-                    metrics.push(calculate_frame_psnr_inner(&frame1, &frame2)?);
-                    frame_no += 1;
-                    continue;
-                }
-            }
-        } else {
-            let frame1 = decoder1.read_video_frame::<u8>();
-            let frame2 = decoder2.read_video_frame::<u8>();
-            if let Ok(frame1) = frame1 {
-                if let Ok(frame2) = frame2 {
-                    metrics.push(calculate_frame_psnr_inner(&frame1, &frame2)?);
-                    frame_no += 1;
-                    continue;
-                }
-            }
-        }
-        // At end of video
-        break;
+    let mut metrics: Vec<[PsnrMetrics; 3]>;
+    if decoder1.get_bit_depth() > 8 {
+        //        metrics = iter::from_fn(|| decoder1.read_video_frame::<u16>().ok())
+        //            .zip(iter::from_fn(|| decoder2.read_video_frame::<u16>().ok()))
+        //            .take(frame_limit.unwrap_or(std::usize::MAX))
+        //            .par_bridge()
+        //            .try_fold(
+        //                || vec![],
+        //                |mut acc, (frame1, frame2)| {
+        //                    calculate_frame_psnr_inner(frame1, frame2).map(|metrics| {
+        //                        acc.push(metrics);
+        //                        acc
+        //                    })
+        //                },
+        //            )?;
+    } else {
+        metrics = iter::from_fn(|| decoder1.read_video_frame::<u8>().ok())
+            .zip(iter::from_fn(|| decoder2.read_video_frame::<u8>().ok()))
+            .take(frame_limit.unwrap_or(std::usize::MAX))
+            .par_bridge()
+            .try_fold(
+                || vec![],
+                |mut acc, (frame1, frame2)| {
+                    calculate_frame_psnr_inner(&frame1, &frame2).map(|metrics| {
+                        acc.push(metrics);
+                        acc
+                    })
+                },
+            )
+            .try_reduce(
+                || vec![],
+                |mut a, b| {
+                    a.extend_from_slice(&b);
+                    Ok(a)
+                },
+            )?;
     }
-    if frame_no == 0 {
+    if metrics.is_empty() {
         return Err(MetricsError::UnsupportedInput {
             reason: "No readable frames found in one or more input files",
         }
@@ -82,14 +94,14 @@ pub fn calculate_video_psnr<D: Decoder>(
         avg: calculate_summed_psnr(&metrics.iter().flatten().copied().collect::<Vec<_>>()),
     };
     let apsnr = PlanarMetrics {
-        y: metrics.iter().map(|m| calculate_psnr(m[0])).sum::<f64>() / frame_no as f64,
-        u: metrics.iter().map(|m| calculate_psnr(m[1])).sum::<f64>() / frame_no as f64,
-        v: metrics.iter().map(|m| calculate_psnr(m[2])).sum::<f64>() / frame_no as f64,
+        y: metrics.iter().map(|m| calculate_psnr(m[0])).sum::<f64>() / metrics.len() as f64,
+        u: metrics.iter().map(|m| calculate_psnr(m[1])).sum::<f64>() / metrics.len() as f64,
+        v: metrics.iter().map(|m| calculate_psnr(m[2])).sum::<f64>() / metrics.len() as f64,
         avg: metrics
             .iter()
             .map(|m| calculate_summed_psnr(m))
             .sum::<f64>()
-            / frame_no as f64,
+            / metrics.len() as f64,
     };
     Ok(PsnrResults { psnr, apsnr })
 }
@@ -123,7 +135,7 @@ struct PsnrMetrics {
 fn calculate_frame_psnr_inner<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
-) -> Result<[PsnrMetrics; 3], Box<dyn Error>> {
+) -> Result<[PsnrMetrics; 3], MetricsError> {
     frame1.can_compare(&frame2)?;
 
     let bit_depth = frame1.bit_depth;
