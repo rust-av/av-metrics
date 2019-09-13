@@ -1,6 +1,8 @@
 name: Deploy av_metrics_tool for Windows
 
-on: release
+on:
+  release:
+    types: [created]
 
 jobs:
   upload:
