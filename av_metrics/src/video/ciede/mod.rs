@@ -8,9 +8,7 @@
 #[cfg(feature = "decode")]
 use crate::video::decode::Decoder;
 use crate::video::pixel::{CastFromPrimitive, Pixel};
-use crate::video::FrameInfo;
-#[cfg(feature = "decode")]
-use crate::MetricsError;
+use crate::video::{FrameInfo, VideoMetric};
 use std::f64;
 
 mod rgbtolab;
@@ -34,46 +32,7 @@ pub fn calculate_video_ciede<D: Decoder>(
     frame_limit: Option<usize>,
     use_simd: bool,
 ) -> Result<f64, Box<dyn Error>> {
-    if decoder1.get_bit_depth() != decoder2.get_bit_depth() {
-        return Err(Box::new(MetricsError::InputMismatch {
-            reason: "Bit depths do not match",
-        }));
-    }
-
-    let mut sum = 0f64;
-    let mut frame_no = 0;
-    while frame_limit.map(|limit| limit > frame_no).unwrap_or(true) {
-        if decoder1.get_bit_depth() > 8 {
-            let frame1 = decoder1.read_video_frame::<u16>();
-            let frame2 = decoder2.read_video_frame::<u16>();
-            if let Ok(frame1) = frame1 {
-                if let Ok(frame2) = frame2 {
-                    sum += calculate_frame_ciede(&frame1, &frame2, use_simd)?;
-                    frame_no += 1;
-                    continue;
-                }
-            }
-        } else {
-            let frame1 = decoder1.read_video_frame::<u8>();
-            let frame2 = decoder2.read_video_frame::<u8>();
-            if let Ok(frame1) = frame1 {
-                if let Ok(frame2) = frame2 {
-                    sum += calculate_frame_ciede(&frame1, &frame2, use_simd)?;
-                    frame_no += 1;
-                    continue;
-                }
-            }
-        }
-        // At end of video
-        break;
-    }
-    if frame_no == 0 {
-        return Err(MetricsError::MalformedInput {
-            reason: "No readable frames found in one or more input files",
-        }
-        .into());
-    }
-    Ok(sum / frame_no as f64)
+    Ciede2000::new(use_simd).process_video(decoder1, decoder2, frame_limit)
 }
 
 /// Calculate the CIEDE2000 metric between two video frames. Higher is better.
@@ -83,40 +42,72 @@ pub fn calculate_frame_ciede<T: Pixel>(
     frame2: &FrameInfo<T>,
     use_simd: bool,
 ) -> Result<f64, Box<dyn Error>> {
-    frame1.can_compare(&frame2)?;
+    Ciede2000::new(use_simd).process_frame(frame1, frame2)
+}
 
-    let dec = frame1.chroma_sampling.get_decimation().unwrap_or((1, 1));
-    let y_width = frame1.planes[0].width;
-    let y_height = frame1.planes[0].height;
-    let c_width = frame1.planes[1].width;
-    let delta_e_row_fn = get_delta_e_row_fn(frame1.bit_depth, dec.0, use_simd);
-    let mut delta_e_vec: Vec<f32> = vec![0.0; y_width * y_height];
-    for i in 0..y_height {
-        let y_start = i * y_width;
-        let y_end = y_start + y_width;
-        let c_start = (i >> dec.1) * c_width;
-        let c_end = c_start + c_width;
-        unsafe {
-            delta_e_row_fn(
-                FrameRow {
-                    y: &frame1.planes[0].data[y_start..y_end],
-                    u: &frame1.planes[1].data[c_start..c_end],
-                    v: &frame1.planes[2].data[c_start..c_end],
-                },
-                FrameRow {
-                    y: &frame2.planes[0].data[y_start..y_end],
-                    u: &frame2.planes[1].data[c_start..c_end],
-                    v: &frame2.planes[2].data[c_start..c_end],
-                },
-                &mut delta_e_vec[y_start..y_end],
-            );
-        }
+struct Ciede2000 {
+    use_simd: bool,
+}
+
+impl Ciede2000 {
+    pub fn new(use_simd: bool) -> Self {
+        Ciede2000 { use_simd }
     }
-    let score = 45.
-        - 20.
-            * (delta_e_vec.iter().map(|x| *x as f64).sum::<f64>() / ((y_width * y_height) as f64))
-                .log10();
-    Ok(score)
+}
+
+impl VideoMetric for Ciede2000 {
+    type FrameResult = f64;
+    type VideoResult = f64;
+
+    fn process_frame<T: Pixel>(
+        &mut self,
+        frame1: &FrameInfo<T>,
+        frame2: &FrameInfo<T>,
+    ) -> Result<Self::FrameResult, Box<dyn Error>> {
+        frame1.can_compare(&frame2)?;
+
+        let dec = frame1.chroma_sampling.get_decimation().unwrap_or((1, 1));
+        let y_width = frame1.planes[0].width;
+        let y_height = frame1.planes[0].height;
+        let c_width = frame1.planes[1].width;
+        let delta_e_row_fn = get_delta_e_row_fn(frame1.bit_depth, dec.0, self.use_simd);
+        let mut delta_e_vec: Vec<f32> = vec![0.0; y_width * y_height];
+        for i in 0..y_height {
+            let y_start = i * y_width;
+            let y_end = y_start + y_width;
+            let c_start = (i >> dec.1) * c_width;
+            let c_end = c_start + c_width;
+            unsafe {
+                delta_e_row_fn(
+                    FrameRow {
+                        y: &frame1.planes[0].data[y_start..y_end],
+                        u: &frame1.planes[1].data[c_start..c_end],
+                        v: &frame1.planes[2].data[c_start..c_end],
+                    },
+                    FrameRow {
+                        y: &frame2.planes[0].data[y_start..y_end],
+                        u: &frame2.planes[1].data[c_start..c_end],
+                        v: &frame2.planes[2].data[c_start..c_end],
+                    },
+                    &mut delta_e_vec[y_start..y_end],
+                );
+            }
+        }
+        let score = 45.
+            - 20.
+                * (delta_e_vec.iter().map(|x| *x as f64).sum::<f64>()
+                    / ((y_width * y_height) as f64))
+                    .log10();
+        Ok(score)
+    }
+
+    #[cfg(feature = "decode")]
+    fn aggregate_frame_results(
+        &self,
+        metrics: &[Self::FrameResult],
+    ) -> Result<Self::VideoResult, Box<dyn Error>> {
+        Ok(metrics.iter().copied().sum::<f64>() / metrics.len() as f64)
+    }
 }
 
 // Arguments for delta e
