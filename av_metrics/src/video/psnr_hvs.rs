@@ -10,9 +10,7 @@
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
-use crate::video::{FrameInfo, PlanarMetrics, PlaneData};
-#[cfg(feature = "decode")]
-use crate::MetricsError;
+use crate::video::{FrameInfo, PlanarMetrics, PlaneData, VideoMetric};
 use std::error::Error;
 
 /// Calculates the PSNR-HVS score between two videos. Higher is better.
@@ -23,66 +21,7 @@ pub fn calculate_video_psnr_hvs<D: Decoder>(
     decoder2: &mut D,
     frame_limit: Option<usize>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    if decoder1.get_bit_depth() != decoder2.get_bit_depth() {
-        return Err(Box::new(MetricsError::InputMismatch {
-            reason: "Bit depths do not match",
-        }));
-    }
-
-    let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
-    let mut frame_no = 0;
-    let mut cweight = None;
-    while frame_limit.map(|limit| limit > frame_no).unwrap_or(true) {
-        if decoder1.get_bit_depth() > 8 {
-            let frame1 = decoder1.read_video_frame::<u16>();
-            let frame2 = decoder2.read_video_frame::<u16>();
-            if let Ok(frame1) = frame1 {
-                if let Ok(frame2) = frame2 {
-                    if cweight.is_none() {
-                        cweight = Some(frame1.chroma_sampling.get_chroma_weight());
-                    }
-                    metrics.push(calculate_frame_psnr_hvs_inner(&frame1, &frame2)?);
-                    frame_no += 1;
-                    continue;
-                }
-            }
-        } else {
-            let frame1 = decoder1.read_video_frame::<u8>();
-            let frame2 = decoder2.read_video_frame::<u8>();
-            if let Ok(frame1) = frame1 {
-                if let Ok(frame2) = frame2 {
-                    if cweight.is_none() {
-                        cweight = Some(frame1.chroma_sampling.get_chroma_weight());
-                    }
-                    metrics.push(calculate_frame_psnr_hvs_inner(&frame1, &frame2)?);
-                    frame_no += 1;
-                    continue;
-                }
-            }
-        }
-        // At end of video
-        break;
-    }
-    if frame_no == 0 {
-        return Err(MetricsError::UnsupportedInput {
-            reason: "No readable frames found in one or more input files",
-        }
-        .into());
-    }
-
-    let cweight = cweight.unwrap();
-    let sum_y = metrics.iter().map(|m| m.y).sum::<f64>();
-    let sum_u = metrics.iter().map(|m| m.u).sum::<f64>();
-    let sum_v = metrics.iter().map(|m| m.v).sum::<f64>();
-    Ok(PlanarMetrics {
-        y: log10_convert(sum_y, 1. / frame_no as f64),
-        u: log10_convert(sum_u, 1. / frame_no as f64),
-        v: log10_convert(sum_v, 1. / frame_no as f64),
-        avg: log10_convert(
-            sum_y + cweight * (sum_u + sum_v),
-            (1. + 2. * cweight) * 1. / frame_no as f64,
-        ),
-    })
+    PsnrHvs::default().process_video(decoder1, decoder2, frame_limit)
 }
 
 /// Calculates the PSNR-HVS score between two video frames. Higher is better.
@@ -91,8 +30,9 @@ pub fn calculate_frame_psnr_hvs<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let result = calculate_frame_psnr_hvs_inner(frame1, frame2)?;
-    let cweight = frame1.chroma_sampling.get_chroma_weight();
+    let mut processor = PsnrHvs::default();
+    let result = processor.process_frame(frame1, frame2)?;
+    let cweight = processor.cweight.unwrap();
     Ok(PlanarMetrics {
         y: log10_convert(result.y, 1.0),
         u: log10_convert(result.u, 1.0),
@@ -104,25 +44,59 @@ pub fn calculate_frame_psnr_hvs<T: Pixel>(
     })
 }
 
-/// Returns the *unweighted* scores. Depending on whether we output per-frame
-/// or per-video, these will be weighted at different points.
-fn calculate_frame_psnr_hvs_inner<T: Pixel>(
-    frame1: &FrameInfo<T>,
-    frame2: &FrameInfo<T>,
-) -> Result<PlanarMetrics, Box<dyn Error>> {
-    frame1.can_compare(&frame2)?;
+#[derive(Default)]
+struct PsnrHvs {
+    pub cweight: Option<f64>,
+}
 
-    let bit_depth = frame1.bit_depth;
-    let y = calculate_plane_psnr_hvs(&frame1.planes[0], &frame2.planes[0], 0, bit_depth);
-    let u = calculate_plane_psnr_hvs(&frame1.planes[1], &frame2.planes[1], 1, bit_depth);
-    let v = calculate_plane_psnr_hvs(&frame1.planes[2], &frame2.planes[2], 2, bit_depth);
-    Ok(PlanarMetrics {
-        y,
-        u,
-        v,
-        // field not used here
-        avg: 0.,
-    })
+impl VideoMetric for PsnrHvs {
+    type FrameResult = PlanarMetrics;
+    type VideoResult = PlanarMetrics;
+
+    /// Returns the *unweighted* scores. Depending on whether we output per-frame
+    /// or per-video, these will be weighted at different points.
+    fn process_frame<T: Pixel>(
+        &mut self,
+        frame1: &FrameInfo<T>,
+        frame2: &FrameInfo<T>,
+    ) -> Result<Self::FrameResult, Box<dyn Error>> {
+        frame1.can_compare(&frame2)?;
+        if self.cweight.is_none() {
+            self.cweight = Some(frame1.chroma_sampling.get_chroma_weight());
+        }
+
+        let bit_depth = frame1.bit_depth;
+        let y = calculate_plane_psnr_hvs(&frame1.planes[0], &frame2.planes[0], 0, bit_depth);
+        let u = calculate_plane_psnr_hvs(&frame1.planes[1], &frame2.planes[1], 1, bit_depth);
+        let v = calculate_plane_psnr_hvs(&frame1.planes[2], &frame2.planes[2], 2, bit_depth);
+        Ok(PlanarMetrics {
+            y,
+            u,
+            v,
+            // field not used here
+            avg: 0.,
+        })
+    }
+
+    #[cfg(feature = "decode")]
+    fn aggregate_frame_results(
+        &self,
+        metrics: &[Self::FrameResult],
+    ) -> Result<Self::VideoResult, Box<dyn Error>> {
+        let cweight = self.cweight.unwrap();
+        let sum_y = metrics.iter().map(|m| m.y).sum::<f64>();
+        let sum_u = metrics.iter().map(|m| m.u).sum::<f64>();
+        let sum_v = metrics.iter().map(|m| m.v).sum::<f64>();
+        Ok(PlanarMetrics {
+            y: log10_convert(sum_y, 1. / metrics.len() as f64),
+            u: log10_convert(sum_u, 1. / metrics.len() as f64),
+            v: log10_convert(sum_v, 1. / metrics.len() as f64),
+            avg: log10_convert(
+                sum_y + cweight * (sum_u + sum_v),
+                (1. + 2. * cweight) * 1. / metrics.len() as f64,
+            ),
+        })
+    }
 }
 
 // Normalized inverse quantization matrix for 8x8 DCT at the point of transparency.

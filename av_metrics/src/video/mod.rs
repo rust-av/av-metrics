@@ -9,6 +9,8 @@ pub mod psnr_hvs;
 pub mod ssim;
 
 use crate::MetricsError;
+use std::error::Error;
+
 #[cfg(feature = "decode")]
 pub use decode::*;
 pub use pixel::*;
@@ -180,4 +182,76 @@ pub struct PlanarMetrics {
     pub v: f64,
     /// Weighted average of the three planes.
     pub avg: f64,
+}
+
+trait VideoMetric {
+    type FrameResult;
+    type VideoResult;
+
+    /// Generic method for internal use that processes multiple frames from a video
+    /// into an aggregate metric.
+    ///
+    /// `frame_fn` is the function to calculate metrics on one frame of the video.
+    /// `acc_fn` is the accumulator function to calculate the aggregate metric.
+    #[cfg(feature = "decode")]
+    fn process_video<D: Decoder>(
+        &mut self,
+        decoder1: &mut D,
+        decoder2: &mut D,
+        frame_limit: Option<usize>,
+    ) -> Result<Self::VideoResult, Box<dyn Error>> {
+        if decoder1.get_bit_depth() != decoder2.get_bit_depth() {
+            return Err(Box::new(MetricsError::InputMismatch {
+                reason: "Bit depths do not match",
+            }));
+        }
+
+        let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
+        let mut frame_no = 0;
+        while frame_limit.map(|limit| limit > frame_no).unwrap_or(true) {
+            if decoder1.get_bit_depth() > 8 {
+                let frame1 = decoder1.read_video_frame::<u16>();
+                let frame2 = decoder2.read_video_frame::<u16>();
+                if let Ok(frame1) = frame1 {
+                    if let Ok(frame2) = frame2 {
+                        metrics.push(self.process_frame(&frame1, &frame2)?);
+                        frame_no += 1;
+                        continue;
+                    }
+                }
+            } else {
+                let frame1 = decoder1.read_video_frame::<u8>();
+                let frame2 = decoder2.read_video_frame::<u8>();
+                if let Ok(frame1) = frame1 {
+                    if let Ok(frame2) = frame2 {
+                        metrics.push(self.process_frame(&frame1, &frame2)?);
+                        frame_no += 1;
+                        continue;
+                    }
+                }
+            }
+            // At end of video
+            break;
+        }
+        if frame_no == 0 {
+            return Err(MetricsError::UnsupportedInput {
+                reason: "No readable frames found in one or more input files",
+            }
+            .into());
+        }
+
+        self.aggregate_frame_results(&metrics)
+    }
+
+    fn process_frame<T: Pixel>(
+        &mut self,
+        frame1: &FrameInfo<T>,
+        frame2: &FrameInfo<T>,
+    ) -> Result<Self::FrameResult, Box<dyn Error>>;
+
+    #[cfg(feature = "decode")]
+    fn aggregate_frame_results(
+        &self,
+        metrics: &[Self::FrameResult],
+    ) -> Result<Self::VideoResult, Box<dyn Error>>;
 }

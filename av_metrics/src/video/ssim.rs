@@ -12,9 +12,7 @@
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
-use crate::video::{FrameInfo, PlanarMetrics, PlaneData};
-#[cfg(feature = "decode")]
-use crate::MetricsError;
+use crate::video::{FrameInfo, PlanarMetrics, PlaneData, VideoMetric};
 use std::cmp;
 use std::error::Error;
 use std::f64::consts::{E, PI};
@@ -27,66 +25,7 @@ pub fn calculate_video_ssim<D: Decoder>(
     decoder2: &mut D,
     frame_limit: Option<usize>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    if decoder1.get_bit_depth() != decoder2.get_bit_depth() {
-        return Err(Box::new(MetricsError::InputMismatch {
-            reason: "Bit depths do not match",
-        }));
-    }
-
-    let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
-    let mut frame_no = 0;
-    let mut cweight = None;
-    while frame_limit.map(|limit| limit > frame_no).unwrap_or(true) {
-        if decoder1.get_bit_depth() > 8 {
-            let frame1 = decoder1.read_video_frame::<u16>();
-            let frame2 = decoder2.read_video_frame::<u16>();
-            if let Ok(frame1) = frame1 {
-                if let Ok(frame2) = frame2 {
-                    if cweight.is_none() {
-                        cweight = Some(frame1.chroma_sampling.get_chroma_weight());
-                    }
-                    metrics.push(calculate_frame_ssim_inner(&frame1, &frame2)?);
-                    frame_no += 1;
-                    continue;
-                }
-            }
-        } else {
-            let frame1 = decoder1.read_video_frame::<u8>();
-            let frame2 = decoder2.read_video_frame::<u8>();
-            if let Ok(frame1) = frame1 {
-                if let Ok(frame2) = frame2 {
-                    if cweight.is_none() {
-                        cweight = Some(frame1.chroma_sampling.get_chroma_weight());
-                    }
-                    metrics.push(calculate_frame_ssim_inner(&frame1, &frame2)?);
-                    frame_no += 1;
-                    continue;
-                }
-            }
-        }
-        // At end of video
-        break;
-    }
-    if frame_no == 0 {
-        return Err(MetricsError::UnsupportedInput {
-            reason: "No readable frames found in one or more input files",
-        }
-        .into());
-    }
-
-    let cweight = cweight.unwrap();
-    let y_sum = metrics.iter().map(|m| m.y).sum::<f64>();
-    let u_sum = metrics.iter().map(|m| m.u).sum::<f64>();
-    let v_sum = metrics.iter().map(|m| m.v).sum::<f64>();
-    Ok(PlanarMetrics {
-        y: log10_convert(y_sum, frame_no as f64),
-        u: log10_convert(u_sum, frame_no as f64),
-        v: log10_convert(v_sum, frame_no as f64),
-        avg: log10_convert(
-            y_sum + cweight * (u_sum + v_sum),
-            (1. + 2. * cweight) * frame_no as f64,
-        ),
-    })
+    Ssim::default().process_video(decoder1, decoder2, frame_limit)
 }
 
 /// Calculates the SSIM score between two video frames. Higher is better.
@@ -95,72 +34,109 @@ pub fn calculate_frame_ssim<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let metrics = calculate_frame_ssim_inner(frame1, frame2)?;
-    let cweight = frame1.chroma_sampling.get_chroma_weight();
+    let mut processor = Ssim::default();
+    let result = processor.process_frame(frame1, frame2)?;
+    let cweight = processor.cweight.unwrap();
     Ok(PlanarMetrics {
-        y: log10_convert(metrics.y, 1.0),
-        u: log10_convert(metrics.u, 1.0),
-        v: log10_convert(metrics.v, 1.0),
+        y: log10_convert(result.y, 1.0),
+        u: log10_convert(result.u, 1.0),
+        v: log10_convert(result.v, 1.0),
         avg: log10_convert(
-            metrics.y + cweight * (metrics.u + metrics.v),
+            result.y + cweight * (result.u + result.v),
             1.0 + 2.0 * cweight,
         ),
     })
 }
 
-fn calculate_frame_ssim_inner<T: Pixel>(
-    frame1: &FrameInfo<T>,
-    frame2: &FrameInfo<T>,
-) -> Result<PlanarMetrics, Box<dyn Error>> {
-    frame1.can_compare(&frame2)?;
+#[derive(Default)]
+struct Ssim {
+    pub cweight: Option<f64>,
+}
 
-    const KERNEL_SHIFT: usize = 8;
-    const KERNEL_WEIGHT: usize = 1 << KERNEL_SHIFT;
-    let sample_max = (1 << frame1.bit_depth) - 1;
+impl VideoMetric for Ssim {
+    type FrameResult = PlanarMetrics;
+    type VideoResult = PlanarMetrics;
 
-    let y_kernel = build_gaussian_kernel(
-        frame1.planes[0].height as f64 * 1.5 / 256.0,
-        cmp::min(frame1.planes[0].width, frame1.planes[0].height),
-        KERNEL_WEIGHT,
-    );
-    let y = calculate_plane_ssim(
-        &frame1.planes[0],
-        &frame2.planes[0],
-        sample_max,
-        &y_kernel,
-        &y_kernel,
-    );
-    let u_kernel = build_gaussian_kernel(
-        frame1.planes[1].height as f64 * 1.5 / 256.0,
-        cmp::min(frame1.planes[1].width, frame1.planes[1].height),
-        KERNEL_WEIGHT,
-    );
-    let u = calculate_plane_ssim(
-        &frame1.planes[1],
-        &frame2.planes[1],
-        sample_max,
-        &u_kernel,
-        &u_kernel,
-    );
-    let v_kernel = build_gaussian_kernel(
-        frame1.planes[2].height as f64 * 1.5 / 256.0,
-        cmp::min(frame1.planes[2].width, frame1.planes[2].height),
-        KERNEL_WEIGHT,
-    );
-    let v = calculate_plane_ssim(
-        &frame1.planes[2],
-        &frame2.planes[2],
-        sample_max,
-        &v_kernel,
-        &v_kernel,
-    );
-    Ok(PlanarMetrics {
-        y,
-        u,
-        v,
-        // Not used here
-        avg: 0.,
-    })
+    /// Returns the *unweighted* scores. Depending on whether we output per-frame
+    /// or per-video, these will be weighted at different points.
+    fn process_frame<T: Pixel>(
+        &mut self,
+        frame1: &FrameInfo<T>,
+        frame2: &FrameInfo<T>,
+    ) -> Result<Self::FrameResult, Box<dyn Error>> {
+        frame1.can_compare(&frame2)?;
+        if self.cweight.is_none() {
+            self.cweight = Some(frame1.chroma_sampling.get_chroma_weight());
+        }
+
+        const KERNEL_SHIFT: usize = 8;
+        const KERNEL_WEIGHT: usize = 1 << KERNEL_SHIFT;
+        let sample_max = (1 << frame1.bit_depth) - 1;
+
+        let y_kernel = build_gaussian_kernel(
+            frame1.planes[0].height as f64 * 1.5 / 256.0,
+            cmp::min(frame1.planes[0].width, frame1.planes[0].height),
+            KERNEL_WEIGHT,
+        );
+        let y = calculate_plane_ssim(
+            &frame1.planes[0],
+            &frame2.planes[0],
+            sample_max,
+            &y_kernel,
+            &y_kernel,
+        );
+        let u_kernel = build_gaussian_kernel(
+            frame1.planes[1].height as f64 * 1.5 / 256.0,
+            cmp::min(frame1.planes[1].width, frame1.planes[1].height),
+            KERNEL_WEIGHT,
+        );
+        let u = calculate_plane_ssim(
+            &frame1.planes[1],
+            &frame2.planes[1],
+            sample_max,
+            &u_kernel,
+            &u_kernel,
+        );
+        let v_kernel = build_gaussian_kernel(
+            frame1.planes[2].height as f64 * 1.5 / 256.0,
+            cmp::min(frame1.planes[2].width, frame1.planes[2].height),
+            KERNEL_WEIGHT,
+        );
+        let v = calculate_plane_ssim(
+            &frame1.planes[2],
+            &frame2.planes[2],
+            sample_max,
+            &v_kernel,
+            &v_kernel,
+        );
+        Ok(PlanarMetrics {
+            y,
+            u,
+            v,
+            // Not used here
+            avg: 0.,
+        })
+    }
+
+    #[cfg(feature = "decode")]
+    fn aggregate_frame_results(
+        &self,
+        metrics: &[Self::FrameResult],
+    ) -> Result<Self::VideoResult, Box<dyn Error>> {
+        let cweight = self.cweight.unwrap();
+        let y_sum = metrics.iter().map(|m| m.y).sum::<f64>();
+        let u_sum = metrics.iter().map(|m| m.u).sum::<f64>();
+        let v_sum = metrics.iter().map(|m| m.v).sum::<f64>();
+        Ok(PlanarMetrics {
+            y: log10_convert(y_sum, metrics.len() as f64),
+            u: log10_convert(u_sum, metrics.len() as f64),
+            v: log10_convert(v_sum, metrics.len() as f64),
+            avg: log10_convert(
+                y_sum + cweight * (u_sum + v_sum),
+                (1. + 2. * cweight) * metrics.len() as f64,
+            ),
+        })
+    }
 }
 
 /// Calculates the MSSSIM score between two videos. Higher is better.
@@ -175,66 +151,7 @@ pub fn calculate_video_msssim<D: Decoder>(
     decoder2: &mut D,
     frame_limit: Option<usize>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    if decoder1.get_bit_depth() != decoder2.get_bit_depth() {
-        return Err(Box::new(MetricsError::InputMismatch {
-            reason: "Bit depths do not match",
-        }));
-    }
-
-    let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
-    let mut frame_no = 0;
-    let mut cweight = None;
-    while frame_limit.map(|limit| limit > frame_no).unwrap_or(true) {
-        if decoder1.get_bit_depth() > 8 {
-            let frame1 = decoder1.read_video_frame::<u16>();
-            let frame2 = decoder2.read_video_frame::<u16>();
-            if let Ok(frame1) = frame1 {
-                if let Ok(frame2) = frame2 {
-                    if cweight.is_none() {
-                        cweight = Some(frame1.chroma_sampling.get_chroma_weight());
-                    }
-                    metrics.push(calculate_frame_msssim_inner(&frame1, &frame2)?);
-                    frame_no += 1;
-                    continue;
-                }
-            }
-        } else {
-            let frame1 = decoder1.read_video_frame::<u8>();
-            let frame2 = decoder2.read_video_frame::<u8>();
-            if let Ok(frame1) = frame1 {
-                if let Ok(frame2) = frame2 {
-                    if cweight.is_none() {
-                        cweight = Some(frame1.chroma_sampling.get_chroma_weight());
-                    }
-                    metrics.push(calculate_frame_msssim_inner(&frame1, &frame2)?);
-                    frame_no += 1;
-                    continue;
-                }
-            }
-        }
-        // At end of video
-        break;
-    }
-    if frame_no == 0 {
-        return Err(MetricsError::UnsupportedInput {
-            reason: "No readable frames found in one or more input files",
-        }
-        .into());
-    }
-
-    let cweight = cweight.unwrap();
-    let y_sum = metrics.iter().map(|m| m.y).sum::<f64>();
-    let u_sum = metrics.iter().map(|m| m.u).sum::<f64>();
-    let v_sum = metrics.iter().map(|m| m.v).sum::<f64>();
-    Ok(PlanarMetrics {
-        y: log10_convert(y_sum, frame_no as f64),
-        u: log10_convert(u_sum, frame_no as f64),
-        v: log10_convert(v_sum, frame_no as f64),
-        avg: log10_convert(
-            y_sum + cweight * (u_sum + v_sum),
-            (1. + 2. * cweight) * frame_no as f64,
-        ),
-    })
+    MsSsim::default().process_video(decoder1, decoder2, frame_limit)
 }
 
 /// Calculates the MSSSIM score between two video frames. Higher is better.
@@ -247,32 +164,70 @@ pub fn calculate_frame_msssim<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let metrics = calculate_frame_msssim_inner(frame1, frame2)?;
-    let cweight = frame1.chroma_sampling.get_chroma_weight();
+    let mut processor = MsSsim::default();
+    let result = processor.process_frame(frame1, frame2)?;
+    let cweight = processor.cweight.unwrap();
     Ok(PlanarMetrics {
-        y: log10_convert(metrics.y, 1.0),
-        u: log10_convert(metrics.u, 1.0),
-        v: log10_convert(metrics.v, 1.0),
+        y: log10_convert(result.y, 1.0),
+        u: log10_convert(result.u, 1.0),
+        v: log10_convert(result.v, 1.0),
         avg: log10_convert(
-            metrics.y + cweight * (metrics.u + metrics.v),
+            result.y + cweight * (result.u + result.v),
             1.0 + 2.0 * cweight,
         ),
     })
 }
 
-fn calculate_frame_msssim_inner<T: Pixel>(
-    frame1: &FrameInfo<T>,
-    frame2: &FrameInfo<T>,
-) -> Result<PlanarMetrics, Box<dyn Error>> {
-    frame1.can_compare(&frame2)?;
-    let bit_depth = frame1.bit_depth;
-    Ok(PlanarMetrics {
-        y: calculate_plane_msssim(&frame1.planes[0], &frame2.planes[0], bit_depth),
-        u: calculate_plane_msssim(&frame1.planes[1], &frame2.planes[1], bit_depth),
-        v: calculate_plane_msssim(&frame1.planes[2], &frame2.planes[2], bit_depth),
-        // Not used here
-        avg: 0.,
-    })
+#[derive(Default)]
+struct MsSsim {
+    pub cweight: Option<f64>,
+}
+
+impl VideoMetric for MsSsim {
+    type FrameResult = PlanarMetrics;
+    type VideoResult = PlanarMetrics;
+
+    /// Returns the *unweighted* scores. Depending on whether we output per-frame
+    /// or per-video, these will be weighted at different points.
+    fn process_frame<T: Pixel>(
+        &mut self,
+        frame1: &FrameInfo<T>,
+        frame2: &FrameInfo<T>,
+    ) -> Result<Self::FrameResult, Box<dyn Error>> {
+        frame1.can_compare(&frame2)?;
+        if self.cweight.is_none() {
+            self.cweight = Some(frame1.chroma_sampling.get_chroma_weight());
+        }
+
+        let bit_depth = frame1.bit_depth;
+        Ok(PlanarMetrics {
+            y: calculate_plane_msssim(&frame1.planes[0], &frame2.planes[0], bit_depth),
+            u: calculate_plane_msssim(&frame1.planes[1], &frame2.planes[1], bit_depth),
+            v: calculate_plane_msssim(&frame1.planes[2], &frame2.planes[2], bit_depth),
+            // Not used here
+            avg: 0.,
+        })
+    }
+
+    #[cfg(feature = "decode")]
+    fn aggregate_frame_results(
+        &self,
+        metrics: &[Self::FrameResult],
+    ) -> Result<Self::VideoResult, Box<dyn Error>> {
+        let cweight = self.cweight.unwrap();
+        let y_sum = metrics.iter().map(|m| m.y).sum::<f64>();
+        let u_sum = metrics.iter().map(|m| m.u).sum::<f64>();
+        let v_sum = metrics.iter().map(|m| m.v).sum::<f64>();
+        Ok(PlanarMetrics {
+            y: log10_convert(y_sum, metrics.len() as f64),
+            u: log10_convert(u_sum, metrics.len() as f64),
+            v: log10_convert(v_sum, metrics.len() as f64),
+            avg: log10_convert(
+                y_sum + cweight * (u_sum + v_sum),
+                (1. + 2. * cweight) * metrics.len() as f64,
+            ),
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
