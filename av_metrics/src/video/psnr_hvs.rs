@@ -184,6 +184,8 @@ fn calculate_plane_psnr_hvs<T: Pixel>(
     let mut p2 = [0i16; 8 * 8];
     let mut dct_p1 = [0i32; 8 * 8];
     let mut dct_p2 = [0i32; 8 * 8];
+    assert!(plane1.data.len() == width * height);
+    assert!(plane2.data.len() == width * height);
     for y in (0..(height - STEP)).step_by(STEP) {
         for x in (0..(width - STEP)).step_by(STEP) {
             let mut p1_means = [0.0; 4];
@@ -248,8 +250,8 @@ fn calculate_plane_psnr_hvs<T: Pixel>(
             p2.iter().copied().enumerate().for_each(|(i, v)| {
                 dct_p2[i] = v as i32;
             });
-            od_bin_fdct8x8(&mut dct_p1, 8);
-            od_bin_fdct8x8(&mut dct_p2, 8);
+            od_bin_fdct8x8(&mut dct_p1);
+            od_bin_fdct8x8(&mut dct_p2);
             for i in 0..8 {
                 for j in (i == 0) as usize..8 {
                     p1_mask += dct_p1[i * 8 + j].pow(2) as f64 * mask[i][j];
@@ -285,31 +287,35 @@ fn log10_convert(score: f64, weight: f64) -> f64 {
     10.0 * (-1.0 * (weight * score).log10())
 }
 
+const DCT_STRIDE: usize = 8;
+
 // Based on daala's version. It is different from the 8x8 DCT we use during encoding.
-fn od_bin_fdct8x8(data: &mut [i32], stride: usize) {
+fn od_bin_fdct8x8(data: &mut [i32]) {
+    assert!(data.len() >= 64);
     let mut z = [0; 64];
     for i in 0..8 {
-        od_bin_fdct8(&mut z[(8 * i)..], &data[i..], stride);
+        od_bin_fdct8(&mut z[(DCT_STRIDE * i)..], &data[i..]);
     }
     for i in 0..8 {
-        od_bin_fdct8(&mut data[(stride * i)..], &z[i..], stride);
+        od_bin_fdct8(&mut data[(DCT_STRIDE * i)..], &z[i..]);
     }
 }
 
-fn od_bin_fdct8(y: &mut [i32], x: &[i32], x_stride: usize) {
+#[allow(clippy::identity_op)]
+fn od_bin_fdct8(y: &mut [i32], x: &[i32]) {
     assert!(y.len() >= 8);
-    assert!(x.len() >= 7 * x_stride);
+    assert!(x.len() > 7 * DCT_STRIDE);
     let mut t = [0; 8];
     let mut th = [0; 8];
     // Initial permutation
     t[0] = x[0];
-    t[4] = x[x_stride];
-    t[2] = x[2 * x_stride];
-    t[6] = x[3 * x_stride];
-    t[7] = x[4 * x_stride];
-    t[3] = x[5 * x_stride];
-    t[5] = x[6 * x_stride];
-    t[1] = x[7 * x_stride];
+    t[4] = x[1 * DCT_STRIDE];
+    t[2] = x[2 * DCT_STRIDE];
+    t[6] = x[3 * DCT_STRIDE];
+    t[7] = x[4 * DCT_STRIDE];
+    t[3] = x[5 * DCT_STRIDE];
+    t[5] = x[6 * DCT_STRIDE];
+    t[1] = x[7 * DCT_STRIDE];
     // +1/-1 butterflies
     t[1] = t[0] - t[1];
     th[1] = od_dct_rshift(t[1], 1);
