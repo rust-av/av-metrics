@@ -98,7 +98,7 @@ impl VideoMetric for Ciede2000 {
                 * (delta_e_vec.iter().map(|x| *x as f64).sum::<f64>()
                     / ((y_width * y_height) as f64))
                     .log10();
-        Ok(score)
+        Ok(score.min(100.))
     }
 
     #[cfg(feature = "decode")]
