@@ -1,6 +1,6 @@
 [package]
 name = "av-metrics"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
 edition = "2018"
 description = "A collection of algorithms for measuring audio/video metrics"

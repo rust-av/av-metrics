@@ -1,3 +1,7 @@
+## Version 0.2.1
+- Fix a bug where CIEDE2000 could report Infinity
+- Performance improvements to PSNR-HSV metric
+
 ## Version 0.2.0
 - Add a binary for running metrics on y4m files (and other future formats)
   - This binary can be installed from the `av-metrics-tool` crate.
