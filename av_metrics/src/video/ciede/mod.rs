@@ -356,13 +356,13 @@ mod avx2 {
                     res_row.chunks_mut(8)
                 ) {
                     if chunk1_y.len() == 8 {
-                        #[target_feature(enable = "avx2")]
+                        #[inline(always)]
                         unsafe fn load_luma(chunk: &[u8]) -> __m256 {
                             let tmp = _mm_loadl_epi64(chunk.as_ptr() as *const _);
                             _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(tmp))
                         };
 
-                        #[target_feature(enable = "avx2")]
+                        #[inline(always)]
                         unsafe fn load_chroma(chunk: &[u8]) -> __m256 {
                             let tmp = _mm_cvtsi32_si128(*(chunk.as_ptr() as *const i32));
                             _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(_mm_unpacklo_epi8(tmp, tmp)))
@@ -438,13 +438,13 @@ mod avx2 {
                     res_row.chunks_mut(8)
                 ) {
                     if chunk1_y.len() == 8 {
-                        #[target_feature(enable = "avx2")]
+                        #[inline(always)]
                         unsafe fn load_luma(chunk: &[u16]) -> __m256 {
                             let tmp = _mm_loadu_si128(chunk.as_ptr() as *const _);
                             _mm256_cvtepi32_ps(_mm256_cvtepu16_epi32(tmp))
                         };
 
-                        #[target_feature(enable = "avx2")]
+                        #[inline(always)]
                         unsafe fn load_chroma(chunk: &[u16]) -> __m256 {
                             let tmp = _mm_loadl_epi64(chunk.as_ptr() as *const _);
                             _mm256_cvtepi32_ps(_mm256_cvtepu16_epi32(_mm_unpacklo_epi16(tmp, tmp)))
