@@ -26,8 +26,11 @@ jobs:
         mv crt2.o crt2.o.bak
         cp /usr/x86_64-w64-mingw32/lib/crt2.o ./
     - name: Cross-compile
+      env:
+        TOOL_PATH: target/x86_64-pc-windows-gnu/release/av-metrics-tool.exe
       run: |
           cargo build --release --target x86_64-pc-windows-gnu
+          mv $TOOL_PATH $GITHUB_WORKSPACE
     - name: Upload binary
       uses: skx/github-action-publish-binaries@master
       env:
