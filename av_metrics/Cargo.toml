@@ -8,7 +8,7 @@ license = "MIT"
 repository = "https://github.com/rust-av/av-metrics"
 
 [dependencies]
-err-derive = "0.2.0"
+err-derive = "0.2.1"
 itertools = "0.8.0"
 lab = "0.7.2"
 num-traits = "0.2"
