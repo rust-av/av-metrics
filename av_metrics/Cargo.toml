@@ -21,6 +21,7 @@ criterion = "0.3"
 default = ["y4m-decode"]
 decode = []
 y4m-decode = ["y4m", "decode"]
+bench = []
 
 [[bench]]
 name = "bench"

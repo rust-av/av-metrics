@@ -444,3 +444,115 @@ fn msssim_downscale(input: &[u32], input_width: usize, input_height: usize) -> V
 fn log10_convert(score: f64, weight: f64) -> f64 {
     10.0 * (weight.log10() - (weight - score).log10())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::assert_metric_eq;
+    use std::fs::File;
+    use y4m::Decoder;
+
+    #[test]
+    fn ssim_yuv420p8() {
+        let mut file1 = File::open("./testfiles/yuv420p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv420p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_ssim::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(13.2572, result.y);
+        assert_metric_eq(10.8624, result.u);
+        assert_metric_eq(12.8369, result.v);
+        assert_metric_eq(12.6899, result.avg);
+    }
+
+    #[test]
+    fn msssim_yuv420p8() {
+        let mut file1 = File::open("./testfiles/yuv420p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv420p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_msssim::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(18.8343, result.y);
+        assert_metric_eq(16.6943, result.u);
+        assert_metric_eq(18.7662, result.v);
+        assert_metric_eq(18.3859, result.avg);
+    }
+
+    #[test]
+    fn ssim_yuv422p8() {
+        let mut file1 = File::open("./testfiles/yuv422p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_ssim::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(21.1130, result.y);
+        assert_metric_eq(21.9978, result.u);
+        assert_metric_eq(22.7898, result.v);
+        assert_metric_eq(21.6987, result.avg);
+    }
+
+    #[test]
+    fn msssim_yuv422p8() {
+        let mut file1 = File::open("./testfiles/yuv422p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_msssim::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(28.6035, result.y);
+        assert_metric_eq(28.0332, result.u);
+        assert_metric_eq(28.0097, result.v);
+        assert_metric_eq(28.3027, result.avg);
+    }
+
+    #[test]
+    fn ssim_yuv444p8() {
+        let mut file1 = File::open("./testfiles/yuv444p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv444p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_ssim::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(13.2989, result.y);
+        assert_metric_eq(14.0089, result.u);
+        assert_metric_eq(15.7419, result.v);
+        assert_metric_eq(14.2338, result.avg);
+    }
+
+    #[test]
+    fn msssim_yuv444p8() {
+        let mut file1 = File::open("./testfiles/yuv444p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv444p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_msssim::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(18.8897, result.y);
+        assert_metric_eq(17.6092, result.u);
+        assert_metric_eq(19.2732, result.v);
+        assert_metric_eq(18.5308, result.avg);
+    }
+
+    #[test]
+    fn ssim_yuv420p10() {
+        let mut file1 = File::open("./testfiles/yuv420p10_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_ssim::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(13.3603, result.y);
+        assert_metric_eq(10.9323, result.u);
+        assert_metric_eq(12.8685, result.v);
+        assert_metric_eq(12.7729, result.avg);
+    }
+
+    #[test]
+    fn msssim_yuv420p10() {
+        let mut file1 = File::open("./testfiles/yuv420p10_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_msssim::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(19.0390, result.y);
+        assert_metric_eq(16.8539, result.u);
+        assert_metric_eq(18.8647, result.v);
+        assert_metric_eq(18.5631, result.avg);
+    }
+}

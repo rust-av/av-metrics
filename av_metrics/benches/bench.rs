@@ -2,7 +2,7 @@ extern crate av_metrics;
 #[macro_use]
 extern crate criterion;
 
-use av_metrics::video::ciede::calculate_frame_ciede;
+use av_metrics::video::ciede::{calculate_frame_ciede, calculate_frame_ciede_nosimd};
 use av_metrics::video::psnr::calculate_frame_psnr;
 use av_metrics::video::psnr_hvs::calculate_frame_psnr_hvs;
 use av_metrics::video::ssim::{calculate_frame_msssim, calculate_frame_ssim};
@@ -64,7 +64,7 @@ pub fn ciede2000_nosimd_benchmark(c: &mut Criterion) {
     let frame2 = get_video_frame::<u8>("./testfiles/yuv420p8_output.y4m");
     c.bench_function("CIEDE2000", |b| {
         b.iter(|| {
-            calculate_frame_ciede(&frame1, &frame2, false).unwrap();
+            calculate_frame_ciede_nosimd(&frame1, &frame2).unwrap();
         })
     });
 }
@@ -74,7 +74,7 @@ pub fn ciede2000_simd_benchmark(c: &mut Criterion) {
     let frame2 = get_video_frame::<u8>("./testfiles/yuv420p8_output.y4m");
     c.bench_function("CIEDE2000", |b| {
         b.iter(|| {
-            calculate_frame_ciede(&frame1, &frame2, true).unwrap();
+            calculate_frame_ciede(&frame1, &frame2).unwrap();
         })
     });
 }

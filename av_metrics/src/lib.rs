@@ -42,3 +42,14 @@ pub enum MetricsError {
     #[error(display = "Unreachable")]
     NonExhaustive,
 }
+
+#[cfg(test)]
+#[inline(always)]
+fn assert_metric_eq(expected: f64, value: f64) {
+    assert!(
+        (expected - value).abs() < 0.01,
+        "Expected {}, got {}",
+        expected,
+        value
+    );
+}

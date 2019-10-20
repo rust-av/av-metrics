@@ -30,9 +30,22 @@ pub fn calculate_video_ciede<D: Decoder>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
-    use_simd: bool,
 ) -> Result<f64, Box<dyn Error>> {
-    Ciede2000::new(use_simd).process_video(decoder1, decoder2, frame_limit)
+    Ciede2000::default().process_video(decoder1, decoder2, frame_limit)
+}
+
+/// Calculate the CIEDE2000 metric between two video clips. Higher is better.
+///
+/// This version disables SIMD. It is intended to only be used
+/// by tests and benchmarks.
+#[cfg(all(feature = "decode", any(test, feature = "bench")))]
+#[inline]
+pub fn calculate_video_ciede_nosimd<D: Decoder>(
+    decoder1: &mut D,
+    decoder2: &mut D,
+    frame_limit: Option<usize>,
+) -> Result<f64, Box<dyn Error>> {
+    (Ciede2000 { use_simd: false }).process_video(decoder1, decoder2, frame_limit)
 }
 
 /// Calculate the CIEDE2000 metric between two video frames. Higher is better.
@@ -40,18 +53,30 @@ pub fn calculate_video_ciede<D: Decoder>(
 pub fn calculate_frame_ciede<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
-    use_simd: bool,
 ) -> Result<f64, Box<dyn Error>> {
-    Ciede2000::new(use_simd).process_frame(frame1, frame2)
+    Ciede2000::default().process_frame(frame1, frame2)
+}
+
+/// Calculate the CIEDE2000 metric between two video frames. Higher is better.
+///
+/// This version disables SIMD. It is intended to only be used
+/// by tests and benchmarks.
+#[cfg(any(test, feature = "bench"))]
+#[inline]
+pub fn calculate_frame_ciede_nosimd<T: Pixel>(
+    frame1: &FrameInfo<T>,
+    frame2: &FrameInfo<T>,
+) -> Result<f64, Box<dyn Error>> {
+    (Ciede2000 { use_simd: false }).process_frame(frame1, frame2)
 }
 
 struct Ciede2000 {
     use_simd: bool,
 }
 
-impl Ciede2000 {
-    pub fn new(use_simd: bool) -> Self {
-        Ciede2000 { use_simd }
+impl Default for Ciede2000 {
+    fn default() -> Self {
+        Ciede2000 { use_simd: true }
     }
 }
 
@@ -516,4 +541,92 @@ mod avx2 {
     impl DeltaEAVX2 for BD8 {}
     impl DeltaEAVX2 for BD10 {}
     impl DeltaEAVX2 for BD12 {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::assert_metric_eq;
+    use std::fs::File;
+    use y4m::Decoder;
+
+    #[test]
+    fn ciede2000_yuv420p8_nosimd() {
+        let mut file1 = File::open("./testfiles/yuv420p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv420p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_ciede_nosimd::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(36.2821, result);
+    }
+
+    #[test]
+    fn ciede2000_yuv420p8() {
+        let mut file1 = File::open("./testfiles/yuv420p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv420p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_ciede::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(36.2821, result);
+    }
+
+    #[test]
+    fn ciede2000_yuv422p8_nosimd() {
+        let mut file1 = File::open("./testfiles/yuv422p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_ciede_nosimd::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(43.9618, result);
+    }
+
+    #[test]
+    fn ciede2000_yuv422p8() {
+        let mut file1 = File::open("./testfiles/yuv422p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_ciede::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(43.9618, result);
+    }
+
+    #[test]
+    fn ciede2000_yuv444p8_nosimd() {
+        let mut file1 = File::open("./testfiles/yuv444p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv444p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_ciede_nosimd::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(37.5106, result);
+    }
+
+    #[test]
+    fn ciede2000_yuv444p8() {
+        let mut file1 = File::open("./testfiles/yuv444p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv444p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_ciede::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(37.5106, result);
+    }
+
+    #[test]
+    fn ciede2000_yuv420p10_nosimd() {
+        let mut file1 = File::open("./testfiles/yuv420p10_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_ciede_nosimd::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(36.3691, result);
+    }
+
+    #[test]
+    fn ciede2000_yuv420p10() {
+        let mut file1 = File::open("./testfiles/yuv420p10_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_ciede::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(36.3691, result);
+    }
 }
