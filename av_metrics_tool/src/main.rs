@@ -215,7 +215,7 @@ fn print_ciede(
 ) {
     let mut dec1 = container1.get_decoder(file1);
     let mut dec2 = container2.get_decoder(file2);
-    let ciede = ciede::calculate_video_ciede(&mut dec1, &mut dec2, None, true);
+    let ciede = ciede::calculate_video_ciede(&mut dec1, &mut dec2, None);
     if let Ok(ciede) = ciede {
         println!("CIEDE2000 - {:.4}", ciede);
     }
