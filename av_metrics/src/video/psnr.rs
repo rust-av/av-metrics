@@ -11,16 +11,6 @@ use crate::video::pixel::Pixel;
 use crate::video::{FrameInfo, PlanarMetrics, PlaneData, VideoMetric};
 use std::error::Error;
 
-/// Contains different methods of calculating PSNR over a pair of videos.
-/// Each method uses the same per-frame metrics, but combines them differently.
-#[derive(Debug, Clone, Copy)]
-pub struct PsnrResults {
-    /// The standard PSNR calculation
-    pub psnr: PlanarMetrics,
-    /// Frame-averaged PSNR calculation, known as APSNR
-    pub apsnr: PlanarMetrics,
-}
-
 /// Calculates the PSNR for two videos. Higher is better.
 ///
 /// PSNR is capped at 100 in order to avoid skewed statistics
@@ -32,8 +22,25 @@ pub fn calculate_video_psnr<D: Decoder>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
-) -> Result<PsnrResults, Box<dyn Error>> {
-    Psnr.process_video(decoder1, decoder2, frame_limit)
+) -> Result<PlanarMetrics, Box<dyn Error>> {
+    let metrics = Psnr.process_video(decoder1, decoder2, frame_limit)?;
+    Ok(metrics.psnr)
+}
+
+/// Calculates the APSNR for two videos. Higher is better.
+///
+/// APSNR is capped at 100 in order to avoid skewed statistics
+/// from e.g. all black frames, which would
+/// otherwise show a APSNR of infinity.
+#[cfg(feature = "decode")]
+#[inline]
+pub fn calculate_video_apsnr<D: Decoder>(
+    decoder1: &mut D,
+    decoder2: &mut D,
+    frame_limit: Option<usize>,
+) -> Result<PlanarMetrics, Box<dyn Error>> {
+    let metrics = Psnr.process_video(decoder1, decoder2, frame_limit)?;
+    Ok(metrics.apsnr)
 }
 
 /// Calculates the PSNR for two video frames. Higher is better.
@@ -53,6 +60,12 @@ pub fn calculate_frame_psnr<T: Pixel>(
         v: calculate_psnr(metrics[2]),
         avg: calculate_summed_psnr(&metrics),
     })
+}
+
+#[derive(Debug, Clone, Copy)]
+struct PsnrResults {
+    psnr: PlanarMetrics,
+    apsnr: PlanarMetrics,
 }
 
 struct Psnr;
@@ -172,14 +185,10 @@ mod tests {
         let mut file2 = File::open("./testfiles/yuv420p8_output.y4m").unwrap();
         let mut dec2 = Decoder::new(&mut file2).unwrap();
         let result = calculate_video_psnr::<_>(&mut dec1, &mut dec2, None).unwrap();
-        assert_metric_eq(32.5281, result.psnr.y);
-        assert_metric_eq(36.4083, result.psnr.u);
-        assert_metric_eq(39.8238, result.psnr.v);
-        assert_metric_eq(33.6861, result.psnr.avg);
-        assert_metric_eq(32.5450, result.apsnr.y);
-        assert_metric_eq(36.4087, result.apsnr.u);
-        assert_metric_eq(39.8244, result.apsnr.v);
-        assert_metric_eq(33.6995, result.apsnr.avg);
+        assert_metric_eq(32.5281, result.y);
+        assert_metric_eq(36.4083, result.u);
+        assert_metric_eq(39.8238, result.v);
+        assert_metric_eq(33.6861, result.avg);
     }
 
     #[test]
@@ -189,14 +198,10 @@ mod tests {
         let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
         let mut dec2 = Decoder::new(&mut file2).unwrap();
         let result = calculate_video_psnr::<_>(&mut dec1, &mut dec2, None).unwrap();
-        assert_metric_eq(38.6740, result.psnr.y);
-        assert_metric_eq(47.5219, result.psnr.u);
-        assert_metric_eq(48.8615, result.psnr.v);
-        assert_metric_eq(41.2190, result.psnr.avg);
-        assert_metric_eq(38.6741, result.apsnr.y);
-        assert_metric_eq(47.5219, result.apsnr.u);
-        assert_metric_eq(48.8616, result.apsnr.v);
-        assert_metric_eq(41.2191, result.apsnr.avg);
+        assert_metric_eq(38.6740, result.y);
+        assert_metric_eq(47.5219, result.u);
+        assert_metric_eq(48.8615, result.v);
+        assert_metric_eq(41.2190, result.avg);
     }
 
     #[test]
@@ -206,14 +211,10 @@ mod tests {
         let mut file2 = File::open("./testfiles/yuv444p8_output.y4m").unwrap();
         let mut dec2 = Decoder::new(&mut file2).unwrap();
         let result = calculate_video_psnr::<_>(&mut dec1, &mut dec2, None).unwrap();
-        assert_metric_eq(32.4235, result.psnr.y);
-        assert_metric_eq(40.1212, result.psnr.u);
-        assert_metric_eq(43.1900, result.psnr.v);
-        assert_metric_eq(36.2126, result.psnr.avg);
-        assert_metric_eq(32.4412, result.apsnr.y);
-        assert_metric_eq(40.1264, result.apsnr.u);
-        assert_metric_eq(43.1943, result.apsnr.v);
-        assert_metric_eq(36.2271, result.apsnr.avg);
+        assert_metric_eq(32.4235, result.y);
+        assert_metric_eq(40.1212, result.u);
+        assert_metric_eq(43.1900, result.v);
+        assert_metric_eq(36.2126, result.avg);
     }
 
     #[test]
@@ -223,13 +224,61 @@ mod tests {
         let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
         let mut dec2 = Decoder::new(&mut file2).unwrap();
         let result = calculate_video_psnr::<_>(&mut dec1, &mut dec2, None).unwrap();
-        assert_metric_eq(32.5421, result.psnr.y);
-        assert_metric_eq(36.4922, result.psnr.u);
-        assert_metric_eq(39.8558, result.psnr.v);
-        assert_metric_eq(33.7071, result.psnr.avg);
-        assert_metric_eq(32.5586, result.apsnr.y);
-        assert_metric_eq(36.4923, result.apsnr.u);
-        assert_metric_eq(39.8563, result.apsnr.v);
-        assert_metric_eq(33.7200, result.apsnr.avg);
+        assert_metric_eq(32.5421, result.y);
+        assert_metric_eq(36.4922, result.u);
+        assert_metric_eq(39.8558, result.v);
+        assert_metric_eq(33.7071, result.avg);
+    }
+
+    #[test]
+    fn apsnr_yuv420p8() {
+        let mut file1 = File::open("./testfiles/yuv420p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv420p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_apsnr::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(32.5450, result.y);
+        assert_metric_eq(36.4087, result.u);
+        assert_metric_eq(39.8244, result.v);
+        assert_metric_eq(33.6995, result.avg);
+    }
+
+    #[test]
+    fn apsnr_yuv422p8() {
+        let mut file1 = File::open("./testfiles/yuv422p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv422p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_apsnr::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(38.6741, result.y);
+        assert_metric_eq(47.5219, result.u);
+        assert_metric_eq(48.8616, result.v);
+        assert_metric_eq(41.2191, result.avg);
+    }
+
+    #[test]
+    fn apsnr_yuv444p8() {
+        let mut file1 = File::open("./testfiles/yuv444p8_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv444p8_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_apsnr::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(32.4412, result.y);
+        assert_metric_eq(40.1264, result.u);
+        assert_metric_eq(43.1943, result.v);
+        assert_metric_eq(36.2271, result.avg);
+    }
+
+    #[test]
+    fn apsnr_yuv420p10() {
+        let mut file1 = File::open("./testfiles/yuv420p10_input.y4m").unwrap();
+        let mut dec1 = Decoder::new(&mut file1).unwrap();
+        let mut file2 = File::open("./testfiles/yuv420p10_output.y4m").unwrap();
+        let mut dec2 = Decoder::new(&mut file2).unwrap();
+        let result = calculate_video_apsnr::<_>(&mut dec1, &mut dec2, None).unwrap();
+        assert_metric_eq(32.5586, result.y);
+        assert_metric_eq(36.4923, result.u);
+        assert_metric_eq(39.8563, result.v);
+        assert_metric_eq(33.7200, result.avg);
     }
 }
