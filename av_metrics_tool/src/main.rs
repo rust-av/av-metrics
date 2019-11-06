@@ -105,6 +105,15 @@ fn run_video_metrics<P: AsRef<Path>>(
         .seek(SeekFrom::Start(0))
         .expect("Failed to seek to start of file");
 
+    print_apsnr(container1, container2, &mut file1, &mut file2);
+
+    file1
+        .seek(SeekFrom::Start(0))
+        .expect("Failed to seek to start of file");
+    file2
+        .seek(SeekFrom::Start(0))
+        .expect("Failed to seek to start of file");
+
     print_psnr_hvs(container1, container2, &mut file1, &mut file2);
 
     file1
@@ -147,11 +156,24 @@ fn print_psnr(
     if let Ok(psnr) = psnr {
         println!(
             "PSNR - Y: {:.4}  U: {:.4}  V: {:.4}  Avg: {:.4}",
-            psnr.psnr.y, psnr.psnr.u, psnr.psnr.v, psnr.psnr.avg
+            psnr.y, psnr.u, psnr.v, psnr.avg
         );
+    }
+}
+
+fn print_apsnr(
+    container1: VideoContainer,
+    container2: VideoContainer,
+    file1: &mut File,
+    file2: &mut File,
+) {
+    let mut dec1 = container1.get_decoder(file1);
+    let mut dec2 = container2.get_decoder(file2);
+    let apsnr = psnr::calculate_video_apsnr(&mut dec1, &mut dec2, None);
+    if let Ok(apsnr) = apsnr {
         println!(
             "APSNR - Y: {:.4}  U: {:.4}  V: {:.4}  Avg: {:.4}",
-            psnr.apsnr.y, psnr.apsnr.u, psnr.apsnr.v, psnr.apsnr.avg
+            apsnr.y, apsnr.u, apsnr.v, apsnr.avg
         );
     }
 }
