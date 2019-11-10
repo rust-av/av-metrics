@@ -1,7 +1,6 @@
 use av_metrics::video::*;
 use clap::{App, Arg};
 use std::fs::File;
-use std::io::{Seek, SeekFrom};
 use std::path::Path;
 use std::process::exit;
 
@@ -22,15 +21,51 @@ fn main() {
                 .required(true)
                 .index(2),
         )
+        .arg(
+            Arg::with_name("METRIC")
+                .help("Run only one metric, instead of the entire suite")
+                .long("metric")
+                .takes_value(true)
+                .possible_value("psnr")
+                .possible_value("apsnr")
+                .possible_value("psnrhvs")
+                .possible_value("ssim")
+                .possible_value("msssim")
+                .possible_value("ciede2000"),
+        )
         .get_matches();
     let input1 = cli.value_of("INPUT1").unwrap();
     let input2 = cli.value_of("INPUT2").unwrap();
     let input_type1 = InputType::detect(input1);
     let input_type2 = InputType::detect(input2);
     match (input_type1, input_type2) {
-        (InputType::Video(c1), InputType::Video(c2)) => {
-            run_video_metrics(input1, c1, input2, c2);
-        }
+        (InputType::Video(c1), InputType::Video(c2)) => match cli.value_of("METRIC") {
+            None => {
+                run_video_metrics(input1, c1, input2, c2);
+            }
+            Some("psnr") => {
+                run_psnr(input1, c1, input2, c2);
+            }
+            Some("apsnr") => {
+                run_apsnr(input1, c1, input2, c2);
+            }
+            Some("psnrhvs") => {
+                run_psnr_hvs(input1, c1, input2, c2);
+            }
+            Some("ssim") => {
+                run_ssim(input1, c1, input2, c2);
+            }
+            Some("msssim") => {
+                run_msssim(input1, c1, input2, c2);
+            }
+            Some("ciede2000") => {
+                run_ciede2000(input1, c1, input2, c2);
+            }
+            Some(_) => {
+                eprintln!("Unsupported metric, exiting.");
+                exit(1);
+            }
+        },
         (InputType::Audio(_c1), InputType::Audio(_c2)) => {
             eprintln!("No audio metrics currently implemented, exiting.");
             exit(1);
@@ -93,65 +128,24 @@ fn run_video_metrics<P: AsRef<Path>>(
     input2: P,
     container2: VideoContainer,
 ) {
-    let mut file1 = File::open(input1).expect("Failed to open input file 1");
-    let mut file2 = File::open(input2).expect("Failed to open input file 2");
-
-    print_psnr(container1, container2, &mut file1, &mut file2);
-
-    file1
-        .seek(SeekFrom::Start(0))
-        .expect("Failed to seek to start of file");
-    file2
-        .seek(SeekFrom::Start(0))
-        .expect("Failed to seek to start of file");
-
-    print_apsnr(container1, container2, &mut file1, &mut file2);
-
-    file1
-        .seek(SeekFrom::Start(0))
-        .expect("Failed to seek to start of file");
-    file2
-        .seek(SeekFrom::Start(0))
-        .expect("Failed to seek to start of file");
-
-    print_psnr_hvs(container1, container2, &mut file1, &mut file2);
-
-    file1
-        .seek(SeekFrom::Start(0))
-        .expect("Failed to seek to start of file");
-    file2
-        .seek(SeekFrom::Start(0))
-        .expect("Failed to seek to start of file");
-
-    print_ssim(container1, container2, &mut file1, &mut file2);
-
-    file1
-        .seek(SeekFrom::Start(0))
-        .expect("Failed to seek to start of file");
-    file2
-        .seek(SeekFrom::Start(0))
-        .expect("Failed to seek to start of file");
-
-    print_msssim(container1, container2, &mut file1, &mut file2);
-
-    file1
-        .seek(SeekFrom::Start(0))
-        .expect("Failed to seek to start of file");
-    file2
-        .seek(SeekFrom::Start(0))
-        .expect("Failed to seek to start of file");
-
-    print_ciede(container1, container2, &mut file1, &mut file2);
+    run_psnr(input1.as_ref(), container1, input2.as_ref(), container2);
+    run_apsnr(input1.as_ref(), container1, input2.as_ref(), container2);
+    run_psnr_hvs(input1.as_ref(), container1, input2.as_ref(), container2);
+    run_ssim(input1.as_ref(), container1, input2.as_ref(), container2);
+    run_msssim(input1.as_ref(), container1, input2.as_ref(), container2);
+    run_ciede2000(input1.as_ref(), container1, input2.as_ref(), container2);
 }
 
-fn print_psnr(
+fn run_psnr<P: AsRef<Path>>(
+    input1: P,
     container1: VideoContainer,
+    input2: P,
     container2: VideoContainer,
-    file1: &mut File,
-    file2: &mut File,
 ) {
-    let mut dec1 = container1.get_decoder(file1);
-    let mut dec2 = container2.get_decoder(file2);
+    let mut file1 = File::open(input1).expect("Failed to open input file 1");
+    let mut file2 = File::open(input2).expect("Failed to open input file 2");
+    let mut dec1 = container1.get_decoder(&mut file1);
+    let mut dec2 = container2.get_decoder(&mut file2);
     let psnr = psnr::calculate_video_psnr(&mut dec1, &mut dec2, None);
     if let Ok(psnr) = psnr {
         println!(
@@ -161,14 +155,16 @@ fn print_psnr(
     }
 }
 
-fn print_apsnr(
+fn run_apsnr<P: AsRef<Path>>(
+    input1: P,
     container1: VideoContainer,
+    input2: P,
     container2: VideoContainer,
-    file1: &mut File,
-    file2: &mut File,
 ) {
-    let mut dec1 = container1.get_decoder(file1);
-    let mut dec2 = container2.get_decoder(file2);
+    let mut file1 = File::open(input1).expect("Failed to open input file 1");
+    let mut file2 = File::open(input2).expect("Failed to open input file 2");
+    let mut dec1 = container1.get_decoder(&mut file1);
+    let mut dec2 = container2.get_decoder(&mut file2);
     let apsnr = psnr::calculate_video_apsnr(&mut dec1, &mut dec2, None);
     if let Ok(apsnr) = apsnr {
         println!(
@@ -178,14 +174,16 @@ fn print_apsnr(
     }
 }
 
-fn print_psnr_hvs(
+fn run_psnr_hvs<P: AsRef<Path>>(
+    input1: P,
     container1: VideoContainer,
+    input2: P,
     container2: VideoContainer,
-    file1: &mut File,
-    file2: &mut File,
 ) {
-    let mut dec1 = container1.get_decoder(file1);
-    let mut dec2 = container2.get_decoder(file2);
+    let mut file1 = File::open(input1).expect("Failed to open input file 1");
+    let mut file2 = File::open(input2).expect("Failed to open input file 2");
+    let mut dec1 = container1.get_decoder(&mut file1);
+    let mut dec2 = container2.get_decoder(&mut file2);
     let psnr_hvs = psnr_hvs::calculate_video_psnr_hvs(&mut dec1, &mut dec2, None);
     if let Ok(psnr_hvs) = psnr_hvs {
         println!(
@@ -195,14 +193,16 @@ fn print_psnr_hvs(
     }
 }
 
-fn print_ssim(
+fn run_ssim<P: AsRef<Path>>(
+    input1: P,
     container1: VideoContainer,
+    input2: P,
     container2: VideoContainer,
-    file1: &mut File,
-    file2: &mut File,
 ) {
-    let mut dec1 = container1.get_decoder(file1);
-    let mut dec2 = container2.get_decoder(file2);
+    let mut file1 = File::open(input1).expect("Failed to open input file 1");
+    let mut file2 = File::open(input2).expect("Failed to open input file 2");
+    let mut dec1 = container1.get_decoder(&mut file1);
+    let mut dec2 = container2.get_decoder(&mut file2);
     let ssim = ssim::calculate_video_ssim(&mut dec1, &mut dec2, None);
     if let Ok(ssim) = ssim {
         println!(
@@ -212,14 +212,16 @@ fn print_ssim(
     }
 }
 
-fn print_msssim(
+fn run_msssim<P: AsRef<Path>>(
+    input1: P,
     container1: VideoContainer,
+    input2: P,
     container2: VideoContainer,
-    file1: &mut File,
-    file2: &mut File,
 ) {
-    let mut dec1 = container1.get_decoder(file1);
-    let mut dec2 = container2.get_decoder(file2);
+    let mut file1 = File::open(input1).expect("Failed to open input file 1");
+    let mut file2 = File::open(input2).expect("Failed to open input file 2");
+    let mut dec1 = container1.get_decoder(&mut file1);
+    let mut dec2 = container2.get_decoder(&mut file2);
     let msssim = ssim::calculate_video_msssim(&mut dec1, &mut dec2, None);
     if let Ok(msssim) = msssim {
         println!(
@@ -229,14 +231,16 @@ fn print_msssim(
     }
 }
 
-fn print_ciede(
+fn run_ciede2000<P: AsRef<Path>>(
+    input1: P,
     container1: VideoContainer,
+    input2: P,
     container2: VideoContainer,
-    file1: &mut File,
-    file2: &mut File,
 ) {
-    let mut dec1 = container1.get_decoder(file1);
-    let mut dec2 = container2.get_decoder(file2);
+    let mut file1 = File::open(input1).expect("Failed to open input file 1");
+    let mut file2 = File::open(input2).expect("Failed to open input file 2");
+    let mut dec1 = container1.get_decoder(&mut file1);
+    let mut dec2 = container2.get_decoder(&mut file2);
     let ciede = ciede::calculate_video_ciede(&mut dec1, &mut dec2, None);
     if let Ok(ciede) = ciede {
         println!("CIEDE2000 - {:.4}", ciede);
