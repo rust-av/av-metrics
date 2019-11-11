@@ -1,3 +1,19 @@
+## Version 0.3.0
+- Breaking Change: Remove the `use_simd` flag from the public API.
+  This was intended only for development purposes,
+  and isn't generally useful to end users.
+  If you really want to disable SIMD,
+  you can set the environment variable `AV_METRICS_DISABLE_SIMD` to any value.
+- Breaking Change: PSNR and APSNR have been split into separate result sets.
+  This only impacts users of the API.
+  The CLI output is identical.
+- New Feature: `--metric` flag allows the CLI tool to output only one metric at a time,
+  instead of all metrics.
+- New Feature: `--json` flag allows the CLI tool to output the results as JSON.
+  This is primarily useful if you want to use the output in some other script
+  or as data on a web page.
+- 25% speed improvement in CIEDE2000 with AVX2.
+
 ## Version 0.2.1
 - Fix a bug where CIEDE2000 could report Infinity
 - Performance improvements to PSNR-HSV metric
