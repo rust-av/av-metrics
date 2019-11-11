@@ -39,6 +39,7 @@ dependencies = [
  "itertools 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lab 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
  "y4m 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -54,6 +55,7 @@ version = "0.2.1"
 dependencies = [
  "av-metrics 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.40 (registry+https://github.com/rust-lang/crates.io-index)",
  "y4m 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -411,6 +413,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "serde"
 version = "1.0.101"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "serde_derive 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "serde_derive"
