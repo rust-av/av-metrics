@@ -12,6 +12,7 @@ err-derive = "0.2.1"
 itertools = "0.8.1"
 lab = "0.7.2"
 num-traits = "0.2"
+serde = { version = "1", features = ["derive"], optional = true }
 y4m = { version = "0.4", optional = true }
 
 [dev-dependencies]

@@ -173,6 +173,7 @@ impl Default for ChromaSamplePosition {
 /// Certain metrics return a value per plane. This struct contains the output
 /// for those metrics per plane, as well as a weighted average of the planes.
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct PlanarMetrics {
     /// Metric value for the Y plane.
     pub y: f64,

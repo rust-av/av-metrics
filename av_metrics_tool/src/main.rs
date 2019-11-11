@@ -1,5 +1,6 @@
 use av_metrics::video::*;
 use clap::{App, Arg};
+use std::collections::HashMap;
 use std::fs::File;
 use std::path::Path;
 use std::process::exit;
@@ -33,39 +34,37 @@ fn main() {
                 .possible_value("msssim")
                 .possible_value("ciede2000"),
         )
+        .arg(
+            Arg::with_name("JSON")
+                .help("Output results as JSON--useful for piping to other programs")
+                .long("json")
+                .takes_value(false),
+        )
         .get_matches();
     let input1 = cli.value_of("INPUT1").unwrap();
     let input2 = cli.value_of("INPUT2").unwrap();
     let input_type1 = InputType::detect(input1);
     let input_type2 = InputType::detect(input2);
     match (input_type1, input_type2) {
-        (InputType::Video(c1), InputType::Video(c2)) => match cli.value_of("METRIC") {
-            None => {
-                run_video_metrics(input1, c1, input2, c2);
+        (InputType::Video(c1), InputType::Video(c2)) => {
+            let serialize = cli.is_present("JSON");
+            let result = match cli.value_of("METRIC") {
+                None => run_video_metrics(input1, c1, input2, c2, serialize),
+                Some("psnr") => run_psnr(input1, c1, input2, c2, serialize),
+                Some("apsnr") => run_apsnr(input1, c1, input2, c2, serialize),
+                Some("psnrhvs") => run_psnr_hvs(input1, c1, input2, c2, serialize),
+                Some("ssim") => run_ssim(input1, c1, input2, c2, serialize),
+                Some("msssim") => run_msssim(input1, c1, input2, c2, serialize),
+                Some("ciede2000") => run_ciede2000(input1, c1, input2, c2, serialize),
+                Some(_) => {
+                    eprintln!("Unsupported metric, exiting.");
+                    exit(1);
+                }
+            };
+            if serialize {
+                print!("{}", serde_json::to_string(&result.unwrap()).unwrap());
             }
-            Some("psnr") => {
-                run_psnr(input1, c1, input2, c2);
-            }
-            Some("apsnr") => {
-                run_apsnr(input1, c1, input2, c2);
-            }
-            Some("psnrhvs") => {
-                run_psnr_hvs(input1, c1, input2, c2);
-            }
-            Some("ssim") => {
-                run_ssim(input1, c1, input2, c2);
-            }
-            Some("msssim") => {
-                run_msssim(input1, c1, input2, c2);
-            }
-            Some("ciede2000") => {
-                run_ciede2000(input1, c1, input2, c2);
-            }
-            Some(_) => {
-                eprintln!("Unsupported metric, exiting.");
-                exit(1);
-            }
-        },
+        }
         (InputType::Audio(_c1), InputType::Audio(_c2)) => {
             eprintln!("No audio metrics currently implemented, exiting.");
             exit(1);
@@ -127,13 +126,61 @@ fn run_video_metrics<P: AsRef<Path>>(
     container1: VideoContainer,
     input2: P,
     container2: VideoContainer,
-) {
-    run_psnr(input1.as_ref(), container1, input2.as_ref(), container2);
-    run_apsnr(input1.as_ref(), container1, input2.as_ref(), container2);
-    run_psnr_hvs(input1.as_ref(), container1, input2.as_ref(), container2);
-    run_ssim(input1.as_ref(), container1, input2.as_ref(), container2);
-    run_msssim(input1.as_ref(), container1, input2.as_ref(), container2);
-    run_ciede2000(input1.as_ref(), container1, input2.as_ref(), container2);
+    serialize: bool,
+) -> Option<serde_json::Value> {
+    let psnr = run_psnr(
+        input1.as_ref(),
+        container1,
+        input2.as_ref(),
+        container2,
+        serialize,
+    );
+    let apsnr = run_apsnr(
+        input1.as_ref(),
+        container1,
+        input2.as_ref(),
+        container2,
+        serialize,
+    );
+    let psnr_hvs = run_psnr_hvs(
+        input1.as_ref(),
+        container1,
+        input2.as_ref(),
+        container2,
+        serialize,
+    );
+    let ssim = run_ssim(
+        input1.as_ref(),
+        container1,
+        input2.as_ref(),
+        container2,
+        serialize,
+    );
+    let msssim = run_msssim(
+        input1.as_ref(),
+        container1,
+        input2.as_ref(),
+        container2,
+        serialize,
+    );
+    let ciede2000 = run_ciede2000(
+        input1.as_ref(),
+        container1,
+        input2.as_ref(),
+        container2,
+        serialize,
+    );
+    if serialize {
+        let mut results = HashMap::new();
+        results.insert("psnr", psnr);
+        results.insert("apsnr", apsnr);
+        results.insert("psnr_hvs", psnr_hvs);
+        results.insert("ssim", ssim);
+        results.insert("msssim", msssim);
+        results.insert("ciede2000", ciede2000);
+        return Some(serde_json::to_value(results).unwrap());
+    }
+    None
 }
 
 fn run_psnr<P: AsRef<Path>>(
@@ -141,18 +188,24 @@ fn run_psnr<P: AsRef<Path>>(
     container1: VideoContainer,
     input2: P,
     container2: VideoContainer,
-) {
+    serialize: bool,
+) -> Option<serde_json::Value> {
     let mut file1 = File::open(input1).expect("Failed to open input file 1");
     let mut file2 = File::open(input2).expect("Failed to open input file 2");
     let mut dec1 = container1.get_decoder(&mut file1);
     let mut dec2 = container2.get_decoder(&mut file2);
     let psnr = psnr::calculate_video_psnr(&mut dec1, &mut dec2, None);
     if let Ok(psnr) = psnr {
-        println!(
-            "PSNR - Y: {:.4}  U: {:.4}  V: {:.4}  Avg: {:.4}",
-            psnr.y, psnr.u, psnr.v, psnr.avg
-        );
+        if serialize {
+            return Some(serde_json::to_value(psnr).unwrap());
+        } else {
+            println!(
+                "PSNR - Y: {:.4}  U: {:.4}  V: {:.4}  Avg: {:.4}",
+                psnr.y, psnr.u, psnr.v, psnr.avg
+            );
+        }
     }
+    None
 }
 
 fn run_apsnr<P: AsRef<Path>>(
@@ -160,18 +213,24 @@ fn run_apsnr<P: AsRef<Path>>(
     container1: VideoContainer,
     input2: P,
     container2: VideoContainer,
-) {
+    serialize: bool,
+) -> Option<serde_json::Value> {
     let mut file1 = File::open(input1).expect("Failed to open input file 1");
     let mut file2 = File::open(input2).expect("Failed to open input file 2");
     let mut dec1 = container1.get_decoder(&mut file1);
     let mut dec2 = container2.get_decoder(&mut file2);
     let apsnr = psnr::calculate_video_apsnr(&mut dec1, &mut dec2, None);
     if let Ok(apsnr) = apsnr {
-        println!(
-            "APSNR - Y: {:.4}  U: {:.4}  V: {:.4}  Avg: {:.4}",
-            apsnr.y, apsnr.u, apsnr.v, apsnr.avg
-        );
+        if serialize {
+            return Some(serde_json::to_value(apsnr).unwrap());
+        } else {
+            println!(
+                "APSNR - Y: {:.4}  U: {:.4}  V: {:.4}  Avg: {:.4}",
+                apsnr.y, apsnr.u, apsnr.v, apsnr.avg
+            );
+        }
     }
+    None
 }
 
 fn run_psnr_hvs<P: AsRef<Path>>(
@@ -179,18 +238,24 @@ fn run_psnr_hvs<P: AsRef<Path>>(
     container1: VideoContainer,
     input2: P,
     container2: VideoContainer,
-) {
+    serialize: bool,
+) -> Option<serde_json::Value> {
     let mut file1 = File::open(input1).expect("Failed to open input file 1");
     let mut file2 = File::open(input2).expect("Failed to open input file 2");
     let mut dec1 = container1.get_decoder(&mut file1);
     let mut dec2 = container2.get_decoder(&mut file2);
     let psnr_hvs = psnr_hvs::calculate_video_psnr_hvs(&mut dec1, &mut dec2, None);
     if let Ok(psnr_hvs) = psnr_hvs {
-        println!(
-            "PSNR HVS - Y: {:.4}  U: {:.4}  V: {:.4}  Avg: {:.4}",
-            psnr_hvs.y, psnr_hvs.u, psnr_hvs.v, psnr_hvs.avg
-        );
+        if serialize {
+            return Some(serde_json::to_value(psnr_hvs).unwrap());
+        } else {
+            println!(
+                "PSNR HVS - Y: {:.4}  U: {:.4}  V: {:.4}  Avg: {:.4}",
+                psnr_hvs.y, psnr_hvs.u, psnr_hvs.v, psnr_hvs.avg
+            );
+        }
     }
+    None
 }
 
 fn run_ssim<P: AsRef<Path>>(
@@ -198,18 +263,24 @@ fn run_ssim<P: AsRef<Path>>(
     container1: VideoContainer,
     input2: P,
     container2: VideoContainer,
-) {
+    serialize: bool,
+) -> Option<serde_json::Value> {
     let mut file1 = File::open(input1).expect("Failed to open input file 1");
     let mut file2 = File::open(input2).expect("Failed to open input file 2");
     let mut dec1 = container1.get_decoder(&mut file1);
     let mut dec2 = container2.get_decoder(&mut file2);
     let ssim = ssim::calculate_video_ssim(&mut dec1, &mut dec2, None);
     if let Ok(ssim) = ssim {
-        println!(
-            "SSIM - Y: {:.4}  U: {:.4}  V: {:.4}  Avg: {:.4}",
-            ssim.y, ssim.u, ssim.v, ssim.avg
-        );
+        if serialize {
+            return Some(serde_json::to_value(ssim).unwrap());
+        } else {
+            println!(
+                "SSIM - Y: {:.4}  U: {:.4}  V: {:.4}  Avg: {:.4}",
+                ssim.y, ssim.u, ssim.v, ssim.avg
+            );
+        }
     }
+    None
 }
 
 fn run_msssim<P: AsRef<Path>>(
@@ -217,18 +288,24 @@ fn run_msssim<P: AsRef<Path>>(
     container1: VideoContainer,
     input2: P,
     container2: VideoContainer,
-) {
+    serialize: bool,
+) -> Option<serde_json::Value> {
     let mut file1 = File::open(input1).expect("Failed to open input file 1");
     let mut file2 = File::open(input2).expect("Failed to open input file 2");
     let mut dec1 = container1.get_decoder(&mut file1);
     let mut dec2 = container2.get_decoder(&mut file2);
     let msssim = ssim::calculate_video_msssim(&mut dec1, &mut dec2, None);
     if let Ok(msssim) = msssim {
-        println!(
-            "MSSSIM - Y: {:.4}  U: {:.4}  V: {:.4}  Avg: {:.4}",
-            msssim.y, msssim.u, msssim.v, msssim.avg
-        );
+        if serialize {
+            return Some(serde_json::to_value(msssim).unwrap());
+        } else {
+            println!(
+                "MSSSIM - Y: {:.4}  U: {:.4}  V: {:.4}  Avg: {:.4}",
+                msssim.y, msssim.u, msssim.v, msssim.avg
+            );
+        }
     }
+    None
 }
 
 fn run_ciede2000<P: AsRef<Path>>(
@@ -236,13 +313,19 @@ fn run_ciede2000<P: AsRef<Path>>(
     container1: VideoContainer,
     input2: P,
     container2: VideoContainer,
-) {
+    serialize: bool,
+) -> Option<serde_json::Value> {
     let mut file1 = File::open(input1).expect("Failed to open input file 1");
     let mut file2 = File::open(input2).expect("Failed to open input file 2");
     let mut dec1 = container1.get_decoder(&mut file1);
     let mut dec2 = container2.get_decoder(&mut file2);
     let ciede = ciede::calculate_video_ciede(&mut dec1, &mut dec2, None);
     if let Ok(ciede) = ciede {
-        println!("CIEDE2000 - {:.4}", ciede);
+        if serialize {
+            return Some(serde_json::to_value(ciede).unwrap());
+        } else {
+            println!("CIEDE2000 - {:.4}", ciede);
+        }
     }
+    None
 }
