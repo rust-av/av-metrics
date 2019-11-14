@@ -1,8 +1,9 @@
-name: Deploy av_metrics_tool for Windows
+name: deploy-windows
 
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - 'v*.*.*'
 
 jobs:
   upload:
@@ -10,10 +11,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
-    - name: Install mingw-w64 and rust specific target
+    - name: Install mingw-w64
       run: |
         sudo apt-get install mingw-w64
-        rustup target add x86_64-pc-windows-gnu
+    - name: Install x86_64-pc-windows-gnu
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: x86_64-pc-windows-gnu
     - name: Set rust for cross-compilation
       env:
           TARGET: rustlib/x86_64-pc-windows-gnu/lib/
@@ -29,11 +35,19 @@ jobs:
       env:
         TOOL_PATH: target/x86_64-pc-windows-gnu/release/av-metrics-tool.exe
       run: |
-          cargo build --release --target x86_64-pc-windows-gnu
-          mv $TOOL_PATH $GITHUB_WORKSPACE
-    - name: Upload binary
-      uses: skx/github-action-publish-binaries@master
+        cargo build --release --target x86_64-pc-windows-gnu
+        mv $TOOL_PATH $GITHUB_WORKSPACE
+    - name: Get version and changelog
+      id: data
+      run: |
+        VERSION=$(head -n 1 CHANGELOG.md | tr -d "## Version ")
+        echo "::set-output name=version::$VERSION"
+        tail -n +2 CHANGELOG.md | sed -e '/^$/,$d' > CHANGELOG.txt
+    - name: Create a release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Version ${{ steps.data.outputs.version }}
+        body_path: CHANGELOG.txt
+        files: av-metrics-tool.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        args: 'av-metrics-tool.exe'
