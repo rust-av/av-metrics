@@ -22,14 +22,10 @@ fn get_chroma_sampling<R: Read>(
     }
 }
 
-fn copy_from_raw_u8<T: Pixel>(source: &[u8], pixel_width: usize) -> Vec<T> {
-    match pixel_width {
-        1 => {
-            assert!(mem::size_of::<T>() == 1);
-            source.iter().map(|byte| T::cast_from(*byte)).collect()
-        }
+fn copy_from_raw_u8<T: Pixel>(source: &[u8]) -> Vec<T> {
+    match mem::size_of::<T>() {
+        1 => source.iter().map(|byte| T::cast_from(*byte)).collect(),
         2 => {
-            assert!(mem::size_of::<T>() == 2);
             let mut output = Vec::with_capacity(source.len() / 2);
             for bytes in source.chunks(2) {
                 output.push(T::cast_from(
@@ -50,7 +46,6 @@ impl<R: Read> Decoder for y4m::Decoder<'_, R> {
         let luma_height = self.get_height();
         let (chroma_width, chroma_height) =
             chroma_sampling.get_chroma_dimensions(luma_width, luma_height);
-        let pixel_width = (bit_depth > 8) as usize + 1;
 
         self.read_frame()
             .map(|frame| FrameInfo {
@@ -60,13 +55,13 @@ impl<R: Read> Decoder for y4m::Decoder<'_, R> {
                     PlaneData {
                         width: luma_width,
                         height: luma_height,
-                        data: copy_from_raw_u8(frame.get_y_plane(), pixel_width),
+                        data: copy_from_raw_u8(frame.get_y_plane()),
                     },
                     convert_chroma_data(
                         PlaneData {
                             width: chroma_width,
                             height: chroma_height,
-                            data: copy_from_raw_u8(frame.get_u_plane(), pixel_width),
+                            data: copy_from_raw_u8(frame.get_u_plane()),
                         },
                         chroma_sample_pos,
                         bit_depth,
@@ -75,7 +70,7 @@ impl<R: Read> Decoder for y4m::Decoder<'_, R> {
                         PlaneData {
                             width: chroma_width,
                             height: chroma_height,
-                            data: copy_from_raw_u8(frame.get_v_plane(), pixel_width),
+                            data: copy_from_raw_u8(frame.get_v_plane()),
                         },
                         chroma_sample_pos,
                         bit_depth,
