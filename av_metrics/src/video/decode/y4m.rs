@@ -38,7 +38,7 @@ fn copy_from_raw_u8<T: Pixel>(source: &[u8]) -> Vec<T> {
     }
 }
 
-impl<R: Read> Decoder for y4m::Decoder<'_, R> {
+impl<R: Read + Send> Decoder for y4m::Decoder<'_, R> {
     fn read_video_frame<T: Pixel>(&mut self) -> Result<FrameInfo<T>, ()> {
         let bit_depth = self.get_bit_depth();
         let (chroma_sampling, chroma_sample_pos) = get_chroma_sampling(self);

@@ -74,8 +74,8 @@ jobs:
         toolchain: stable
         override: true
     - name: Build
-      run: cargo build --all-features --tests --benches
+      run: cargo build --release --all-features --tests --benches
     - name: Run tests
-      run: cargo test --all-features
+      run: cargo test --release --all-features
     - name: Generate docs
-      run: cargo doc --all-features --no-deps
+      run: cargo doc --release --all-features --no-deps

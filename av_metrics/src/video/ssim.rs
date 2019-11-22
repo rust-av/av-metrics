@@ -12,7 +12,9 @@
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
+use crate::video::ParallelMethod;
 use crate::video::{FrameInfo, PlanarMetrics, PlaneData, VideoMetric};
+use crate::MetricsError;
 use std::cmp;
 use std::error::Error;
 use std::f64::consts::{E, PI};
@@ -34,8 +36,8 @@ pub fn calculate_frame_ssim<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let mut processor = Ssim::default();
-    let result = processor.process_frame(frame1, frame2)?;
+    let processor = Ssim::default();
+    let (result, _) = processor.process_frame(frame1, frame2)?;
     let cweight = processor.cweight.unwrap();
     Ok(PlanarMetrics {
         y: log10_convert(result.y, 1.0),
@@ -60,13 +62,14 @@ impl VideoMetric for Ssim {
     /// Returns the *unweighted* scores. Depending on whether we output per-frame
     /// or per-video, these will be weighted at different points.
     fn process_frame<T: Pixel>(
-        &mut self,
+        &self,
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
-    ) -> Result<Self::FrameResult, Box<dyn Error>> {
+    ) -> Result<(Self::FrameResult, Option<f64>), MetricsError> {
         frame1.can_compare(&frame2)?;
+        let mut cweight = None;
         if self.cweight.is_none() {
-            self.cweight = Some(frame1.chroma_sampling.get_chroma_weight());
+            cweight = Some(frame1.chroma_sampling.get_chroma_weight());
         }
 
         const KERNEL_SHIFT: usize = 8;
@@ -109,13 +112,16 @@ impl VideoMetric for Ssim {
             &v_kernel,
             &v_kernel,
         );
-        Ok(PlanarMetrics {
-            y,
-            u,
-            v,
-            // Not used here
-            avg: 0.,
-        })
+        Ok((
+            PlanarMetrics {
+                y,
+                u,
+                v,
+                // Not used here
+                avg: 0.,
+            },
+            cweight,
+        ))
     }
 
     #[cfg(feature = "decode")]
@@ -136,6 +142,14 @@ impl VideoMetric for Ssim {
                 (1. + 2. * cweight) * metrics.len() as f64,
             ),
         })
+    }
+
+    fn which_method(&self) -> ParallelMethod {
+        ParallelMethod::Others
+    }
+
+    fn set_cweight(&mut self, cweight: f64) {
+        self.cweight = Some(cweight);
     }
 }
 
@@ -164,8 +178,8 @@ pub fn calculate_frame_msssim<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let mut processor = MsSsim::default();
-    let result = processor.process_frame(frame1, frame2)?;
+    let processor = MsSsim::default();
+    let (result, _) = processor.process_frame(frame1, frame2)?;
     let cweight = processor.cweight.unwrap();
     Ok(PlanarMetrics {
         y: log10_convert(result.y, 1.0),
@@ -190,23 +204,27 @@ impl VideoMetric for MsSsim {
     /// Returns the *unweighted* scores. Depending on whether we output per-frame
     /// or per-video, these will be weighted at different points.
     fn process_frame<T: Pixel>(
-        &mut self,
+        &self,
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
-    ) -> Result<Self::FrameResult, Box<dyn Error>> {
+    ) -> Result<(Self::FrameResult, Option<f64>), MetricsError> {
         frame1.can_compare(&frame2)?;
+        let mut cweight = None;
         if self.cweight.is_none() {
-            self.cweight = Some(frame1.chroma_sampling.get_chroma_weight());
+            cweight = Some(frame1.chroma_sampling.get_chroma_weight());
         }
 
         let bit_depth = frame1.bit_depth;
-        Ok(PlanarMetrics {
-            y: calculate_plane_msssim(&frame1.planes[0], &frame2.planes[0], bit_depth),
-            u: calculate_plane_msssim(&frame1.planes[1], &frame2.planes[1], bit_depth),
-            v: calculate_plane_msssim(&frame1.planes[2], &frame2.planes[2], bit_depth),
-            // Not used here
-            avg: 0.,
-        })
+        Ok((
+            PlanarMetrics {
+                y: calculate_plane_msssim(&frame1.planes[0], &frame2.planes[0], bit_depth),
+                u: calculate_plane_msssim(&frame1.planes[1], &frame2.planes[1], bit_depth),
+                v: calculate_plane_msssim(&frame1.planes[2], &frame2.planes[2], bit_depth),
+                // Not used here
+                avg: 0.,
+            },
+            cweight,
+        ))
     }
 
     #[cfg(feature = "decode")]
@@ -227,6 +245,14 @@ impl VideoMetric for MsSsim {
                 (1. + 2. * cweight) * metrics.len() as f64,
             ),
         })
+    }
+
+    fn which_method(&self) -> ParallelMethod {
+        ParallelMethod::Others
+    }
+
+    fn set_cweight(&mut self, cweight: f64) {
+        self.cweight = Some(cweight);
     }
 }
 

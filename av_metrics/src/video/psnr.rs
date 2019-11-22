@@ -8,7 +8,9 @@
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
+use crate::video::ParallelMethod;
 use crate::video::{FrameInfo, PlanarMetrics, PlaneData, VideoMetric};
+use crate::MetricsError;
 use std::error::Error;
 
 /// Calculates the PSNR for two videos. Higher is better.
@@ -53,7 +55,7 @@ pub fn calculate_frame_psnr<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let metrics = Psnr.process_frame(frame1, frame2)?;
+    let (metrics, _) = Psnr.process_frame(frame1, frame2)?;
     Ok(PlanarMetrics {
         y: calculate_psnr(metrics[0]),
         u: calculate_psnr(metrics[1]),
@@ -75,17 +77,17 @@ impl VideoMetric for Psnr {
     type VideoResult = PsnrResults;
 
     fn process_frame<T: Pixel>(
-        &mut self,
+        &self,
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
-    ) -> Result<Self::FrameResult, Box<dyn Error>> {
+    ) -> Result<(Self::FrameResult, Option<f64>), MetricsError> {
         frame1.can_compare(&frame2)?;
 
         let bit_depth = frame1.bit_depth;
         let y = calculate_plane_psnr_metrics(&frame1.planes[0], &frame2.planes[0], bit_depth);
         let u = calculate_plane_psnr_metrics(&frame1.planes[1], &frame2.planes[1], bit_depth);
         let v = calculate_plane_psnr_metrics(&frame1.planes[2], &frame2.planes[2], bit_depth);
-        Ok([y, u, v])
+        Ok(([y, u, v], None))
     }
 
     #[cfg(feature = "decode")]
@@ -111,6 +113,12 @@ impl VideoMetric for Psnr {
         };
         Ok(PsnrResults { psnr, apsnr })
     }
+
+    fn which_method(&self) -> ParallelMethod {
+        ParallelMethod::Psnr
+    }
+
+    fn set_cweight(&mut self, _cweight: f64) {}
 }
 
 #[derive(Debug, Clone, Copy, Default)]

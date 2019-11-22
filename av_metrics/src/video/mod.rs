@@ -9,7 +9,9 @@ pub mod psnr_hvs;
 pub mod ssim;
 
 use crate::MetricsError;
+use rayon::prelude::*;
 use std::error::Error;
+use std::iter;
 
 #[cfg(feature = "decode")]
 pub use decode::*;
@@ -185,8 +187,33 @@ pub struct PlanarMetrics {
     pub avg: f64,
 }
 
+/// Establishes a different parallel method according to the metric
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum ParallelMethod {
+    /// Method used for Psnr
+    Psnr,
+    /// Method used for Ciede
+    Ciede,
+    /// Method used for all the other metrics
+    Others,
+}
+
+macro_rules! process_video {
+    ($self:ident, $decoder1:ident, $decoder2:ident, $frame_limit:ident, $type:ident, $ret:ident) => {
+        let frames_pool: Vec<(FrameInfo<$type>, FrameInfo<$type>)>;
+        frames_pool = iter::from_fn(|| $decoder1.read_video_frame::<$type>().ok())
+            .zip(iter::from_fn(|| $decoder2.read_video_frame::<$type>().ok()))
+            .take($frame_limit.unwrap_or(std::usize::MAX))
+            .collect();
+        $ret = frames_pool
+            .par_iter()
+            .map(|(frame1, frame2)| $self.process_frame(&frame1, &frame2).unwrap())
+            .collect();
+    };
+}
+
 trait VideoMetric {
-    type FrameResult;
+    type FrameResult: Clone + Send;
     type VideoResult;
 
     /// Generic method for internal use that processes multiple frames from a video
@@ -200,55 +227,65 @@ trait VideoMetric {
         decoder1: &mut D,
         decoder2: &mut D,
         frame_limit: Option<usize>,
-    ) -> Result<Self::VideoResult, Box<dyn Error>> {
+    ) -> Result<Self::VideoResult, Box<dyn Error>>
+    where
+        Self: std::marker::Sync,
+    {
         if decoder1.get_bit_depth() != decoder2.get_bit_depth() {
             return Err(Box::new(MetricsError::InputMismatch {
                 reason: "Bit depths do not match",
             }));
         }
 
-        let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
-        let mut frame_no = 0;
-        while frame_limit.map(|limit| limit > frame_no).unwrap_or(true) {
-            if decoder1.get_bit_depth() > 8 {
-                let frame1 = decoder1.read_video_frame::<u16>();
-                let frame2 = decoder2.read_video_frame::<u16>();
-                if let Ok(frame1) = frame1 {
-                    if let Ok(frame2) = frame2 {
-                        metrics.push(self.process_frame(&frame1, &frame2)?);
-                        frame_no += 1;
-                        continue;
-                    }
-                }
-            } else {
-                let frame1 = decoder1.read_video_frame::<u8>();
-                let frame2 = decoder2.read_video_frame::<u8>();
-                if let Ok(frame1) = frame1 {
-                    if let Ok(frame2) = frame2 {
-                        metrics.push(self.process_frame(&frame1, &frame2)?);
-                        frame_no += 1;
-                        continue;
-                    }
-                }
-            }
-            // At end of video
-            break;
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(8)
+            .build_global()
+            .unwrap_or(());
+
+        let metrics_values: Vec<(Self::FrameResult, Option<f64>)>;
+        if decoder1.get_bit_depth() > 8 {
+            process_video!(self, decoder1, decoder2, frame_limit, u16, metrics_values);
+        } else {
+            process_video!(self, decoder1, decoder2, frame_limit, u8, metrics_values);
         }
-        if frame_no == 0 {
+
+        if metrics_values.is_empty() {
             return Err(MetricsError::UnsupportedInput {
                 reason: "No readable frames found in one or more input files",
             }
             .into());
         }
 
+        let metrics = metrics_values.iter().fold(vec![], |mut acc, v| {
+            let (metric, _) = v;
+            acc.push(metric.clone());
+            acc
+        });
+
+        if let ParallelMethod::Others = self.which_method() {
+            let metric_option = metrics_values
+                .iter()
+                .find(|v| {
+                    let (_, cweight) = v;
+                    cweight.is_some()
+                })
+                .unwrap();
+            let (_, cweight) = metric_option;
+            self.set_cweight(cweight.unwrap());
+        }
+
         self.aggregate_frame_results(&metrics)
     }
 
+    fn which_method(&self) -> ParallelMethod;
+
+    fn set_cweight(&mut self, cweight: f64);
+
     fn process_frame<T: Pixel>(
-        &mut self,
+        &self,
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
-    ) -> Result<Self::FrameResult, Box<dyn Error>>;
+    ) -> Result<(Self::FrameResult, Option<f64>), MetricsError>;
 
     #[cfg(feature = "decode")]
     fn aggregate_frame_results(

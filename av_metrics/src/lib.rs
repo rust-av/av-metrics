@@ -12,6 +12,8 @@ extern crate err_derive;
 #[macro_use]
 extern crate itertools;
 
+extern crate rayon;
+
 pub mod video;
 
 #[cfg(cargo_c)]

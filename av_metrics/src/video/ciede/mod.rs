@@ -8,7 +8,9 @@
 #[cfg(feature = "decode")]
 use crate::video::decode::Decoder;
 use crate::video::pixel::{CastFromPrimitive, Pixel};
+use crate::video::ParallelMethod;
 use crate::video::{FrameInfo, VideoMetric};
+use crate::MetricsError;
 use std::f64;
 
 mod rgbtolab;
@@ -54,7 +56,10 @@ pub fn calculate_frame_ciede<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
 ) -> Result<f64, Box<dyn Error>> {
-    Ciede2000::default().process_frame(frame1, frame2)
+    match Ciede2000::default().process_frame(frame1, frame2) {
+        Ok((val, _)) => Ok(val),
+        Err(val) => Err(val.into()),
+    }
 }
 
 /// Calculate the CIEDE2000 metric between two video frames. Higher is better.
@@ -67,7 +72,10 @@ pub fn calculate_frame_ciede_nosimd<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
 ) -> Result<f64, Box<dyn Error>> {
-    (Ciede2000 { use_simd: false }).process_frame(frame1, frame2)
+    match (Ciede2000 { use_simd: false }).process_frame(frame1, frame2) {
+        Ok((val, _)) => Ok(val),
+        Err(val) => Err(val.into()),
+    }
 }
 
 struct Ciede2000 {
@@ -85,10 +93,10 @@ impl VideoMetric for Ciede2000 {
     type VideoResult = f64;
 
     fn process_frame<T: Pixel>(
-        &mut self,
+        &self,
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
-    ) -> Result<Self::FrameResult, Box<dyn Error>> {
+    ) -> Result<(Self::FrameResult, Option<f64>), MetricsError> {
         frame1.can_compare(&frame2)?;
 
         let dec = frame1.chroma_sampling.get_decimation().unwrap_or((1, 1));
@@ -123,7 +131,7 @@ impl VideoMetric for Ciede2000 {
                 * (delta_e_vec.iter().map(|x| *x as f64).sum::<f64>()
                     / ((y_width * y_height) as f64))
                     .log10();
-        Ok(score.min(100.))
+        Ok((score.min(100.), None))
     }
 
     #[cfg(feature = "decode")]
@@ -133,6 +141,12 @@ impl VideoMetric for Ciede2000 {
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
         Ok(metrics.iter().copied().sum::<f64>() / metrics.len() as f64)
     }
+
+    fn which_method(&self) -> ParallelMethod {
+        ParallelMethod::Ciede
+    }
+
+    fn set_cweight(&mut self, _cweight: f64) {}
 }
 
 // Arguments for delta e
