@@ -9,7 +9,7 @@ repository = "https://github.com/rust-av/av-metrics"
 
 [dependencies]
 err-derive = "0.2.1"
-itertools = "0.8.1"
+itertools = "0.8.2"
 lab = "0.7.2"
 num-traits = "0.2"
 serde = { version = "1", features = ["derive"], optional = true }
