@@ -80,6 +80,20 @@ impl<R: Read> Decoder for y4m::Decoder<'_, R> {
             .map_err(|_| ())
     }
 
+    fn read_specific_frame<T: Pixel>(&mut self, frame_number: usize) -> Result<FrameInfo<T>, ()> {
+        let mut frame_no = 0;
+        while frame_no <= frame_number {
+            let frame = self.read_video_frame();
+            if frame_no == frame_number {
+                if let Ok(frame) = frame {
+                    return Ok(frame);
+                }
+            }
+            frame_no += 1;
+        }
+        Err(())
+    }
+
     fn get_bit_depth(&self) -> usize {
         self.get_bit_depth()
     }
