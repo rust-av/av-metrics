@@ -17,6 +17,10 @@ pub trait Decoder {
     ///
     /// Expected to return `Err` if the end of the video is reached.
     fn read_video_frame<T: Pixel>(&mut self) -> Result<FrameInfo<T>, ()>;
+    /// Read a specific frame from the input video
+    ///
+    /// Expected to return `Err` if the frame is not found.
+    fn read_specific_frame<T: Pixel>(&mut self, frame_number: usize) -> Result<FrameInfo<T>, ()>;
     /// Get the bit depth of the video.
     fn get_bit_depth(&self) -> usize;
 }
