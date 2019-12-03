@@ -41,13 +41,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
+    - name: Install stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
     - name: Install cargo-c
       run: |
         cargo install cargo-c
     - name: Run cargo-c
       run: |
-        cargo cinstall --all-features \
-                       --prefix=$HOME/av_metrics_deploy
+        cargo cinstall --prefix=$HOME/av_metrics_deploy
     - name: Build cargo-c tests
       run: |
         export PKG_CONFIG_PATH=$HOME/av_metrics_deploy/lib/pkgconfig

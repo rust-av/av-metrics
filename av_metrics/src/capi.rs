@@ -50,7 +50,6 @@ fn convert_c_string_into_path(c_buf: *const c_char) -> PathBuf {
     Path::new(c_str.to_str().unwrap()).to_path_buf()
 }
 
-#[inline(always)]
 fn run_metric(
     path1: *const c_char,
     path2: *const c_char,
@@ -82,7 +81,6 @@ fn run_metric(
     (null(), -1.0)
 }
 
-#[inline(always)]
 fn run_video_metric<P: AsRef<Path>>(
     path1: P,
     container1: VideoContainer,
@@ -129,7 +127,6 @@ fn run_video_metric<P: AsRef<Path>>(
     (null(), -1.0)
 }
 
-#[inline(always)]
 fn run_frame_metric<P: AsRef<Path>>(
     path1: P,
     container1: VideoContainer,
