@@ -22,7 +22,7 @@
 
 Add the following to your Cargo.toml
 ```toml
-av-metrics = "0.2"
+av-metrics = "0.3"
 ```
 
 Then check out [the API docs](https://docs.rs/av-metrics/).
