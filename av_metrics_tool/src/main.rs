@@ -1,5 +1,6 @@
 use av_metrics::video::*;
 use clap::{App, Arg};
+use console::style;
 use maplit::hashmap;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -7,8 +8,6 @@ use std::error::Error;
 use std::fs::File;
 use std::path::Path;
 use std::process::exit;
-use console::style;
-
 
 fn main() {
     let cli = App::new("AV Metrics")
@@ -128,25 +127,31 @@ fn run_video_metrics<P: AsRef<Path>>(
     let mut results = HashMap::new();
     if !serialize {
         match metric {
-            Some(metr) => println!("  {} metric for: {} using the {} system...",
-                                   style("Computing").yellow(),
-                                   style(metr).cyan(),
-                                   style("YUV/YCbCr").magenta()),
-            None => println!("  {} metrics for: {}, {}, {}, {}, {}, {} using the {} system...",
-                             style("Computing").yellow(),
-                             style("PSNR").cyan(),
-                             style("APSNR").cyan(),
-                             style("PSNR-HVS").cyan(),
-                             style("SSIM").cyan(),
-                             style("MSSIM").cyan(),
-                             style("CIEDE2000").cyan(),
-                             style("YUV/YCbCr").magenta())
+            Some(metr) => println!(
+                "  {} metric for: {} using the {} system...",
+                style("Computing").yellow(),
+                style(metr).cyan(),
+                style("YUV/YCbCr").magenta()
+            ),
+            None => println!(
+                "  {} metrics for: {}, {}, {}, {}, {}, {} using the {} system...",
+                style("Computing").yellow(),
+                style("PSNR").cyan(),
+                style("APSNR").cyan(),
+                style("PSNR-HVS").cyan(),
+                style("SSIM").cyan(),
+                style("MSSIM").cyan(),
+                style("CIEDE2000").cyan(),
+                style("YUV/YCbCr").magenta()
+            ),
         }
 
-        println!("    {} for comparing {} to {}: \n",
-                 style("Results").yellow(),
-                 style(input1.as_ref().display()).italic().cyan(),
-                 style(input2.as_ref().display()).italic().cyan());
+        println!(
+            "    {} for comparing {} to {}: \n",
+            style("Results").yellow(),
+            style(input1.as_ref().display()).italic().cyan(),
+            style(input2.as_ref().display()).italic().cyan()
+        );
     }
 
     if metric.is_none() || metric == Some("psnr") {
@@ -279,7 +284,11 @@ impl CliMetric for Psnr {
     fn print_results(result: Self::VideoResult) {
         println!(
             "     {:<10} →  Y: {:<8.4} U/Cb: {:<8.4} V/Cr: {:<8.4} Avg value: {:<8.4}",
-            style("PSNR").cyan(), result.y, result.u, result.v, result.avg
+            style("PSNR").cyan(),
+            result.y,
+            result.u,
+            result.v,
+            result.avg
         );
     }
 }
@@ -299,7 +308,11 @@ impl CliMetric for APsnr {
     fn print_results(result: Self::VideoResult) {
         println!(
             "     {:<10} →  Y: {:<8.4} U/Cb: {:<8.4} V/Cr: {:<8.4} Avg value: {:<8.4}",
-            style("APSNR").cyan(), result.y, result.u, result.v, result.avg
+            style("APSNR").cyan(),
+            result.y,
+            result.u,
+            result.v,
+            result.avg
         );
     }
 }
@@ -319,7 +332,11 @@ impl CliMetric for PsnrHvs {
     fn print_results(result: Self::VideoResult) {
         println!(
             "     {:<10} →  Y: {:<8.4} U/Cb: {:<8.4} V/Cr: {:<8.4} Avg value: {:<8.4}",
-            style("PSNR HVS").cyan(), result.y, result.u, result.v, result.avg
+            style("PSNR HVS").cyan(),
+            result.y,
+            result.u,
+            result.v,
+            result.avg
         );
     }
 }
@@ -339,7 +356,11 @@ impl CliMetric for Ssim {
     fn print_results(result: Self::VideoResult) {
         println!(
             "     {:<10} →  Y: {:<8.4} U/Cb: {:<8.4} V/Cr: {:<8.4} Avg value: {:<8.4}",
-            style("SSIM").cyan(), result.y, result.u, result.v, result.avg
+            style("SSIM").cyan(),
+            result.y,
+            result.u,
+            result.v,
+            result.avg
         );
     }
 }
@@ -359,7 +380,11 @@ impl CliMetric for MsSsim {
     fn print_results(result: Self::VideoResult) {
         println!(
             "     {:<10} →  Y: {:<8.4} U/Cb: {:<8.4} V/Cr: {:<8.4} Avg value: {:<8.4}",
-            style("MSSSIM").cyan(), result.y, result.u, result.v, result.avg
+            style("MSSSIM").cyan(),
+            result.y,
+            result.u,
+            result.v,
+            result.avg
         );
     }
 }
@@ -379,7 +404,8 @@ impl CliMetric for Ciede2000 {
     fn print_results(result: Self::VideoResult) {
         println!(
             "     {:<10} →  Delta: {:<8.4}",
-            style("CIEDE2000").cyan(), result
+            style("CIEDE2000").cyan(),
+            result
         )
     }
 }
