@@ -12,6 +12,7 @@ pub struct KSubArgs {
     pub h: f32,
 }
 
+#[allow(clippy::needless_doctest_main)]
 impl DE2000 {
     /// Returns the difference between two `Lab` colors.
     ///

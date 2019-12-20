@@ -25,17 +25,11 @@ jobs:
       with:
         command: fmt
         args: -- --check --verbose
-    - name: Clippy No Default Features
-      uses: actions-rs/clippy-check@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        args: --no-default-features
     - name: Lint
       uses: actions-rs/clippy-check@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        args: --all-features --tests --benches
-        name: lint
+        args: --all-targets --all-features --tests --benches -- -D warnings
 
   cargo-c:
     runs-on: ubuntu-latest
