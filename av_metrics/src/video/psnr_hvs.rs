@@ -10,8 +10,10 @@
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
-use crate::video::{FrameInfo, PlanarMetrics, PlaneData, VideoMetric};
+use crate::video::ChromaWeight;
+use crate::video::{FrameInfo, PlanarMetrics, VideoMetric};
 use std::error::Error;
+use v_frame::plane::Plane;
 
 /// Calculates the PSNR-HVS score between two videos. Higher is better.
 #[cfg(feature = "decode")]
@@ -139,8 +141,8 @@ const CSF_CR420: [[f64; 8]; 8] = [
 ];
 
 fn calculate_plane_psnr_hvs<T: Pixel>(
-    plane1: &PlaneData<T>,
-    plane2: &PlaneData<T>,
+    plane1: &Plane<T>,
+    plane2: &Plane<T>,
     plane_idx: usize,
     bit_depth: usize,
 ) -> f64 {
@@ -178,14 +180,15 @@ fn calculate_plane_psnr_hvs<T: Pixel>(
         }
     }
 
-    let height = plane1.height;
-    let width = plane1.width;
+    let height = plane1.cfg.height;
+    let width = plane1.cfg.width;
+    let stride = plane1.cfg.stride;
     let mut p1 = [0i16; 8 * 8];
     let mut p2 = [0i16; 8 * 8];
     let mut dct_p1 = [0i32; 8 * 8];
     let mut dct_p2 = [0i32; 8 * 8];
-    assert!(plane1.data.len() == width * height);
-    assert!(plane2.data.len() == width * height);
+    assert!(plane1.data.len() >= stride * height);
+    assert!(plane2.data.len() >= stride * height);
     for y in (0..(height - STEP)).step_by(STEP) {
         for x in (0..(width - STEP)).step_by(STEP) {
             let mut p1_means = [0.0; 4];
@@ -201,8 +204,8 @@ fn calculate_plane_psnr_hvs<T: Pixel>(
 
             for i in 0..8 {
                 for j in 0..8 {
-                    p1[i * 8 + j] = i16::cast_from(plane1.data[(y + i) * width + x + j]);
-                    p2[i * 8 + j] = i16::cast_from(plane2.data[(y + i) * width + x + j]);
+                    p1[i * 8 + j] = i16::cast_from(plane1.data[(y + i) * stride + x + j]);
+                    p2[i * 8 + j] = i16::cast_from(plane2.data[(y + i) * stride + x + j]);
 
                     let sub = ((i & 12) >> 2) + ((j & 12) >> 1);
                     p1_gmean += p1[i * 8 + j] as f64;

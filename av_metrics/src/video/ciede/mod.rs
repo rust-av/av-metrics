@@ -92,9 +92,9 @@ impl VideoMetric for Ciede2000 {
         frame1.can_compare(&frame2)?;
 
         let dec = frame1.chroma_sampling.get_decimation().unwrap_or((1, 1));
-        let y_width = frame1.planes[0].width;
-        let y_height = frame1.planes[0].height;
-        let c_width = frame1.planes[1].width;
+        let y_width = frame1.planes[0].cfg.width;
+        let y_height = frame1.planes[0].cfg.height;
+        let c_width = frame1.planes[1].cfg.width;
         let delta_e_row_fn = get_delta_e_row_fn(frame1.bit_depth, dec.0, self.use_simd);
         let mut delta_e_vec: Vec<f32> = vec![0.0; y_width * y_height];
         for i in 0..y_height {

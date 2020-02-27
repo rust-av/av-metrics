@@ -5,6 +5,7 @@
 #![allow(clippy::cast_lossless)]
 #![allow(clippy::needless_range_loop)]
 #![allow(clippy::unreadable_literal)]
+#![allow(clippy::wrong_self_convention)]
 #![deny(missing_docs)]
 
 #[macro_use]
@@ -19,6 +20,8 @@ mod capi;
 
 #[cfg(cargo_c)]
 pub use capi::*;
+
+pub use v_frame;
 
 /// Possible errors that may occur during processing of a metric.
 ///
