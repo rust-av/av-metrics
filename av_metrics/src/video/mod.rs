@@ -14,6 +14,7 @@ use std::error::Error;
 #[cfg(feature = "decode")]
 pub use decode::*;
 pub use pixel::*;
+pub use v_frame::plane::Plane;
 
 /// A container holding the data for one video frame. This includes all planes
 /// of the video. Currently, only YUV/YCbCr format is supported. Bit depths up to 16-bit
@@ -26,7 +27,7 @@ pub struct FrameInfo<T: Pixel> {
     /// - 0 - Y/Luma plane
     /// - 1 - U/Cb plane
     /// - 2 - V/Cr plane
-    pub planes: [PlaneData<T>; 3],
+    pub planes: [Plane<T>; 3],
     /// The number of bits per pixel.
     pub bit_depth: usize,
     /// The chroma sampling format of the video. Most videos are in 4:2:0 format.
@@ -58,85 +59,30 @@ impl<T: Pixel> FrameInfo<T> {
     }
 }
 
-/// Contains the data for one plane in a video frame. For chroma planes, this data is
-/// represented in the original chroma sampling. E.g. if this is a 4:2:0 video clip,
-/// the chroma planes will have half the resolution, in each dimension, of the luma
-/// plane.
-#[derive(Clone, Debug)]
-pub struct PlaneData<T: Pixel> {
-    /// The width, in pixels, of this plane.
-    pub width: usize,
-    /// The height, in pixels, of this plane.
-    pub height: usize,
-    /// A plane's pixels are contained in this `Vec`, in row-major order.
-    /// A `u8` should be used for low-bit-depth video, and `u16` for high-bit-depth.
-    pub data: Vec<T>,
+pub(crate) trait PlaneCompare {
+    fn can_compare(&self, other: &Self) -> Result<(), MetricsError>;
 }
 
-impl<T: Pixel> PlaneData<T> {
-    pub(crate) fn can_compare(&self, other: &Self) -> Result<(), MetricsError> {
-        if self.width != other.width || self.height != other.height {
+impl<T: Pixel> PlaneCompare for Plane<T> {
+    fn can_compare(&self, other: &Self) -> Result<(), MetricsError> {
+        if self.cfg != other.cfg {
             return Err(MetricsError::InputMismatch {
                 reason: "Video resolution does not match",
             });
         }
-
         Ok(())
     }
 }
 
-/// Available chroma sampling formats.
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum ChromaSampling {
-    /// Both vertically and horizontally subsampled.
-    Cs420,
-    /// Horizontally subsampled.
-    Cs422,
-    /// Not subsampled.
-    Cs444,
-    /// Monochrome.
-    Cs400,
+pub use v_frame::pixel::ChromaSampling;
+
+pub(crate) trait ChromaWeight {
+    fn get_chroma_weight(self) -> f64;
 }
 
-impl Default for ChromaSampling {
-    fn default() -> Self {
-        ChromaSampling::Cs420
-    }
-}
-
-impl ChromaSampling {
-    /// Provides the amount to right shift the luma plane dimensions to get the
-    ///  chroma plane dimensions.
-    /// Only values 0 or 1 are ever returned.
-    /// The plane dimensions must also be rounded up to accommodate odd luma plane
-    ///  sizes.
-    /// Cs400 returns None, as there are no chroma planes.
-    pub(crate) fn get_decimation(self) -> Option<(usize, usize)> {
-        use self::ChromaSampling::*;
-        match self {
-            Cs420 => Some((1, 1)),
-            Cs422 => Some((1, 0)),
-            Cs444 => Some((0, 0)),
-            Cs400 => None,
-        }
-    }
-
-    /// Calculates the size of a chroma plane for this sampling type, given the luma plane dimensions.
-    #[cfg(feature = "decode")]
-    pub(crate) fn get_chroma_dimensions(
-        self,
-        luma_width: usize,
-        luma_height: usize,
-    ) -> (usize, usize) {
-        if let Some((ss_x, ss_y)) = self.get_decimation() {
-            ((luma_width + ss_x) >> ss_x, (luma_height + ss_y) >> ss_y)
-        } else {
-            (0, 0)
-        }
-    }
-
+impl ChromaWeight for ChromaSampling {
     /// The relative impact of chroma planes compared to luma
-    pub(crate) fn get_chroma_weight(self) -> f64 {
+    fn get_chroma_weight(self) -> f64 {
         match self {
             ChromaSampling::Cs420 => 0.25,
             ChromaSampling::Cs422 => 0.5,
@@ -172,7 +118,7 @@ impl Default for ChromaSamplePosition {
 
 /// Certain metrics return a value per plane. This struct contains the output
 /// for those metrics per plane, as well as a weighted average of the planes.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct PlanarMetrics {
     /// Metric value for the Y plane.
@@ -209,10 +155,12 @@ trait VideoMetric {
 
         let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
         let mut frame_no = 0;
+        let video1_details = decoder1.get_video_details();
+        let video2_details = decoder2.get_video_details();
         while frame_limit.map(|limit| limit > frame_no).unwrap_or(true) {
             if decoder1.get_bit_depth() > 8 {
-                let frame1 = decoder1.read_video_frame::<u16>();
-                let frame2 = decoder2.read_video_frame::<u16>();
+                let frame1 = decoder1.read_video_frame::<u16>(&video1_details);
+                let frame2 = decoder2.read_video_frame::<u16>(&video2_details);
                 if let Ok(frame1) = frame1 {
                     if let Ok(frame2) = frame2 {
                         metrics.push(self.process_frame(&frame1, &frame2)?);
@@ -221,8 +169,8 @@ trait VideoMetric {
                     }
                 }
             } else {
-                let frame1 = decoder1.read_video_frame::<u8>();
-                let frame2 = decoder2.read_video_frame::<u8>();
+                let frame1 = decoder1.read_video_frame::<u8>(&video1_details);
+                let frame2 = decoder2.read_video_frame::<u8>(&video2_details);
                 if let Ok(frame1) = frame1 {
                     if let Ok(frame2) = frame2 {
                         metrics.push(self.process_frame(&frame1, &frame2)?);
