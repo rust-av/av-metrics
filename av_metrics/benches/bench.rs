@@ -16,7 +16,7 @@ use y4m::Decoder as Y4MDec;
 fn get_video_frame<T: Pixel>(filename: &str) -> FrameInfo<T> {
     let mut file = File::open(filename).unwrap();
     let mut dec = Y4MDec::new(&mut file).unwrap();
-    dec.read_video_frame().unwrap()
+    dec.read_video_frame(&dec.get_video_details()).unwrap()
 }
 
 pub fn psnr_benchmark(c: &mut Criterion) {
