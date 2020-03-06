@@ -9,9 +9,9 @@
 #![deny(missing_docs)]
 
 #[macro_use]
-extern crate err_derive;
-#[macro_use]
 extern crate itertools;
+#[macro_use]
+extern crate thiserror;
 
 pub mod video;
 
@@ -29,26 +29,26 @@ pub use v_frame;
 #[derive(Debug, Error)]
 pub enum MetricsError {
     /// Indicates an input file could not be read for some reason.
-    #[error(display = "Could not read input file: {}", reason)]
+    #[error("Could not read input file: {reason}")]
     MalformedInput {
         #[doc(hidden)]
         reason: &'static str,
     },
     /// Indicates an input file could be read, but is not supported by the current metric.
-    #[error(display = "Input type not supported: {}", reason)]
+    #[error("Input type not supported: {reason}")]
     UnsupportedInput {
         #[doc(hidden)]
         reason: &'static str,
     },
     /// Indicates two inputs did not have matching formats or resolutions.
-    #[error(display = "Input videos must have matching formats: {}", reason)]
+    #[error("Input videos must have matching formats: {reason}")]
     InputMismatch {
         #[doc(hidden)]
         reason: &'static str,
     },
     /// Placeholder
     #[doc(hidden)]
-    #[error(display = "Unreachable")]
+    #[error("Unreachable")]
     NonExhaustive,
 }
 
