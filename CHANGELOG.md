@@ -1,3 +1,10 @@
+## Version 0.4.0
+- Breaking Change: Use Frame, Pixel, etc. types from the `v_frame` crate,
+  instead of rolling our own. This should improve interoperability
+  with other crates.
+- Speed up y4m decoding.
+- Minor internal changes and dependency updates.
+
 ## Version 0.3.0
 - Breaking Change: Remove the `use_simd` flag from the public API.
   This was intended only for development purposes,
