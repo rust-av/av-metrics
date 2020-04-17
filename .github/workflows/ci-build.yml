@@ -10,9 +10,12 @@ on:
 
 jobs:
   clippy-rustfmt:
+
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+
     - name: Install stable
       uses: actions-rs/toolchain@v1
       with:
@@ -20,61 +23,119 @@ jobs:
         toolchain: stable
         override: true
         components: clippy, rustfmt
+
     - name: Run rustfmt
       uses: actions-rs/cargo@v1
       with:
         command: fmt
         args: -- --check --verbose
-    - name: Lint
+
+    - name: Run cargo clippy
       uses: actions-rs/clippy-check@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         args: --all-targets --all-features --tests --benches -- -D warnings
 
   cargo-c:
+
+    env:
+      RUST_BACKTRACE: 1
+      RUSTC_WRAPPER: sccache
+      SCCACHE_CACHE_SIZE: 300M
+      SCCACHE_DIR: /home/runner/.cache/sccache
+      SCCACHE_IDLE_TIMEOUT: 0
+
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+
+    - name: Install sccache
+      env:
+        LINK: https://github.com/mozilla/sccache/releases/download
+        SCCACHE_VERSION: 0.2.13
+      run: |
+        SCCACHE_FILE=sccache-$SCCACHE_VERSION-x86_64-unknown-linux-musl
+        mkdir -p $HOME/.local/bin
+        curl -L "$LINK/$SCCACHE_VERSION/$SCCACHE_FILE.tar.gz" | tar xz
+        mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
+        echo "::add-path::$HOME/.local/bin"
+
     - name: Install stable
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: stable
         override: true
+
+    - name: Cache cargo registry
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/registry/cache
+        key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          cargo-registry-
+
+    - name: Cache sccache output
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/sccache
+        key: sccache-${{ hashFiles('**/Cargo.*') }}
+        restore-keys: |
+          sccache-
+
+    - name: Start sccache server
+      run: |
+        sccache --start-server
+
     - name: Install cargo-c
       run: |
         cargo install cargo-c
+
     - name: Run cargo-c
       run: |
-        cargo cinstall --prefix=$HOME/av_metrics_deploy
+        cargo cinstall --manifest-path=av_metrics/Cargo.toml \
+                       --prefix=$HOME/av_metrics_deploy
+
     - name: Build cargo-c tests
       run: |
         export PKG_CONFIG_PATH=$HOME/av_metrics_deploy/lib/pkgconfig
         cd av_metrics/c-example
         gcc test.c -o test `pkg-config --static --cflags --libs av_metrics`
+
     - name: Run tests
       run: |
         export LD_LIBRARY_PATH=$HOME/av_metrics_deploy/lib/
         cd av_metrics/c-example
         ./test
 
+    - name: Stop sccache server
+      run: |
+        sccache --stop-server
+
   build:
+
     strategy:
       matrix:
         platform: [ubuntu-latest, windows-latest]
+
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+
     - name: Install stable
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: stable
         override: true
+
     - name: Build
       run: cargo build --all-features --tests --benches
+
     - name: Run tests
       run: cargo test --all-features
+
     - name: Generate docs
       run: cargo doc --all-features --no-deps
