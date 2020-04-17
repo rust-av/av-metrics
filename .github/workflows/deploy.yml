@@ -12,26 +12,34 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+
     - name: Install Rust
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: stable-x86_64-pc-windows-gnu
         override: true
+
     - name: Install cargo-c
       run: |
         cargo install cargo-c
+
     - name: Build
       run: |
         cargo build --release
+
     - name: Run cargo-c
       run: |
-        cargo cinstall --release --destdir="C:\"
+        cargo cinstall --release `
+                       --manifest-path=av_metrics/Cargo.toml `
+                       --destdir="C:\"
+
     - name: Create zip
       run: |
         $METRICS_PATH="$Env:GITHUB_WORKSPACE\target\release"
         7z a av-metrics.zip "$METRICS_PATH\av-metrics-tool.exe" "C:\usr\local"
+
     - name: Upload binaries
       uses: actions/upload-artifact@v1
       with:
@@ -45,14 +53,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v2
+
     - name: Download the zip
       uses: actions/download-artifact@v1
       with:
         name: av-metrics-bins
+
     - name: Unzip av-metrics Windows binaries
       run: |
         unzip av-metrics-bins/av-metrics.zip -d av-metrics-bins
+
     - name: Handle release data and files
       id: data
       run: |
@@ -65,6 +76,7 @@ jobs:
         zip -r $FILENAME.zip $FILENAME
         strip av-metrics-tool.exe
         mv $FILENAME.zip av-metrics-tool.exe ..
+
     - name: Create a release
       uses: softprops/action-gh-release@v1
       with:
