@@ -5,3 +5,6 @@ include_guard = "AV_METRICS"
 tab_width = 4
 style = "Type"
 language = "C"
+
+[export]
+prefix = "AVM"
