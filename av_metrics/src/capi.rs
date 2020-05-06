@@ -56,7 +56,7 @@ fn run_metric(
     frame_limit: usize,
     metric: &str,
     is_frame: bool,
-) -> (*const MetricContext, f64) {
+) -> (*const Context, f64) {
     if path1.is_null() || path2.is_null() {
         return (null(), -1.0);
     }
@@ -88,7 +88,7 @@ fn run_video_metric<P: AsRef<Path>>(
     container2: VideoContainer,
     frame_limit: usize,
     metric: &str,
-) -> (*const MetricContext, f64) {
+) -> (*const Context, f64) {
     let mut file1 =
         File::open(path1).expect(&("Error opening the first ".to_owned() + metric + " video"));
     let mut file2 =
@@ -115,7 +115,7 @@ fn run_video_metric<P: AsRef<Path>>(
         _ => ssim::calculate_video_msssim(&mut dec1, &mut dec2, limit),
     };
     if let Ok(metric) = val {
-        let ctx = MetricContext {
+        let ctx = Context {
             y: metric.y,
             u: metric.u,
             v: metric.v,
@@ -134,7 +134,7 @@ fn run_frame_metric<P: AsRef<Path>>(
     container2: VideoContainer,
     frame_number: usize,
     metric: &str,
-) -> (*const MetricContext, f64) {
+) -> (*const Context, f64) {
     let mut file1 =
         File::open(path1).expect(&("Error opening the first ".to_owned() + metric + " video"));
     let mut file2 =
@@ -161,7 +161,7 @@ fn run_frame_metric<P: AsRef<Path>>(
                     _ => ssim::calculate_frame_msssim(&frame1, &frame2),
                 };
                 if let Ok(metric) = val {
-                    let ctx = MetricContext {
+                    let ctx = Context {
                         y: metric.y,
                         u: metric.u,
                         v: metric.v,
@@ -190,7 +190,7 @@ fn run_frame_metric<P: AsRef<Path>>(
                     _ => ssim::calculate_frame_msssim(&frame1, &frame2),
                 };
                 if let Ok(metric) = val {
-                    let ctx = MetricContext {
+                    let ctx = Context {
                         y: metric.y,
                         u: metric.u,
                         v: metric.v,
@@ -209,7 +209,7 @@ fn run_frame_metric<P: AsRef<Path>>(
 ///
 /// This struct contains the data returned by a metric
 #[repr(C)]
-pub struct MetricContext {
+pub struct Context {
     /// Metric value for the Y plane.
     pub y: f64,
     /// Metric value for the U/Cb plane.
@@ -222,13 +222,13 @@ pub struct MetricContext {
 
 /// Calculate the `psnr` metric between two videos
 ///
-/// Returns either `NULL` or a newly allocated `MetricContext`
+/// Returns either `NULL` or a newly allocated `AVMContext`
 #[no_mangle]
-pub unsafe extern fn calculate_video_psnr(
+pub unsafe extern fn avm_calculate_video_psnr(
     video1_path: *const c_char,
     video2_path: *const c_char,
     frame_limit: usize,
-) -> *const MetricContext {
+) -> *const Context {
     let (metric, _) = run_metric(video1_path, video2_path, frame_limit, "psnr", false);
 
     metric
@@ -236,13 +236,13 @@ pub unsafe extern fn calculate_video_psnr(
 
 /// Calculate the `apsnr` metric between two videos
 ///
-/// Returns either `NULL` or a newly allocated `MetricContext`
+/// Returns either `NULL` or a newly allocated `AVMContext`
 #[no_mangle]
-pub unsafe extern fn calculate_video_apsnr(
+pub unsafe extern fn avm_calculate_video_apsnr(
     video1_path: *const c_char,
     video2_path: *const c_char,
     frame_limit: usize,
-) -> *const MetricContext {
+) -> *const Context {
     let (metric, _) = run_metric(video1_path, video2_path, frame_limit, "apsnr", false);
 
     metric
@@ -250,13 +250,13 @@ pub unsafe extern fn calculate_video_apsnr(
 
 /// Calculate the `psnr_hvs` metric between two videos
 ///
-/// Returns either `NULL` or a newly allocated `MetricContext`
+/// Returns either `NULL` or a newly allocated `AVMContext`
 #[no_mangle]
-pub unsafe extern fn calculate_video_psnr_hvs(
+pub unsafe extern fn avm_calculate_video_psnr_hvs(
     video1_path: *const c_char,
     video2_path: *const c_char,
     frame_limit: usize,
-) -> *const MetricContext {
+) -> *const Context {
     let (metric, _) = run_metric(video1_path, video2_path, frame_limit, "psnr_hvs", false);
 
     metric
@@ -264,13 +264,13 @@ pub unsafe extern fn calculate_video_psnr_hvs(
 
 /// Calculate the `ssim` metric between two videos
 ///
-/// Returns either `NULL` or a newly allocated `MetricContext`
+/// Returns either `NULL` or a newly allocated `AVMContext`
 #[no_mangle]
-pub unsafe extern fn calculate_video_ssim(
+pub unsafe extern fn avm_calculate_video_ssim(
     video1_path: *const c_char,
     video2_path: *const c_char,
     frame_limit: usize,
-) -> *const MetricContext {
+) -> *const Context {
     let (metric, _) = run_metric(video1_path, video2_path, frame_limit, "ssim", false);
 
     metric
@@ -278,13 +278,13 @@ pub unsafe extern fn calculate_video_ssim(
 
 /// Calculate the `msssim` metric between two videos
 ///
-/// Returns either `NULL` or a newly allocated `MetricContext`
+/// Returns either `NULL` or a newly allocated `AVMContext`
 #[no_mangle]
-pub unsafe extern fn calculate_video_msssim(
+pub unsafe extern fn avm_calculate_video_msssim(
     video1_path: *const c_char,
     video2_path: *const c_char,
     frame_limit: usize,
-) -> *const MetricContext {
+) -> *const Context {
     let (metric, _) = run_metric(video1_path, video2_path, frame_limit, "msssim", false);
 
     metric
@@ -294,7 +294,7 @@ pub unsafe extern fn calculate_video_msssim(
 ///
 /// Returns the correct `ciede` value or `-1` on errors
 #[no_mangle]
-pub unsafe extern fn calculate_video_ciede(
+pub unsafe extern fn avm_calculate_video_ciede(
     video1_path: *const c_char,
     video2_path: *const c_char,
     frame_limit: usize,
@@ -306,52 +306,52 @@ pub unsafe extern fn calculate_video_ciede(
 
 /// Calculate the `psnr` metric between two frames
 ///
-/// Returns either `NULL` or a newly allocated `MetricContext`
+/// Returns either `NULL` or a newly allocated `AVMContext`
 #[no_mangle]
-pub unsafe extern fn calculate_frame_psnr(
+pub unsafe extern fn avm_calculate_frame_psnr(
     video1_path: *const c_char,
     video2_path: *const c_char,
     frame_number: usize,
-) -> *const MetricContext {
+) -> *const Context {
     let (metric, _) = run_metric(video1_path, video2_path, frame_number, "psnr", true);
     metric
 }
 
 /// Calculate the `psnr_hvs` metric between two frames
 ///
-/// Returns either `NULL` or a newly allocated `MetricContext`
+/// Returns either `NULL` or a newly allocated `AVMContext`
 #[no_mangle]
-pub unsafe extern fn calculate_frame_psnr_hvs(
+pub unsafe extern fn avm_calculate_frame_psnr_hvs(
     video1_path: *const c_char,
     video2_path: *const c_char,
     frame_number: usize,
-) -> *const MetricContext {
+) -> *const Context {
     let (metric, _) = run_metric(video1_path, video2_path, frame_number, "psnr_hvs", true);
     metric
 }
 
 /// Calculate the `ssim` metric between two frames
 ///
-/// Returns either `NULL` or a newly allocated `MetricContext`
+/// Returns either `NULL` or a newly allocated `AVMContext`
 #[no_mangle]
-pub unsafe extern fn calculate_frame_ssim(
+pub unsafe extern fn avm_calculate_frame_ssim(
     video1_path: *const c_char,
     video2_path: *const c_char,
     frame_number: usize,
-) -> *const MetricContext {
+) -> *const Context {
     let (metric, _) = run_metric(video1_path, video2_path, frame_number, "ssim", true);
     metric
 }
 
 /// Calculate the `msssim` metric between two frames
 ///
-/// Returns either `NULL` or a newly allocated `MetricContext`
+/// Returns either `NULL` or a newly allocated `AVMContext`
 #[no_mangle]
-pub unsafe extern fn calculate_frame_msssim(
+pub unsafe extern fn avm_calculate_frame_msssim(
     video1_path: *const c_char,
     video2_path: *const c_char,
     frame_number: usize,
-) -> *const MetricContext {
+) -> *const Context {
     let (metric, _) = run_metric(video1_path, video2_path, frame_number, "msssim", true);
     metric
 }
@@ -360,7 +360,7 @@ pub unsafe extern fn calculate_frame_msssim(
 ///
 /// Returns the correct `ciede` value or `-1` on errors
 #[no_mangle]
-pub unsafe extern fn calculate_frame_ciede(
+pub unsafe extern fn avm_calculate_frame_ciede(
     video1_path: *const c_char,
     video2_path: *const c_char,
     frame_number: usize,
@@ -373,6 +373,6 @@ pub unsafe extern fn calculate_frame_ciede(
 ///
 /// This function drops the context and free the memory
 #[no_mangle]
-pub unsafe extern fn drop_context(ctx: *const MetricContext) {
-    std::mem::drop(Box::from_raw(ctx as *mut MetricContext));
+pub unsafe extern fn avm_drop_context(ctx: *const Context) {
+    std::mem::drop(Box::from_raw(ctx as *mut Context));
 }

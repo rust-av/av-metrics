@@ -6,20 +6,20 @@
     void test_ ## func(int frame) { \
         const char video_path1[] = "../testfiles/yuv444p8_input.y4m"; \
         const char video_path2[] = "../testfiles/yuv444p8_output.y4m"; \
-        const MetricContext *val = calculate_ ## func(&video_path1[0], \
+        const AVMContext *val = avm_calculate_ ## func(&video_path1[0], \
                                                       &video_path2[0], frame); \
         \
         printf("%s - Y: %f  U: %f  V: %f  Avg: %f\n", \
                metrics, val->y, val->u, val->v, val->avg); \
         \
-        drop_context(val); \
+        avm_drop_context(val); \
     }
 
 #define CREATE_CIEDE_METRICS(func) \
     void test_ ## func(int frame) { \
         const char video_path1[] = "../testfiles/yuv444p8_input.y4m"; \
         const char video_path2[] = "../testfiles/yuv444p8_output.y4m"; \
-        double val = calculate_ ## func(&video_path1[0], \
+        double val = avm_calculate_ ## func(&video_path1[0], \
                                         &video_path2[0], frame); \
         \
         printf("CIEDE2000 - %f\n", val); \
