@@ -5,6 +5,7 @@ extern crate libc;
 use libc::c_char;
 use std::ffi::CStr;
 use std::fs::File;
+use std::os::raw::c_int;
 use std::path::{Path, PathBuf};
 use std::ptr::null;
 
@@ -227,9 +228,15 @@ pub struct Context {
 pub unsafe extern fn avm_calculate_video_psnr(
     video1_path: *const c_char,
     video2_path: *const c_char,
-    frame_limit: usize,
+    frame_limit: c_int,
 ) -> *const Context {
-    let (metric, _) = run_metric(video1_path, video2_path, frame_limit, "psnr", false);
+    let (metric, _) = run_metric(
+        video1_path,
+        video2_path,
+        frame_limit as usize,
+        "psnr",
+        false,
+    );
 
     metric
 }
@@ -241,9 +248,15 @@ pub unsafe extern fn avm_calculate_video_psnr(
 pub unsafe extern fn avm_calculate_video_apsnr(
     video1_path: *const c_char,
     video2_path: *const c_char,
-    frame_limit: usize,
+    frame_limit: c_int,
 ) -> *const Context {
-    let (metric, _) = run_metric(video1_path, video2_path, frame_limit, "apsnr", false);
+    let (metric, _) = run_metric(
+        video1_path,
+        video2_path,
+        frame_limit as usize,
+        "apsnr",
+        false,
+    );
 
     metric
 }
@@ -255,9 +268,15 @@ pub unsafe extern fn avm_calculate_video_apsnr(
 pub unsafe extern fn avm_calculate_video_psnr_hvs(
     video1_path: *const c_char,
     video2_path: *const c_char,
-    frame_limit: usize,
+    frame_limit: c_int,
 ) -> *const Context {
-    let (metric, _) = run_metric(video1_path, video2_path, frame_limit, "psnr_hvs", false);
+    let (metric, _) = run_metric(
+        video1_path,
+        video2_path,
+        frame_limit as usize,
+        "psnr_hvs",
+        false,
+    );
 
     metric
 }
@@ -269,9 +288,15 @@ pub unsafe extern fn avm_calculate_video_psnr_hvs(
 pub unsafe extern fn avm_calculate_video_ssim(
     video1_path: *const c_char,
     video2_path: *const c_char,
-    frame_limit: usize,
+    frame_limit: c_int,
 ) -> *const Context {
-    let (metric, _) = run_metric(video1_path, video2_path, frame_limit, "ssim", false);
+    let (metric, _) = run_metric(
+        video1_path,
+        video2_path,
+        frame_limit as usize,
+        "ssim",
+        false,
+    );
 
     metric
 }
@@ -283,9 +308,15 @@ pub unsafe extern fn avm_calculate_video_ssim(
 pub unsafe extern fn avm_calculate_video_msssim(
     video1_path: *const c_char,
     video2_path: *const c_char,
-    frame_limit: usize,
+    frame_limit: c_int,
 ) -> *const Context {
-    let (metric, _) = run_metric(video1_path, video2_path, frame_limit, "msssim", false);
+    let (metric, _) = run_metric(
+        video1_path,
+        video2_path,
+        frame_limit as usize,
+        "msssim",
+        false,
+    );
 
     metric
 }
@@ -297,9 +328,15 @@ pub unsafe extern fn avm_calculate_video_msssim(
 pub unsafe extern fn avm_calculate_video_ciede(
     video1_path: *const c_char,
     video2_path: *const c_char,
-    frame_limit: usize,
+    frame_limit: c_int,
 ) -> f64 {
-    let (_, value) = run_metric(video1_path, video2_path, frame_limit, "ciede", false);
+    let (_, value) = run_metric(
+        video1_path,
+        video2_path,
+        frame_limit as usize,
+        "ciede",
+        false,
+    );
 
     value
 }
@@ -311,9 +348,15 @@ pub unsafe extern fn avm_calculate_video_ciede(
 pub unsafe extern fn avm_calculate_frame_psnr(
     video1_path: *const c_char,
     video2_path: *const c_char,
-    frame_number: usize,
+    frame_number: c_int,
 ) -> *const Context {
-    let (metric, _) = run_metric(video1_path, video2_path, frame_number, "psnr", true);
+    let (metric, _) = run_metric(
+        video1_path,
+        video2_path,
+        frame_number as usize,
+        "psnr",
+        true,
+    );
     metric
 }
 
@@ -324,9 +367,15 @@ pub unsafe extern fn avm_calculate_frame_psnr(
 pub unsafe extern fn avm_calculate_frame_psnr_hvs(
     video1_path: *const c_char,
     video2_path: *const c_char,
-    frame_number: usize,
+    frame_number: c_int,
 ) -> *const Context {
-    let (metric, _) = run_metric(video1_path, video2_path, frame_number, "psnr_hvs", true);
+    let (metric, _) = run_metric(
+        video1_path,
+        video2_path,
+        frame_number as usize,
+        "psnr_hvs",
+        true,
+    );
     metric
 }
 
@@ -337,9 +386,15 @@ pub unsafe extern fn avm_calculate_frame_psnr_hvs(
 pub unsafe extern fn avm_calculate_frame_ssim(
     video1_path: *const c_char,
     video2_path: *const c_char,
-    frame_number: usize,
+    frame_number: c_int,
 ) -> *const Context {
-    let (metric, _) = run_metric(video1_path, video2_path, frame_number, "ssim", true);
+    let (metric, _) = run_metric(
+        video1_path,
+        video2_path,
+        frame_number as usize,
+        "ssim",
+        true,
+    );
     metric
 }
 
@@ -350,9 +405,15 @@ pub unsafe extern fn avm_calculate_frame_ssim(
 pub unsafe extern fn avm_calculate_frame_msssim(
     video1_path: *const c_char,
     video2_path: *const c_char,
-    frame_number: usize,
+    frame_number: c_int,
 ) -> *const Context {
-    let (metric, _) = run_metric(video1_path, video2_path, frame_number, "msssim", true);
+    let (metric, _) = run_metric(
+        video1_path,
+        video2_path,
+        frame_number as usize,
+        "msssim",
+        true,
+    );
     metric
 }
 
@@ -363,9 +424,15 @@ pub unsafe extern fn avm_calculate_frame_msssim(
 pub unsafe extern fn avm_calculate_frame_ciede(
     video1_path: *const c_char,
     video2_path: *const c_char,
-    frame_number: usize,
+    frame_number: c_int,
 ) -> f64 {
-    let (_, value) = run_metric(video1_path, video2_path, frame_number, "ciede", true);
+    let (_, value) = run_metric(
+        video1_path,
+        video2_path,
+        frame_number as usize,
+        "ciede",
+        true,
+    );
     value
 }
 
