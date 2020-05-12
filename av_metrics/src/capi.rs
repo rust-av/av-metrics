@@ -37,7 +37,7 @@ enum VideoContainer {
 }
 
 impl VideoContainer {
-    pub fn get_decoder<'d>(&self, file: &'d mut File, metric: &str) -> y4m::Decoder<'d, File> {
+    pub fn get_decoder<'d>(&self, file: &'d mut File, metric: &str) -> y4m::Decoder<&'d mut File> {
         match *self {
             VideoContainer::Y4M => y4m::Decoder::new(file)
                 .expect(&("Failed to decode the ".to_owned() + metric + " y4m file")),

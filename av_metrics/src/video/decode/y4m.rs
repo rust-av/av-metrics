@@ -25,7 +25,7 @@ pub fn map_y4m_color_space(color_space: y4m::Colorspace) -> (ChromaSampling, Chr
     }
 }
 
-impl<R: Read> Decoder for y4m::Decoder<'_, R> {
+impl<R: Read> Decoder for y4m::Decoder<R> {
     fn get_video_details(&self) -> VideoDetails {
         let width = self.get_width();
         let height = self.get_height();
