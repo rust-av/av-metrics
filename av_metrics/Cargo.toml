@@ -1,6 +1,6 @@
 [package]
 name = "av-metrics"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
 edition = "2018"
 description = "A collection of algorithms for measuring audio/video metrics"
@@ -14,7 +14,7 @@ libc = "0.2"
 num-traits = "0.2"
 serde = { version = "1", features = ["derive"], optional = true }
 thiserror = "1"
-y4m = { version = "0.5", optional = true }
+y4m = { version = "0.6", optional = true }
 v_frame = { version = "0.1.0" }
 
 [dev-dependencies]
