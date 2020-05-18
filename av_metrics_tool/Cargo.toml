@@ -8,7 +8,7 @@ license = "MIT"
 repository = "https://github.com/rust-av/av-metrics"
 
 [dependencies]
-av-metrics = { version = "0.4", features = ["serde"] }
+av-metrics = { version = "0.5", features = ["serde"] }
 clap = "2.33"
 maplit = "1"
 serde = "1"
