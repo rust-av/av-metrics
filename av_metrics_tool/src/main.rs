@@ -104,8 +104,8 @@ enum VideoContainer {
 
 impl VideoContainer {
     // TODO: Actually be generic and support more input types
-    pub fn get_decoder<'d>(&self, file: &'d mut File) -> y4m::Decoder<'d, File> {
-        match *self {
+    pub fn get_decoder<'d>(self, file: &'d mut File) -> y4m::Decoder<&'d mut File> {
+        match self {
             VideoContainer::Y4M => y4m::Decoder::new(file).expect("Failed to read y4m file"),
         }
     }
