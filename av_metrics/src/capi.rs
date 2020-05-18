@@ -3,13 +3,20 @@
 extern crate libc;
 
 use libc::c_char;
+use libc::ptrdiff_t;
 use std::ffi::CStr;
 use std::fs::File;
 use std::os::raw::c_int;
 use std::path::{Path, PathBuf};
 use std::ptr::null;
+use std::slice;
 
+use crate::video as vid;
 use crate::video::*;
+
+type ChromaSamplePosition = vid::ChromaSamplePosition;
+type ChromaSampling = vid::ChromaSampling;
+type Rational = vid::Rational;
 
 #[derive(Debug, Clone, Copy)]
 enum InputType {
@@ -434,6 +441,327 @@ pub unsafe extern fn avm_calculate_frame_ciede(
         true,
     );
     value
+}
+
+fn calculate_frame_buf_tmpl<T: Pixel>(
+    frame1: [&[u8]; 3],
+    frame1_strides: [ptrdiff_t; 3],
+    frame2: [&[u8]; 3],
+    frame2_strides: [ptrdiff_t; 3],
+    width: u32,
+    height: u32,
+    bitdepth: u8,
+    _chroma_pos: ChromaSamplePosition,
+    subsampling: ChromaSampling,
+    _pixel_aspect_ratio: Rational,
+    metric: &str,
+) -> (*const Context, f64) {
+    let (xdec, ydec) = subsampling.get_decimation().unwrap_or((1, 1));
+    let planes = if subsampling == ChromaSampling::Cs400 {
+        1
+    } else {
+        3
+    };
+    let bw = if bitdepth == 8 { 1 } else { 2 };
+
+    let mut fi1 = FrameInfo {
+        planes: [
+            Plane::<T>::new(width as usize, height as usize, 0, 0, 0, 0),
+            Plane::<T>::new(
+                (width as usize) >> xdec,
+                (height as usize) >> ydec,
+                xdec,
+                ydec,
+                0,
+                0,
+            ),
+            Plane::<T>::new(
+                (width as usize) >> xdec,
+                (height as usize) >> ydec,
+                xdec,
+                ydec,
+                0,
+                0,
+            ),
+        ],
+        bit_depth: bitdepth as usize,
+        chroma_sampling: subsampling,
+    };
+    let mut fi2 = FrameInfo {
+        planes: [
+            Plane::<T>::new(width as usize, height as usize, 0, 0, 0, 0),
+            Plane::<T>::new(
+                (width as usize) >> xdec,
+                (height as usize) >> ydec,
+                xdec,
+                ydec,
+                0,
+                0,
+            ),
+            Plane::<T>::new(
+                (width as usize) >> xdec,
+                (height as usize) >> ydec,
+                xdec,
+                ydec,
+                0,
+                0,
+            ),
+        ],
+        bit_depth: bitdepth as usize,
+        chroma_sampling: subsampling,
+    };
+
+    for p in 0..planes {
+        fi1.planes[p].copy_from_raw_u8(frame1[p], frame1_strides[p] as usize, bw);
+        fi2.planes[p].copy_from_raw_u8(frame2[p], frame2_strides[p] as usize, bw);
+    }
+
+    if metric == "ciede" {
+        if let Ok(val) = ciede::calculate_frame_ciede(&fi1, &fi2) {
+            return (null(), val);
+        }
+    }
+
+    let val = match metric {
+        "psnr" => psnr::calculate_frame_psnr(&fi1, &fi2),
+        "psnr_hvs" => psnr_hvs::calculate_frame_psnr_hvs(&fi1, &fi2),
+        "ssim" => ssim::calculate_frame_ssim(&fi1, &fi2),
+        "msssim" => ssim::calculate_frame_msssim(&fi1, &fi2),
+        _ => unimplemented!("unknown metric"),
+    };
+
+    if let Ok(metrics) = val {
+        let ctx = Context {
+            y: metrics.y,
+            u: metrics.u,
+            v: metrics.v,
+            avg: metrics.avg,
+        };
+        let boxed = Box::new(ctx);
+        return (Box::into_raw(boxed), 0.0);
+    }
+
+    (null(), -1.0)
+}
+
+unsafe fn calculate_frame_buf_internal(
+    frame1: [*const u8; 3],
+    frame1_strides: [ptrdiff_t; 3],
+    frame2: [*const u8; 3],
+    frame2_strides: [ptrdiff_t; 3],
+    width: u32,
+    height: u32,
+    bitdepth: u8,
+    chroma_pos: ChromaSamplePosition,
+    subsampling: ChromaSampling,
+    pixel_aspect_ratio: Rational,
+    metric: &str,
+) -> (*const Context, f64) {
+    let (_cw, ch) = subsampling.get_chroma_dimensions(width as usize, height as usize);
+
+    let luma_len1 = (frame1_strides[0] as usize) * (height as usize);
+    let luma_slice1 = slice::from_raw_parts(frame1[0], luma_len1);
+    let chroma_u_len1 = (frame1_strides[1] as usize) * (ch as usize);
+    let chroma_u_slice1 = slice::from_raw_parts(frame1[1], chroma_u_len1);
+    let chroma_v_len1 = (frame1_strides[2] as usize) * (ch as usize);
+    let chroma_v_slice1 = slice::from_raw_parts(frame1[2], chroma_v_len1);
+
+    let luma_len2 = (frame2_strides[0] as usize) * (height as usize);
+    let luma_slice2 = slice::from_raw_parts(frame2[0], luma_len2);
+    let chroma_u_len2 = (frame2_strides[1] as usize) * (ch as usize);
+    let chroma_u_slice2 = slice::from_raw_parts(frame2[1], chroma_u_len2);
+    let chroma_v_len2 = (frame2_strides[2] as usize) * (ch as usize);
+    let chroma_v_slice2 = slice::from_raw_parts(frame2[2], chroma_v_len2);
+
+    if bitdepth == 8 {
+        calculate_frame_buf_tmpl::<u8>(
+            [&luma_slice1, &chroma_u_slice1, &chroma_v_slice1],
+            frame1_strides,
+            [&luma_slice2, &chroma_u_slice2, &chroma_v_slice2],
+            frame2_strides,
+            width,
+            height,
+            bitdepth,
+            chroma_pos,
+            subsampling,
+            pixel_aspect_ratio,
+            metric,
+        )
+    } else {
+        calculate_frame_buf_tmpl::<u16>(
+            [&luma_slice1, &chroma_u_slice1, &chroma_v_slice1],
+            frame1_strides,
+            [&luma_slice2, &chroma_u_slice2, &chroma_v_slice2],
+            frame2_strides,
+            width,
+            height,
+            bitdepth,
+            chroma_pos,
+            subsampling,
+            pixel_aspect_ratio,
+            metric,
+        )
+    }
+}
+
+/// Calculate the `ciede` metric between two frame buffers
+///
+/// Returns the correct `ciede` value or `-1` on errors
+#[no_mangle]
+pub unsafe extern fn avm_calculate_frame_buf_ciede(
+    frame1: [*const u8; 3],
+    frame1_strides: [ptrdiff_t; 3],
+    frame2: [*const u8; 3],
+    frame2_strides: [ptrdiff_t; 3],
+    width: u32,
+    height: u32,
+    bitdepth: u8,
+    chroma_pos: ChromaSamplePosition,
+    subsampling: ChromaSampling,
+    pixel_aspect_ratio: Rational,
+) -> f64 {
+    let (_ctx, val) = calculate_frame_buf_internal(
+        frame1,
+        frame1_strides,
+        frame2,
+        frame2_strides,
+        width,
+        height,
+        bitdepth,
+        chroma_pos,
+        subsampling,
+        pixel_aspect_ratio,
+        "ciede",
+    );
+    val
+}
+
+/// Calculate the `ssim` metric between two frame buffers
+///
+/// Returns the correct `ssim` value or `NULL` on errors
+#[no_mangle]
+pub unsafe extern fn avm_calculate_frame_buf_ssim(
+    frame1: [*const u8; 3],
+    frame1_strides: [ptrdiff_t; 3],
+    frame2: [*const u8; 3],
+    frame2_strides: [ptrdiff_t; 3],
+    width: u32,
+    height: u32,
+    bitdepth: u8,
+    chroma_pos: ChromaSamplePosition,
+    subsampling: ChromaSampling,
+    pixel_aspect_ratio: Rational,
+) -> *const Context {
+    let (ctx, _val) = calculate_frame_buf_internal(
+        frame1,
+        frame1_strides,
+        frame2,
+        frame2_strides,
+        width,
+        height,
+        bitdepth,
+        chroma_pos,
+        subsampling,
+        pixel_aspect_ratio,
+        "ssim",
+    );
+    ctx
+}
+
+/// Calculate the `msssim` metric between two frame buffers
+///
+/// Returns the correct `msssim` value or `NULL` on errors
+#[no_mangle]
+pub unsafe extern fn avm_calculate_frame_buf_msssim(
+    frame1: [*const u8; 3],
+    frame1_strides: [ptrdiff_t; 3],
+    frame2: [*const u8; 3],
+    frame2_strides: [ptrdiff_t; 3],
+    width: u32,
+    height: u32,
+    bitdepth: u8,
+    chroma_pos: ChromaSamplePosition,
+    subsampling: ChromaSampling,
+    pixel_aspect_ratio: Rational,
+) -> *const Context {
+    let (ctx, _val) = calculate_frame_buf_internal(
+        frame1,
+        frame1_strides,
+        frame2,
+        frame2_strides,
+        width,
+        height,
+        bitdepth,
+        chroma_pos,
+        subsampling,
+        pixel_aspect_ratio,
+        "msssim",
+    );
+    ctx
+}
+
+/// Calculate the `psnr` metric between two frame buffers
+///
+/// Returns the correct `psnr` value or `NULL` on errors
+#[no_mangle]
+pub unsafe extern fn avm_calculate_frame_buf_psnr(
+    frame1: [*const u8; 3],
+    frame1_strides: [ptrdiff_t; 3],
+    frame2: [*const u8; 3],
+    frame2_strides: [ptrdiff_t; 3],
+    width: u32,
+    height: u32,
+    bitdepth: u8,
+    chroma_pos: ChromaSamplePosition,
+    subsampling: ChromaSampling,
+    pixel_aspect_ratio: Rational,
+) -> *const Context {
+    let (ctx, _val) = calculate_frame_buf_internal(
+        frame1,
+        frame1_strides,
+        frame2,
+        frame2_strides,
+        width,
+        height,
+        bitdepth,
+        chroma_pos,
+        subsampling,
+        pixel_aspect_ratio,
+        "psnr",
+    );
+    ctx
+}
+
+/// Calculate the `psnr_hvs` metric between two frame buffers
+///
+/// Returns the correct `psnr_hvs` value or `NULL` on errors
+#[no_mangle]
+pub unsafe extern fn avm_calculate_frame_buf_psnr_hvs(
+    frame1: [*const u8; 3],
+    frame1_strides: [ptrdiff_t; 3],
+    frame2: [*const u8; 3],
+    frame2_strides: [ptrdiff_t; 3],
+    width: u32,
+    height: u32,
+    bitdepth: u8,
+    chroma_pos: ChromaSamplePosition,
+    subsampling: ChromaSampling,
+    pixel_aspect_ratio: Rational,
+) -> *const Context {
+    let (ctx, _val) = calculate_frame_buf_internal(
+        frame1,
+        frame1_strides,
+        frame2,
+        frame2_strides,
+        width,
+        height,
+        bitdepth,
+        chroma_pos,
+        subsampling,
+        pixel_aspect_ratio,
+        "psnr_hvs",
+    );
+    ctx
 }
 
 /// Drop the metric context

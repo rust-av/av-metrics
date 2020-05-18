@@ -40,7 +40,7 @@ dependencies = [
 
 [[package]]
 name = "av-metrics"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "criterion 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",

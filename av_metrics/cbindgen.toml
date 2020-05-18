@@ -6,5 +6,14 @@ tab_width = 4
 style = "Type"
 language = "C"
 
+[parse]
+parse_deps = true
+include = ['av_metrics', 'v_frame']
+
 [export]
 prefix = "AVM"
+item_types = ["enums", "structs", "unions", "typedefs", "opaque", "functions"]
+
+[enum]
+rename_variants = "ScreamingSnakeCase"
+prefix_with_name = true
