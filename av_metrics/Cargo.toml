@@ -29,7 +29,3 @@ bench = []
 [[bench]]
 name = "bench"
 harness = false
-
-[lib]
-name = "av_metrics"
-crate-type = ["lib", "staticlib"]
