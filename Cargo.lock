@@ -42,17 +42,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "av-metrics"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe387f225ee27af400991c3d7f4f8d04de0f320b170ddb9ceaabd90ccd2966b6"
-replace = "av-metrics 0.5.0"
-
-[[package]]
 name = "av-metrics-tool"
 version = "0.5.0"
 dependencies = [
- "av-metrics 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "av-metrics",
  "clap",
  "console",
  "maplit",

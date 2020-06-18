@@ -8,5 +8,5 @@ members = [
 [profile.dev]
 opt-level = 1
 
-[replace]
-"av-metrics:0.5.0" = { path = "av_metrics" }
+[patch.crates-io]
+"av-metrics" = { path = "av_metrics" }
