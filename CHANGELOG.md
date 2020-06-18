@@ -1,3 +1,9 @@
+## Version 0.5.1
+- Remove unneeded library specifiers that were previously needed by cargo-c
+
+## Version 0.5.0
+- Bump y4m dependency to 0.6
+
 ## Version 0.4.0
 - Breaking Change: Use Frame, Pixel, etc. types from the `v_frame` crate,
   instead of rolling our own. This should improve interoperability
