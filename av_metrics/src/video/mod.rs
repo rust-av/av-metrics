@@ -161,22 +161,18 @@ trait VideoMetric {
             if decoder1.get_bit_depth() > 8 {
                 let frame1 = decoder1.read_video_frame::<u16>(&video1_details);
                 let frame2 = decoder2.read_video_frame::<u16>(&video2_details);
-                if let Ok(frame1) = frame1 {
-                    if let Ok(frame2) = frame2 {
-                        metrics.push(self.process_frame(&frame1, &frame2)?);
-                        frame_no += 1;
-                        continue;
-                    }
+                if let (Ok(frame1), Ok(frame2)) = (frame1, frame2) {
+                    metrics.push(self.process_frame(&frame1, &frame2)?);
+                    frame_no += 1;
+                    continue;
                 }
             } else {
                 let frame1 = decoder1.read_video_frame::<u8>(&video1_details);
                 let frame2 = decoder2.read_video_frame::<u8>(&video2_details);
-                if let Ok(frame1) = frame1 {
-                    if let Ok(frame2) = frame2 {
-                        metrics.push(self.process_frame(&frame1, &frame2)?);
-                        frame_no += 1;
-                        continue;
-                    }
+                if let (Ok(frame1), Ok(frame2)) = (frame1, frame2) {
+                    metrics.push(self.process_frame(&frame1, &frame2)?);
+                    frame_no += 1;
+                    continue;
                 }
             }
             // At end of video
