@@ -154,31 +154,32 @@ trait VideoMetric {
         }
 
         let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
-        let mut frame_no = 0;
         let video1_details = decoder1.get_video_details();
         let video2_details = decoder2.get_video_details();
-        while frame_limit.map(|limit| limit > frame_no).unwrap_or(true) {
+        while frame_limit
+            .map(|limit| limit > metrics.len())
+            .unwrap_or(true)
+        {
             if decoder1.get_bit_depth() > 8 {
                 let frame1 = decoder1.read_video_frame::<u16>(&video1_details);
                 let frame2 = decoder2.read_video_frame::<u16>(&video2_details);
                 if let (Ok(frame1), Ok(frame2)) = (frame1, frame2) {
                     metrics.push(self.process_frame(&frame1, &frame2)?);
-                    frame_no += 1;
-                    continue;
+                } else {
+                    break;
                 }
             } else {
                 let frame1 = decoder1.read_video_frame::<u8>(&video1_details);
                 let frame2 = decoder2.read_video_frame::<u8>(&video2_details);
                 if let (Ok(frame1), Ok(frame2)) = (frame1, frame2) {
                     metrics.push(self.process_frame(&frame1, &frame2)?);
-                    frame_no += 1;
-                    continue;
+                } else {
+                    break;
                 }
             }
-            // At end of video
-            break;
         }
-        if frame_no == 0 {
+
+        if metrics.is_empty() {
             return Err(MetricsError::UnsupportedInput {
                 reason: "No readable frames found in one or more input files",
             }
