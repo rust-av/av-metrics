@@ -194,7 +194,6 @@ trait VideoMetric {
         frame2: &FrameInfo<T>,
     ) -> Result<Self::FrameResult, Box<dyn Error>>;
 
-    #[cfg(feature = "decode")]
     fn aggregate_frame_results(
         &self,
         metrics: &[Self::FrameResult],
