@@ -14,34 +14,34 @@ pub struct KSubArgs {
 
 #[allow(clippy::needless_doctest_main)]
 impl DE2000 {
-    /// Returns the difference between two `Lab` colors.
-    ///
-    /// ### Example
-    ///
-    /// ```ignore
-    /// extern crate delta_e;
-    /// extern crate lab;
-    ///
-    /// use delta_e::DE2000;
-    /// use lab::Lab;
-    ///
-    /// fn main() {
-    ///     let color_1 = Lab {
-    ///         l: 38.972,
-    ///         a: 58.991,
-    ///         b: 37.138,
-    ///     };
-    ///
-    ///     let color_2 = Lab {
-    ///         l: 54.528,
-    ///         a: 42.416,
-    ///         b: 54.497,
-    ///     };
-    ///
-    ///     let delta_e = DE2000::new(color_1, color_2);
-    ///     println!("The color difference is: {}", delta_e);
-    /// }
-    /// ```
+    // Returns the difference between two `Lab` colors.
+    //
+    // ### Example
+    //
+    // ```ignore
+    // extern crate delta_e;
+    // extern crate lab;
+    //
+    // use delta_e::DE2000;
+    // use lab::Lab;
+    //
+    // fn main() {
+    //     let color_1 = Lab {
+    //         l: 38.972,
+    //         a: 58.991,
+    //         b: 37.138,
+    //     };
+    //
+    //     let color_2 = Lab {
+    //         l: 54.528,
+    //         a: 42.416,
+    //         b: 54.497,
+    //     };
+    //
+    //     let delta_e = DE2000::new(color_1, color_2);
+    //     println!("The color difference is: {}", delta_e);
+    // }
+    // ```
 
     #[allow(clippy::new_ret_no_self)]
     pub fn new(color_1: Lab, color_2: Lab, ksub: KSubArgs) -> f32 {
