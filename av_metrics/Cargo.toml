@@ -10,7 +10,7 @@ include = ["src/**/*"]
 
 [dependencies]
 itertools = "0.9.0"
-lab = "0.7.2"
+lab = "0.8.1"
 libc = "0.2"
 num-traits = "0.2"
 serde = { version = "1", features = ["derive"], optional = true }

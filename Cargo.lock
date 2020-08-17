@@ -297,9 +297,9 @@ dependencies = [
 
 [[package]]
 name = "lab"
-version = "0.7.2"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcb6fe1d958d9c2a4298cb5024381522038952ebd0fd3af60d00d3844813c93c"
+checksum = "25f435d0dc44d7fcfbd5b10a4f34b9cebff86e4d85a5efbbc1b58cc8e35e56fb"
 
 [[package]]
 name = "lazy_static"
