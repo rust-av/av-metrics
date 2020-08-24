@@ -769,6 +769,6 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "y4m"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab81337824b9776970061619ee7266b2331af3f3d06e454dae383b1a55eaa17f"
+checksum = "a72a9921af8237fe25097a1ae31c92a05c1d39b2454653ad48f2f407cf7a0dae"
