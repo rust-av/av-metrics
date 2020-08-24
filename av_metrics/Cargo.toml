@@ -15,7 +15,7 @@ libc = "0.2"
 num-traits = "0.2"
 serde = { version = "1", features = ["derive"], optional = true }
 thiserror = "1"
-y4m = { version = "0.6", optional = true }
+y4m = { version = "0.7", optional = true }
 v_frame = { version = "0.1.0" }
 
 [dev-dependencies]
