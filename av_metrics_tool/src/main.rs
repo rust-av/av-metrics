@@ -1,3 +1,5 @@
+mod decode;
+
 use av_metrics::video::*;
 use clap::{App, Arg};
 use console::style;

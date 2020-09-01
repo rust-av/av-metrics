@@ -9,6 +9,9 @@ repository = "https://github.com/rust-av/av-metrics"
 include = ["src/**/*"]
 
 [dependencies]
+av-data = "0.2.2"
+av-format = "0.3.0"
+av-ivf = "0.2.1"
 av-metrics = { version = "0.5", features = ["serde"] }
 clap = "2.33"
 maplit = "1"
