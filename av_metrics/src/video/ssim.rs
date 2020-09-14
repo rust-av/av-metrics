@@ -75,42 +75,57 @@ impl VideoMetric for Ssim {
         const KERNEL_WEIGHT: usize = 1 << KERNEL_SHIFT;
         let sample_max = (1 << frame1.bit_depth) - 1;
 
-        let y_kernel = build_gaussian_kernel(
-            frame1.planes[0].cfg.height as f64 * 1.5 / 256.0,
-            cmp::min(frame1.planes[0].cfg.width, frame1.planes[0].cfg.height),
-            KERNEL_WEIGHT,
-        );
-        let y = calculate_plane_ssim(
-            &frame1.planes[0],
-            &frame2.planes[0],
-            sample_max,
-            &y_kernel,
-            &y_kernel,
-        );
-        let u_kernel = build_gaussian_kernel(
-            frame1.planes[1].cfg.height as f64 * 1.5 / 256.0,
-            cmp::min(frame1.planes[1].cfg.width, frame1.planes[1].cfg.height),
-            KERNEL_WEIGHT,
-        );
-        let u = calculate_plane_ssim(
-            &frame1.planes[1],
-            &frame2.planes[1],
-            sample_max,
-            &u_kernel,
-            &u_kernel,
-        );
-        let v_kernel = build_gaussian_kernel(
-            frame1.planes[2].cfg.height as f64 * 1.5 / 256.0,
-            cmp::min(frame1.planes[2].cfg.width, frame1.planes[2].cfg.height),
-            KERNEL_WEIGHT,
-        );
-        let v = calculate_plane_ssim(
-            &frame1.planes[2],
-            &frame2.planes[2],
-            sample_max,
-            &v_kernel,
-            &v_kernel,
-        );
+        let mut y = 0.0;
+        let mut u = 0.0;
+        let mut v = 0.0;
+
+        rayon::scope(|s| {
+            s.spawn(|_| {
+                let y_kernel = build_gaussian_kernel(
+                    frame1.planes[0].cfg.height as f64 * 1.5 / 256.0,
+                    cmp::min(frame1.planes[0].cfg.width, frame1.planes[0].cfg.height),
+                    KERNEL_WEIGHT,
+                );
+                y = calculate_plane_ssim(
+                    &frame1.planes[0],
+                    &frame2.planes[0],
+                    sample_max,
+                    &y_kernel,
+                    &y_kernel,
+                )
+            });
+
+            s.spawn(|_| {
+                let u_kernel = build_gaussian_kernel(
+                    frame1.planes[1].cfg.height as f64 * 1.5 / 256.0,
+                    cmp::min(frame1.planes[1].cfg.width, frame1.planes[1].cfg.height),
+                    KERNEL_WEIGHT,
+                );
+                u = calculate_plane_ssim(
+                    &frame1.planes[1],
+                    &frame2.planes[1],
+                    sample_max,
+                    &u_kernel,
+                    &u_kernel,
+                )
+            });
+
+            s.spawn(|_| {
+                let v_kernel = build_gaussian_kernel(
+                    frame1.planes[2].cfg.height as f64 * 1.5 / 256.0,
+                    cmp::min(frame1.planes[2].cfg.width, frame1.planes[2].cfg.height),
+                    KERNEL_WEIGHT,
+                );
+                v = calculate_plane_ssim(
+                    &frame1.planes[2],
+                    &frame2.planes[2],
+                    sample_max,
+                    &v_kernel,
+                    &v_kernel,
+                )
+            });
+        });
+
         Ok(PlanarMetrics {
             y,
             u,
@@ -202,10 +217,26 @@ impl VideoMetric for MsSsim {
         }
 
         let bit_depth = frame1.bit_depth;
+        let mut y = 0.0;
+        let mut u = 0.0;
+        let mut v = 0.0;
+
+        rayon::scope(|s| {
+            s.spawn(|_| {
+                y = calculate_plane_msssim(&frame1.planes[0], &frame2.planes[0], bit_depth)
+            });
+            s.spawn(|_| {
+                u = calculate_plane_msssim(&frame1.planes[1], &frame2.planes[1], bit_depth)
+            });
+            s.spawn(|_| {
+                v = calculate_plane_msssim(&frame1.planes[2], &frame2.planes[2], bit_depth)
+            });
+        });
+
         Ok(PlanarMetrics {
-            y: calculate_plane_msssim(&frame1.planes[0], &frame2.planes[0], bit_depth),
-            u: calculate_plane_msssim(&frame1.planes[1], &frame2.planes[1], bit_depth),
-            v: calculate_plane_msssim(&frame1.planes[2], &frame2.planes[2], bit_depth),
+            y,
+            u,
+            v,
             // Not used here
             avg: 0.,
         })
