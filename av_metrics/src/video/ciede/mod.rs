@@ -80,6 +80,8 @@ impl Default for Ciede2000 {
     }
 }
 
+use rayon::prelude::*;
+
 impl VideoMetric for Ciede2000 {
     type FrameResult = f64;
     type VideoResult = f64;
@@ -96,39 +98,40 @@ impl VideoMetric for Ciede2000 {
         let y_height = frame1.planes[0].cfg.height;
         let c_width = frame1.planes[1].cfg.width;
         let delta_e_row_fn = get_delta_e_row_fn(frame1.bit_depth, dec.0, self.use_simd);
-        let mut delta_e_vec: Vec<f32> = vec![0.0; y_width * y_height];
+        // let mut delta_e_vec: Vec<f32> = vec![0.0; y_width * y_height];
 
-        let ranges = (0..y_height).into_iter().map(|i| {
+        let delta_e_per_line = (0..y_height).into_par_iter().map(|i| {
             let y_start = i * y_width;
             let y_end = y_start + y_width;
             let c_start = (i >> dec.1) * c_width;
             let c_end = c_start + c_width;
 
-            (y_start..y_end, c_start..c_end)
-        });
+            let y_range = y_start..y_end;
+            let c_range = c_start..c_end;
 
-        for (y_range, uv_range) in ranges {
+            let mut delta_e_vec = vec![0.0; y_end - y_start];
+
             unsafe {
                 delta_e_row_fn(
                     FrameRow {
                         y: &frame1.planes[0].data[y_range.clone()],
-                        u: &frame1.planes[1].data[uv_range.clone()],
-                        v: &frame1.planes[2].data[uv_range.clone()],
+                        u: &frame1.planes[1].data[c_range.clone()],
+                        v: &frame1.planes[2].data[c_range.clone()],
                     },
                     FrameRow {
-                        y: &frame2.planes[0].data[y_range.clone()],
-                        u: &frame2.planes[1].data[uv_range.clone()],
-                        v: &frame2.planes[2].data[uv_range.clone()],
+                        y: &frame2.planes[0].data[y_range],
+                        u: &frame2.planes[1].data[c_range.clone()],
+                        v: &frame2.planes[2].data[c_range],
                     },
-                    &mut delta_e_vec[y_range],
+                    &mut delta_e_vec[..],
                 );
             }
-        }
-        let score = 45.
-            - 20.
-                * (delta_e_vec.iter().map(|x| *x as f64).sum::<f64>()
-                    / ((y_width * y_height) as f64))
-                    .log10();
+
+            delta_e_vec.iter().map(|x| *x as f64).sum::<f64>()
+        });
+
+        let score =
+            45. - 20. * (delta_e_per_line.sum::<f64>() / ((y_width * y_height) as f64)).log10();
         Ok(score.min(100.))
     }
 
