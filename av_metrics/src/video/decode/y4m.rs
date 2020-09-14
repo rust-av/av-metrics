@@ -65,10 +65,22 @@ impl<R: Read> Decoder for y4m::Decoder<R> {
                     .chroma_sampling
                     .get_chroma_dimensions(cfg.width, cfg.height);
                 f.planes[0].copy_from_raw_u8(frame.get_y_plane(), cfg.width * bytes, bytes);
-                f.planes[1].copy_from_raw_u8(frame.get_u_plane(), chroma_width * bytes, bytes);
-                f.planes[2].copy_from_raw_u8(frame.get_v_plane(), chroma_width * bytes, bytes);
-                f.planes[1] = convert_chroma_data(&f.planes[1], chroma_sample_pos, bit_depth);
-                f.planes[2] = convert_chroma_data(&f.planes[2], chroma_sample_pos, bit_depth);
+                convert_chroma_data(
+                    &mut f.planes[1],
+                    chroma_sample_pos,
+                    bit_depth,
+                    frame.get_u_plane(),
+                    chroma_width * bytes,
+                    bytes,
+                );
+                convert_chroma_data(
+                    &mut f.planes[2],
+                    chroma_sample_pos,
+                    bit_depth,
+                    frame.get_v_plane(),
+                    chroma_width * bytes,
+                    bytes,
+                );
 
                 FrameInfo {
                     bit_depth,
@@ -101,34 +113,48 @@ impl<R: Read> Decoder for y4m::Decoder<R> {
 /// The algorithms (as ported from daala-tools) expect a colocated or bilaterally located chroma
 /// sample position. This means that a vertical chroma sample position must be realigned
 /// in order to produce a correct result.
-///
-/// TODO: Take y4m frame as input data with chroma_width and bytes as parameters and returns
-/// newly constructed frame. The function prototype could be like
-/// convert_chroma_data(frame.get_u_plane(), chroma_sample_pos, bit_depth, chroma_width, bytes);
 fn convert_chroma_data<T: Pixel>(
-    plane_data: &Plane<T>,
+    plane_data: &mut Plane<T>,
     chroma_pos: ChromaSamplePosition,
     bit_depth: usize,
-) -> Plane<T> {
+    source: &[u8],
+    source_stride: usize,
+    source_bytewidth: usize,
+) {
     if chroma_pos != ChromaSamplePosition::Vertical {
         // TODO: Also convert Interpolated chromas
-        return plane_data.clone();
+        plane_data.copy_from_raw_u8(source, source_stride, source_bytewidth);
+        return;
     }
-    let mut output_data = plane_data.data.clone();
+
+    let get_pixel = if source_bytewidth == 1 {
+        fn convert_u8(line: &[u8], index: usize) -> i32 {
+            i32::cast_from(line[index])
+        }
+        convert_u8
+    } else {
+        fn convert_u16(line: &[u8], index: usize) -> i32 {
+            let index = index * 2;
+            i32::cast_from(u16::cast_from(line[index + 1]) << 8 | u16::cast_from(line[index]))
+        }
+        convert_u16
+    };
+
+    let output_data = &mut plane_data.data;
     let width = plane_data.cfg.width;
     let height = plane_data.cfg.height;
     for y in 0..height {
         // Filter: [4 -17 114 35 -9 1]/128, derived from a 6-tap Lanczos window.
-        let in_row = &plane_data.data[(y * width)..];
+        let in_row = &source[(y * source_stride)..];
         let out_row = &mut output_data[(y * width)..];
         let breakpoint = cmp::min(width, 2);
         for x in 0..breakpoint {
             out_row[x] = T::cast_from(clamp(
-                (4 * i32::cast_from(in_row[0]) - 17 * i32::cast_from(in_row[x.saturating_sub(1)])
-                    + 114 * i32::cast_from(in_row[x])
-                    + 35 * i32::cast_from(in_row[cmp::min(x + 1, width - 1)])
-                    - 9 * i32::cast_from(in_row[cmp::min(x + 2, width - 1)])
-                    + i32::cast_from(in_row[cmp::min(x + 3, width - 1)])
+                (4 * get_pixel(in_row, 0) - 17 * get_pixel(in_row, x.saturating_sub(1))
+                    + 114 * get_pixel(in_row, x)
+                    + 35 * get_pixel(in_row, cmp::min(x + 1, width - 1))
+                    - 9 * get_pixel(in_row, cmp::min(x + 2, width - 1))
+                    + get_pixel(in_row, cmp::min(x + 3, width - 1))
                     + 64)
                     >> 7,
                 0,
@@ -138,11 +164,11 @@ fn convert_chroma_data<T: Pixel>(
         let breakpoint2 = width - 3;
         for x in breakpoint..breakpoint2 {
             out_row[x] = T::cast_from(clamp(
-                (4 * i32::cast_from(in_row[x - 2]) - 17 * i32::cast_from(in_row[x - 1])
-                    + 114 * i32::cast_from(in_row[x])
-                    + 35 * i32::cast_from(in_row[x + 1])
-                    - 9 * i32::cast_from(in_row[x + 2])
-                    + i32::cast_from(in_row[x + 3])
+                (4 * get_pixel(in_row, x - 2) - 17 * get_pixel(in_row, x - 1)
+                    + 114 * get_pixel(in_row, x)
+                    + 35 * get_pixel(in_row, x + 1)
+                    - 9 * get_pixel(in_row, x + 2)
+                    + get_pixel(in_row, x + 3)
                     + 64)
                     >> 7,
                 0,
@@ -151,21 +177,17 @@ fn convert_chroma_data<T: Pixel>(
         }
         for x in breakpoint2..width {
             out_row[x] = T::cast_from(clamp(
-                (4 * i32::cast_from(in_row[x - 2]) - 17 * i32::cast_from(in_row[x - 1])
-                    + 114 * i32::cast_from(in_row[x])
-                    + 35 * i32::cast_from(in_row[cmp::min(x + 1, width - 1)])
-                    - 9 * i32::cast_from(in_row[cmp::min(x + 2, width - 1)])
-                    + i32::cast_from(in_row[width - 1])
+                (4 * get_pixel(in_row, x - 2) - 17 * get_pixel(in_row, x - 1)
+                    + 114 * get_pixel(in_row, x)
+                    + 35 * get_pixel(in_row, cmp::min(x + 1, width - 1))
+                    - 9 * get_pixel(in_row, cmp::min(x + 2, width - 1))
+                    + get_pixel(in_row, width - 1)
                     + 64)
                     >> 7,
                 0,
                 (1 << bit_depth) - 1,
             ));
         }
-    }
-    Plane {
-        data: output_data,
-        cfg: plane_data.cfg.clone(),
     }
 }
 
