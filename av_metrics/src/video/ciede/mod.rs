@@ -97,24 +97,30 @@ impl VideoMetric for Ciede2000 {
         let c_width = frame1.planes[1].cfg.width;
         let delta_e_row_fn = get_delta_e_row_fn(frame1.bit_depth, dec.0, self.use_simd);
         let mut delta_e_vec: Vec<f32> = vec![0.0; y_width * y_height];
-        for i in 0..y_height {
+
+        let ranges = (0..y_height).into_iter().map(|i| {
             let y_start = i * y_width;
             let y_end = y_start + y_width;
             let c_start = (i >> dec.1) * c_width;
             let c_end = c_start + c_width;
+
+            (y_start..y_end, c_start..c_end)
+        });
+
+        for (y_range, uv_range) in ranges {
             unsafe {
                 delta_e_row_fn(
                     FrameRow {
-                        y: &frame1.planes[0].data[y_start..y_end],
-                        u: &frame1.planes[1].data[c_start..c_end],
-                        v: &frame1.planes[2].data[c_start..c_end],
+                        y: &frame1.planes[0].data[y_range.clone()],
+                        u: &frame1.planes[1].data[uv_range.clone()],
+                        v: &frame1.planes[2].data[uv_range.clone()],
                     },
                     FrameRow {
-                        y: &frame2.planes[0].data[y_start..y_end],
-                        u: &frame2.planes[1].data[c_start..c_end],
-                        v: &frame2.planes[2].data[c_start..c_end],
+                        y: &frame2.planes[0].data[y_range.clone()],
+                        u: &frame2.planes[1].data[uv_range.clone()],
+                        v: &frame2.planes[2].data[uv_range.clone()],
                     },
-                    &mut delta_e_vec[y_start..y_end],
+                    &mut delta_e_vec[y_range],
                 );
             }
         }
