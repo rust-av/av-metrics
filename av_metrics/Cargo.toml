@@ -27,6 +27,9 @@ decode = []
 y4m-decode = ["y4m", "decode"]
 bench = []
 
+[lib]
+bench = false
+
 [[bench]]
 name = "bench"
 harness = false
