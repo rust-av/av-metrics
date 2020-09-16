@@ -68,9 +68,22 @@ impl VideoMetric for PsnrHvs {
         }
 
         let bit_depth = frame1.bit_depth;
-        let y = calculate_plane_psnr_hvs(&frame1.planes[0], &frame2.planes[0], 0, bit_depth);
-        let u = calculate_plane_psnr_hvs(&frame1.planes[1], &frame2.planes[1], 1, bit_depth);
-        let v = calculate_plane_psnr_hvs(&frame1.planes[2], &frame2.planes[2], 2, bit_depth);
+        let mut y = 0.0;
+        let mut u = 0.0;
+        let mut v = 0.0;
+
+        rayon::scope(|s| {
+            s.spawn(|_| {
+                y = calculate_plane_psnr_hvs(&frame1.planes[0], &frame2.planes[0], 0, bit_depth)
+            });
+            s.spawn(|_| {
+                u = calculate_plane_psnr_hvs(&frame1.planes[1], &frame2.planes[1], 1, bit_depth)
+            });
+            s.spawn(|_| {
+                v = calculate_plane_psnr_hvs(&frame1.planes[2], &frame2.planes[2], 2, bit_depth)
+            });
+        });
+
         Ok(PlanarMetrics {
             y,
             u,
