@@ -83,9 +83,22 @@ impl VideoMetric for Psnr {
         frame1.can_compare(&frame2)?;
 
         let bit_depth = frame1.bit_depth;
-        let y = calculate_plane_psnr_metrics(&frame1.planes[0], &frame2.planes[0], bit_depth);
-        let u = calculate_plane_psnr_metrics(&frame1.planes[1], &frame2.planes[1], bit_depth);
-        let v = calculate_plane_psnr_metrics(&frame1.planes[2], &frame2.planes[2], bit_depth);
+        let mut y = Default::default();
+        let mut u = Default::default();
+        let mut v = Default::default();
+
+        rayon::scope(|s| {
+            s.spawn(|_| {
+                y = calculate_plane_psnr_metrics(&frame1.planes[0], &frame2.planes[0], bit_depth)
+            });
+            s.spawn(|_| {
+                u = calculate_plane_psnr_metrics(&frame1.planes[1], &frame2.planes[1], bit_depth)
+            });
+            s.spawn(|_| {
+                v = calculate_plane_psnr_metrics(&frame1.planes[2], &frame2.planes[2], bit_depth)
+            });
+        });
+
         Ok([y, u, v])
     }
 
