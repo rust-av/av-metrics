@@ -4,8 +4,9 @@
 [![docs](https://docs.rs/av-metrics/badge.svg)](https://docs.rs/av-metrics/)
 [![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Actions Status](https://github.com/rust-av/av-metrics/workflows/ci/badge.svg)](https://github.com/rust-av/av-metrics/actions)
-[![dependency status](https://deps.rs/repo/github/rust-av/av-metrics/status.svg)](https://deps.rs/repo/github/rust-av/av-metrics)
 [![IRC](https://img.shields.io/badge/irc-%23rust--av-blue.svg)](http://webchat.freenode.net?channels=%23rust-av&uio=d4)
+[![zulip chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://rust-av.zulipchat.com/#narrow/stream/259407-av-metrics)
+
 
 ## Video Metrics implemented
 
