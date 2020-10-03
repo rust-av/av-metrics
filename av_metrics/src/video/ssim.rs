@@ -27,7 +27,13 @@ pub fn calculate_video_ssim<D: Decoder>(
     decoder2: &mut D,
     frame_limit: Option<usize>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    Ssim::default().process_video(decoder1, decoder2, frame_limit)
+    let cweight = Some(
+        decoder1
+            .get_video_details()
+            .chroma_sampling
+            .get_chroma_weight(),
+    );
+    Ssim { cweight }.process_video(decoder1, decoder2, frame_limit)
 }
 
 /// Calculates the SSIM score between two video frames. Higher is better.
@@ -36,9 +42,9 @@ pub fn calculate_frame_ssim<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let mut processor = Ssim::default();
+    let processor = Ssim::default();
     let result = processor.process_frame(frame1, frame2)?;
-    let cweight = processor.cweight.unwrap();
+    let cweight = frame1.chroma_sampling.get_chroma_weight();
     Ok(PlanarMetrics {
         y: log10_convert(result.y, 1.0),
         u: log10_convert(result.u, 1.0),
@@ -62,15 +68,11 @@ impl VideoMetric for Ssim {
     /// Returns the *unweighted* scores. Depending on whether we output per-frame
     /// or per-video, these will be weighted at different points.
     fn process_frame<T: Pixel>(
-        &mut self,
+        &self,
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
         frame1.can_compare(&frame2)?;
-        if self.cweight.is_none() {
-            self.cweight = Some(frame1.chroma_sampling.get_chroma_weight());
-        }
-
         const KERNEL_SHIFT: usize = 8;
         const KERNEL_WEIGHT: usize = 1 << KERNEL_SHIFT;
         let sample_max = (1 << frame1.bit_depth) - 1;
@@ -168,7 +170,13 @@ pub fn calculate_video_msssim<D: Decoder>(
     decoder2: &mut D,
     frame_limit: Option<usize>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    MsSsim::default().process_video(decoder1, decoder2, frame_limit)
+    let cweight = Some(
+        decoder1
+            .get_video_details()
+            .chroma_sampling
+            .get_chroma_weight(),
+    );
+    MsSsim { cweight }.process_video(decoder1, decoder2, frame_limit)
 }
 
 /// Calculates the MSSSIM score between two video frames. Higher is better.
@@ -181,9 +189,9 @@ pub fn calculate_frame_msssim<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let mut processor = MsSsim::default();
+    let processor = MsSsim::default();
     let result = processor.process_frame(frame1, frame2)?;
-    let cweight = processor.cweight.unwrap();
+    let cweight = frame1.chroma_sampling.get_chroma_weight();
     Ok(PlanarMetrics {
         y: log10_convert(result.y, 1.0),
         u: log10_convert(result.u, 1.0),
@@ -207,14 +215,11 @@ impl VideoMetric for MsSsim {
     /// Returns the *unweighted* scores. Depending on whether we output per-frame
     /// or per-video, these will be weighted at different points.
     fn process_frame<T: Pixel>(
-        &mut self,
+        &self,
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
         frame1.can_compare(&frame2)?;
-        if self.cweight.is_none() {
-            self.cweight = Some(frame1.chroma_sampling.get_chroma_weight());
-        }
 
         let bit_depth = frame1.bit_depth;
         let mut y = 0.0;

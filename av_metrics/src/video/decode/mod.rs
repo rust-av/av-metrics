@@ -13,11 +13,11 @@ pub use self::y4m::*;
 /// Currently, y4m decoding support using the `y4m` crate is built-in
 /// to this crate. This trait is extensible so users may implement
 /// their own decoders.
-pub trait Decoder {
+pub trait Decoder: Send + Sync {
     /// Read the next frame from the input video.
     ///
     /// Expected to return `Err` if the end of the video is reached.
-    fn read_video_frame<T: Pixel>(&mut self, cfg: &VideoDetails) -> Result<FrameInfo<T>, ()>;
+    fn read_video_frame<T: Pixel>(&mut self) -> Result<FrameInfo<T>, ()>;
     /// Read a specific frame from the input video
     ///
     /// Expected to return `Err` if the frame is not found.

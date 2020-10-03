@@ -23,7 +23,13 @@ pub fn calculate_video_psnr_hvs<D: Decoder>(
     decoder2: &mut D,
     frame_limit: Option<usize>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    PsnrHvs::default().process_video(decoder1, decoder2, frame_limit)
+    let cweight = Some(
+        decoder1
+            .get_video_details()
+            .chroma_sampling
+            .get_chroma_weight(),
+    );
+    PsnrHvs { cweight }.process_video(decoder1, decoder2, frame_limit)
 }
 
 /// Calculates the PSNR-HVS score between two video frames. Higher is better.
@@ -32,9 +38,9 @@ pub fn calculate_frame_psnr_hvs<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let mut processor = PsnrHvs::default();
+    let processor = PsnrHvs::default();
     let result = processor.process_frame(frame1, frame2)?;
-    let cweight = processor.cweight.unwrap();
+    let cweight = frame1.chroma_sampling.get_chroma_weight();
     Ok(PlanarMetrics {
         y: log10_convert(result.y, 1.0),
         u: log10_convert(result.u, 1.0),
@@ -58,14 +64,11 @@ impl VideoMetric for PsnrHvs {
     /// Returns the *unweighted* scores. Depending on whether we output per-frame
     /// or per-video, these will be weighted at different points.
     fn process_frame<T: Pixel>(
-        &mut self,
+        &self,
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
         frame1.can_compare(&frame2)?;
-        if self.cweight.is_none() {
-            self.cweight = Some(frame1.chroma_sampling.get_chroma_weight());
-        }
 
         let bit_depth = frame1.bit_depth;
         let mut y = 0.0;

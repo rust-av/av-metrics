@@ -131,9 +131,9 @@ pub struct PlanarMetrics {
     pub avg: f64,
 }
 
-trait VideoMetric {
-    type FrameResult;
-    type VideoResult;
+trait VideoMetric: Send + Sync {
+    type FrameResult: Send + Sync;
+    type VideoResult: Send + Sync;
 
     /// Generic method for internal use that processes multiple frames from a video
     /// into an aggregate metric.
@@ -154,23 +154,21 @@ trait VideoMetric {
         }
 
         let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
-        let video1_details = decoder1.get_video_details();
-        let video2_details = decoder2.get_video_details();
         while frame_limit
             .map(|limit| limit > metrics.len())
             .unwrap_or(true)
         {
             if decoder1.get_bit_depth() > 8 {
-                let frame1 = decoder1.read_video_frame::<u16>(&video1_details);
-                let frame2 = decoder2.read_video_frame::<u16>(&video2_details);
+                let frame1 = decoder1.read_video_frame::<u16>();
+                let frame2 = decoder2.read_video_frame::<u16>();
                 if let (Ok(frame1), Ok(frame2)) = (frame1, frame2) {
                     metrics.push(self.process_frame(&frame1, &frame2)?);
                 } else {
                     break;
                 }
             } else {
-                let frame1 = decoder1.read_video_frame::<u8>(&video1_details);
-                let frame2 = decoder2.read_video_frame::<u8>(&video2_details);
+                let frame1 = decoder1.read_video_frame::<u8>();
+                let frame2 = decoder2.read_video_frame::<u8>();
                 if let (Ok(frame1), Ok(frame2)) = (frame1, frame2) {
                     metrics.push(self.process_frame(&frame1, &frame2)?);
                 } else {
@@ -190,7 +188,7 @@ trait VideoMetric {
     }
 
     fn process_frame<T: Pixel>(
-        &mut self,
+        &self,
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
     ) -> Result<Self::FrameResult, Box<dyn Error>>;
