@@ -76,7 +76,7 @@ impl VideoMetric for Psnr {
     type VideoResult = PsnrResults;
 
     fn process_frame<T: Pixel>(
-        &mut self,
+        &self,
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {

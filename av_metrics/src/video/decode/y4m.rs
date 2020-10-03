@@ -25,7 +25,7 @@ pub fn map_y4m_color_space(color_space: y4m::Colorspace) -> (ChromaSampling, Chr
     }
 }
 
-impl<R: Read> Decoder for y4m::Decoder<R> {
+impl<R: Read + Send + Sync> Decoder for y4m::Decoder<R> {
     fn get_video_details(&self) -> VideoDetails {
         let width = self.get_width();
         let height = self.get_height();
@@ -47,24 +47,19 @@ impl<R: Read> Decoder for y4m::Decoder<R> {
         }
     }
 
-    fn read_video_frame<T: Pixel>(&mut self, cfg: &VideoDetails) -> Result<FrameInfo<T>, ()> {
+    fn read_video_frame<T: Pixel>(&mut self) -> Result<FrameInfo<T>, ()> {
         let bit_depth = self.get_bit_depth();
         let color_space = self.get_colorspace();
         let (chroma_sampling, chroma_sample_pos) = map_y4m_color_space(color_space);
+        let width = self.get_width();
+        let height = self.get_height();
         let bytes = self.get_bytes_per_sample();
         self.read_frame()
             .map(|frame| {
-                let mut f: Frame<T> = Frame::new_with_padding(
-                    cfg.width,
-                    cfg.height,
-                    cfg.chroma_sampling,
-                    cfg.luma_padding,
-                );
+                let mut f: Frame<T> = Frame::new_with_padding(width, height, chroma_sampling, 0);
 
-                let (chroma_width, _) = cfg
-                    .chroma_sampling
-                    .get_chroma_dimensions(cfg.width, cfg.height);
-                f.planes[0].copy_from_raw_u8(frame.get_y_plane(), cfg.width * bytes, bytes);
+                let (chroma_width, _) = chroma_sampling.get_chroma_dimensions(width, height);
+                f.planes[0].copy_from_raw_u8(frame.get_y_plane(), width * bytes, bytes);
                 convert_chroma_data(
                     &mut f.planes[1],
                     chroma_sample_pos,
@@ -94,7 +89,7 @@ impl<R: Read> Decoder for y4m::Decoder<R> {
     fn read_specific_frame<T: Pixel>(&mut self, frame_number: usize) -> Result<FrameInfo<T>, ()> {
         let mut frame_no = 0;
         while frame_no <= frame_number {
-            let frame = self.read_video_frame(&self.get_video_details());
+            let frame = self.read_video_frame();
             if frame_no == frame_number {
                 if let Ok(frame) = frame {
                     return Ok(frame);
