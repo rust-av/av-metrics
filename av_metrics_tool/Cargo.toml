@@ -1,6 +1,6 @@
 [package]
 name = "av-metrics-tool"
-version = "0.5.1"
+version = "0.6.0"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
 edition = "2018"
 description = "A CLI tool for measuring audio/video metrics"
@@ -9,7 +9,7 @@ repository = "https://github.com/rust-av/av-metrics"
 include = ["src/**/*"]
 
 [dependencies]
-av-metrics = { version = "0.5", features = ["serde"] }
+av-metrics = { version = "0.6", features = ["serde"] }
 clap = "2.33"
 maplit = "1"
 serde = "1"

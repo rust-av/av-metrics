@@ -1,3 +1,8 @@
+## Version 0.6.0
+- [Breaking] Simplify the `Decoder` trait
+- [Breaking] Require `Send + Sync` on the `Decoder` trait
+- Many performance and multi-threading improvements
+
 ## Version 0.5.1
 - Remove unneeded library specifiers that were previously needed by cargo-c
 

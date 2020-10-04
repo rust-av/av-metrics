@@ -9,4 +9,4 @@ members = [
 opt-level = 1
 
 [replace]
-"av-metrics:0.5.1" = { path = "av_metrics" }
+"av-metrics:0.6.0" = { path = "av_metrics" }
