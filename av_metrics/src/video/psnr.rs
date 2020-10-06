@@ -102,7 +102,6 @@ impl VideoMetric for Psnr {
         Ok([y, u, v])
     }
 
-    #[cfg(feature = "decode")]
     fn aggregate_frame_results(
         &self,
         metrics: &[Self::FrameResult],

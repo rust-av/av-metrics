@@ -137,7 +137,6 @@ impl VideoMetric for Ssim {
         })
     }
 
-    #[cfg(feature = "decode")]
     fn aggregate_frame_results(
         &self,
         metrics: &[Self::FrameResult],
@@ -247,7 +246,6 @@ impl VideoMetric for MsSsim {
         })
     }
 
-    #[cfg(feature = "decode")]
     fn aggregate_frame_results(
         &self,
         metrics: &[Self::FrameResult],

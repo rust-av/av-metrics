@@ -96,7 +96,6 @@ impl VideoMetric for PsnrHvs {
         })
     }
 
-    #[cfg(feature = "decode")]
     fn aggregate_frame_results(
         &self,
         metrics: &[Self::FrameResult],

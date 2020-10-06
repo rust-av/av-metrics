@@ -135,7 +135,6 @@ impl VideoMetric for Ciede2000 {
         Ok(score.min(100.))
     }
 
-    #[cfg(feature = "decode")]
     fn aggregate_frame_results(
         &self,
         metrics: &[Self::FrameResult],
