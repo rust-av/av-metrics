@@ -29,6 +29,24 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "av-metrics"
 version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51a616148eb7c0ca7abc35826304f919e2b6cff4dab4983f40ab7795e02782fa"
+dependencies = [
+ "crossbeam",
+ "itertools",
+ "lab",
+ "libc",
+ "num-traits",
+ "rayon",
+ "serde",
+ "thiserror",
+ "v_frame",
+ "y4m",
+]
+
+[[package]]
+name = "av-metrics"
+version = "0.6.1"
 dependencies = [
  "criterion",
  "crossbeam",
@@ -44,17 +62,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "av-metrics"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51a616148eb7c0ca7abc35826304f919e2b6cff4dab4983f40ab7795e02782fa"
-replace = "av-metrics 0.6.0"
-
-[[package]]
 name = "av-metrics-tool"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
- "av-metrics 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "av-metrics 0.6.0",
  "clap",
  "console",
  "maplit",
