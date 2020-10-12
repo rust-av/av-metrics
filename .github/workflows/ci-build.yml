@@ -131,9 +131,6 @@ jobs:
         toolchain: stable
         override: true
 
-    - name: Build No Features
-      run: cargo build --no-default-features
-
     - name: Build
       run: cargo build --all-features --tests --benches
 
