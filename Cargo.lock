@@ -68,7 +68,6 @@ dependencies = [
  "av-metrics 0.6.0",
  "clap",
  "console",
- "maplit",
  "serde",
  "serde_json",
  "y4m",
@@ -440,12 +439,6 @@ checksum = "4fabed175da42fed1fa0746b0ea71f412aa9d35e76e95e59b192c64b9dc2bf8b"
 dependencies = [
  "cfg-if 0.1.10",
 ]
-
-[[package]]
-name = "maplit"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
 
 [[package]]
 name = "maybe-uninit"

@@ -1,9 +1,7 @@
 use av_metrics::video::*;
 use clap::{App, Arg};
 use console::style;
-use maplit::hashmap;
 use serde::Serialize;
-use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::path::Path;
@@ -111,6 +109,22 @@ enum AudioContainer {
     // Coming soon
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Default)]
+struct MetricsResults {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    psnr: Option<PlanarMetrics>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    apsnr: Option<PlanarMetrics>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    psnr_hvs: Option<PlanarMetrics>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ssim: Option<PlanarMetrics>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    msssim: Option<PlanarMetrics>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ciede2000: Option<f64>,
+}
+
 fn run_video_metrics<P: AsRef<Path>>(
     input1: P,
     container1: VideoContainer,
@@ -119,8 +133,36 @@ fn run_video_metrics<P: AsRef<Path>>(
     serialize: bool,
     metric: Option<&str>,
 ) {
-    let mut results = HashMap::new();
-    if !serialize {
+    let mut results = MetricsResults::default();
+
+    if metric.is_none() || metric == Some("psnr") {
+        results.psnr = Psnr::run(input1.as_ref(), container1, input2.as_ref(), container2);
+    }
+
+    if metric.is_none() || metric == Some("apsnr") {
+        results.apsnr = APsnr::run(input1.as_ref(), container1, input2.as_ref(), container2);
+    }
+
+    if metric.is_none() || metric == Some("psnrhvs") {
+        results.psnr_hvs = PsnrHvs::run(input1.as_ref(), container1, input2.as_ref(), container2);
+    }
+
+    if metric.is_none() || metric == Some("ssim") {
+        results.ssim = Ssim::run(input1.as_ref(), container1, input2.as_ref(), container2);
+    }
+
+    if metric.is_none() || metric == Some("msssim") {
+        results.msssim = MsSsim::run(input1.as_ref(), container1, input2.as_ref(), container2);
+    }
+
+    if metric.is_none() || metric == Some("ciede2000") {
+        results.ciede2000 =
+            Ciede2000::run(input1.as_ref(), container1, input2.as_ref(), container2);
+    }
+
+    if serialize {
+        print!("{}", serde_json::to_string(&results).unwrap());
+    } else {
         match metric {
             Some(metr) => println!(
                 "  {} metric for: {} using the {} system...",
@@ -147,88 +189,12 @@ fn run_video_metrics<P: AsRef<Path>>(
             style(input1.as_ref().display()).italic().cyan(),
             style(input2.as_ref().display()).italic().cyan()
         );
-    }
-
-    if metric.is_none() || metric == Some("psnr") {
-        let psnr = Psnr::run(
-            input1.as_ref(),
-            container1,
-            input2.as_ref(),
-            container2,
-            serialize,
-        );
-        if serialize {
-            results.insert("psnr", hashmap! {"result" => psnr});
-        }
-    }
-
-    if metric.is_none() || metric == Some("apsnr") {
-        let apsnr = APsnr::run(
-            input1.as_ref(),
-            container1,
-            input2.as_ref(),
-            container2,
-            serialize,
-        );
-        if serialize {
-            results.insert("apsnr", hashmap! {"result" => apsnr});
-        }
-    }
-
-    if metric.is_none() || metric == Some("psnrhvs") {
-        let psnrhvs = PsnrHvs::run(
-            input1.as_ref(),
-            container1,
-            input2.as_ref(),
-            container2,
-            serialize,
-        );
-        if serialize {
-            results.insert("psnrhvs", hashmap! {"result" => psnrhvs});
-        }
-    }
-
-    if metric.is_none() || metric == Some("ssim") {
-        let ssim = Ssim::run(
-            input1.as_ref(),
-            container1,
-            input2.as_ref(),
-            container2,
-            serialize,
-        );
-        if serialize {
-            results.insert("ssim", hashmap! {"result" => ssim});
-        }
-    }
-
-    if metric.is_none() || metric == Some("msssim") {
-        let msssim = MsSsim::run(
-            input1.as_ref(),
-            container1,
-            input2.as_ref(),
-            container2,
-            serialize,
-        );
-        if serialize {
-            results.insert("msssim", hashmap! {"result" => msssim});
-        }
-    }
-
-    if metric.is_none() || metric == Some("ciede2000") {
-        let ciede2000 = Ciede2000::run(
-            input1.as_ref(),
-            container1,
-            input2.as_ref(),
-            container2,
-            serialize,
-        );
-        if serialize {
-            results.insert("ciede2000", hashmap! {"result" => ciede2000});
-        }
-    }
-
-    if serialize {
-        print!("{}", serde_json::to_string(&results).unwrap());
+        Text::print_result("PSNR", results.psnr);
+        Text::print_result("APSNR", results.apsnr);
+        Text::print_result("PSNR HVS", results.psnr_hvs);
+        Text::print_result("SSIM", results.ssim);
+        Text::print_result("MSSSIM", results.msssim);
+        Text::print_result("CIEDE2000", results.ciede2000);
     }
 }
 
@@ -240,28 +206,18 @@ trait CliMetric {
         container1: VideoContainer,
         input2: P,
         container2: VideoContainer,
-        serialize: bool,
-    ) -> Option<serde_json::Value> {
+    ) -> Option<Self::VideoResult> {
         let mut file1 = File::open(input1).expect("Failed to open input file 1");
         let mut file2 = File::open(input2).expect("Failed to open input file 2");
         let mut dec1 = container1.get_decoder(&mut file1);
         let mut dec2 = container2.get_decoder(&mut file2);
-        let result = Self::calculate_video_metric(&mut dec1, &mut dec2);
-        if let Ok(result) = result {
-            if serialize {
-                return Some(serde_json::to_value(result).unwrap());
-            } else {
-                Self::print_results(result);
-            }
-        }
-        None
+        Self::calculate_video_metric(&mut dec1, &mut dec2).ok()
     }
 
     fn calculate_video_metric<D: Decoder>(
         dec1: &mut D,
         dec2: &mut D,
     ) -> Result<Self::VideoResult, Box<dyn Error>>;
-    fn print_results(result: Self::VideoResult);
 }
 
 struct Psnr;
@@ -274,17 +230,6 @@ impl CliMetric for Psnr {
         dec2: &mut D,
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
         psnr::calculate_video_psnr(dec1, dec2, None)
-    }
-
-    fn print_results(result: Self::VideoResult) {
-        println!(
-            "     {:<10} →  Y: {:<8.4} U/Cb: {:<8.4} V/Cr: {:<8.4} Avg value: {:<8.4}",
-            style("PSNR").cyan(),
-            result.y,
-            result.u,
-            result.v,
-            result.avg
-        );
     }
 }
 
@@ -299,17 +244,6 @@ impl CliMetric for APsnr {
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
         psnr::calculate_video_apsnr(dec1, dec2, None)
     }
-
-    fn print_results(result: Self::VideoResult) {
-        println!(
-            "     {:<10} →  Y: {:<8.4} U/Cb: {:<8.4} V/Cr: {:<8.4} Avg value: {:<8.4}",
-            style("APSNR").cyan(),
-            result.y,
-            result.u,
-            result.v,
-            result.avg
-        );
-    }
 }
 
 struct PsnrHvs;
@@ -322,17 +256,6 @@ impl CliMetric for PsnrHvs {
         dec2: &mut D,
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
         psnr_hvs::calculate_video_psnr_hvs(dec1, dec2, None)
-    }
-
-    fn print_results(result: Self::VideoResult) {
-        println!(
-            "     {:<10} →  Y: {:<8.4} U/Cb: {:<8.4} V/Cr: {:<8.4} Avg value: {:<8.4}",
-            style("PSNR HVS").cyan(),
-            result.y,
-            result.u,
-            result.v,
-            result.avg
-        );
     }
 }
 
@@ -347,17 +270,6 @@ impl CliMetric for Ssim {
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
         ssim::calculate_video_ssim(dec1, dec2, None)
     }
-
-    fn print_results(result: Self::VideoResult) {
-        println!(
-            "     {:<10} →  Y: {:<8.4} U/Cb: {:<8.4} V/Cr: {:<8.4} Avg value: {:<8.4}",
-            style("SSIM").cyan(),
-            result.y,
-            result.u,
-            result.v,
-            result.avg
-        );
-    }
 }
 
 struct MsSsim;
@@ -370,17 +282,6 @@ impl CliMetric for MsSsim {
         dec2: &mut D,
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
         ssim::calculate_video_msssim(dec1, dec2, None)
-    }
-
-    fn print_results(result: Self::VideoResult) {
-        println!(
-            "     {:<10} →  Y: {:<8.4} U/Cb: {:<8.4} V/Cr: {:<8.4} Avg value: {:<8.4}",
-            style("MSSSIM").cyan(),
-            result.y,
-            result.u,
-            result.v,
-            result.avg
-        );
     }
 }
 
@@ -395,12 +296,37 @@ impl CliMetric for Ciede2000 {
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
         ciede::calculate_video_ciede(dec1, dec2, None)
     }
+}
 
-    fn print_results(result: Self::VideoResult) {
-        println!(
-            "     {:<10} →  Delta: {:<8.4}",
-            style("CIEDE2000").cyan(),
-            result
-        )
+trait PrintResult<T> {
+    fn print_result(header: &str, result: Option<T>);
+}
+
+struct Text;
+
+impl PrintResult<PlanarMetrics> for Text {
+    fn print_result(header: &str, result: Option<PlanarMetrics>) {
+        if let Some(result) = result {
+            println!(
+                "     {:<10} →  Y: {:<8.4} U/Cb: {:<8.4} V/Cr: {:<8.4} Avg value: {:<8.4}",
+                style(header).cyan(),
+                result.y,
+                result.u,
+                result.v,
+                result.avg
+            );
+        }
+    }
+}
+
+impl PrintResult<f64> for Text {
+    fn print_result(header: &str, result: Option<f64>) {
+        if let Some(result) = result {
+            println!(
+                "     {:<10} →  Delta: {:<8.4}",
+                style(header).cyan(),
+                result
+            )
+        }
     }
 }
