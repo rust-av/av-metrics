@@ -7,9 +7,8 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::path::Path;
-use std::process::exit;
 
-fn main() {
+fn main() -> Result<(), &'static str> {
     let cli = App::new("AV Metrics")
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
@@ -59,19 +58,15 @@ fn main() {
                 cli.is_present("JSON"),
                 cli.value_of("METRIC"),
             );
+            Ok(())
         }
         (InputType::Audio(_c1), InputType::Audio(_c2)) => {
-            eprintln!("No audio metrics currently implemented, exiting.");
-            exit(1);
+            Err("No audio metrics currently implemented, exiting.")
         }
         (InputType::Video(_), InputType::Audio(_)) | (InputType::Audio(_), InputType::Video(_)) => {
-            eprintln!("Incompatible input files.");
-            exit(1);
+            Err("Incompatible input files.")
         }
-        (InputType::Unknown, _) | (_, InputType::Unknown) => {
-            eprintln!("Unsupported input format.");
-            exit(1);
-        }
+        (InputType::Unknown, _) | (_, InputType::Unknown) => Err("Unsupported input format."),
     }
 }
 
