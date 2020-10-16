@@ -11,7 +11,6 @@ include = ["src/**/*"]
 [dependencies]
 av-metrics = { version = "0.6", features = ["serde"] }
 clap = "2.33"
-maplit = "1"
 serde = "1"
 serde_json = "1"
 y4m = "0.7"
