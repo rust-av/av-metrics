@@ -4,9 +4,10 @@ use console::style;
 use serde::Serialize;
 use std::error::Error;
 use std::fs::File;
+use std::io::{BufWriter, Stdout, Write};
 use std::path::Path;
 
-fn main() -> Result<(), &'static str> {
+fn main() -> Result<(), String> {
     let cli = App::new("AV Metrics")
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
@@ -38,7 +39,21 @@ fn main() -> Result<(), &'static str> {
         .arg(
             Arg::with_name("JSON")
                 .help("Output results as JSON--useful for piping to other programs")
-                .long("json")
+                .long("export-json")
+                .takes_value(true)
+                .value_name("FILE"),
+        )
+        .arg(
+            Arg::with_name("FILE")
+                .help("Output results to a file")
+                .long("export-file")
+                .takes_value(true)
+                .value_name("FILE"),
+        )
+        .arg(
+            Arg::with_name("OUTPUT")
+                .help("Output to stdout")
+                .long("output")
                 .takes_value(false),
         )
         .get_matches();
@@ -46,25 +61,34 @@ fn main() -> Result<(), &'static str> {
     let input2 = cli.value_of("INPUT2").unwrap();
     let input_type1 = InputType::detect(input1);
     let input_type2 = InputType::detect(input2);
+    let mut writers = vec![];
+    if let Some(filename) = cli.value_of("FILE") {
+        writers.push(OutputType::TEXT(BufWriter::new(
+            File::create(filename).map_err(|err| err.to_string())?,
+        )));
+    };
+    if let Some(filename) = cli.value_of("JSON") {
+        writers.push(OutputType::JSON(BufWriter::new(
+            File::create(filename).map_err(|err| err.to_string())?,
+        )));
+    };
+    if cli.is_present("OUTPUT") || !(cli.is_present("FILE") || cli.is_present("JSON")) {
+        writers.push(OutputType::Stdout(BufWriter::new(std::io::stdout())));
+    }
+
     match (input_type1, input_type2) {
         (InputType::Video(c1), InputType::Video(c2)) => {
-            run_video_metrics(
-                input1,
-                c1,
-                input2,
-                c2,
-                cli.is_present("JSON"),
-                cli.value_of("METRIC"),
-            );
-            Ok(())
+            run_video_metrics(input1, c1, input2, c2, &mut writers, cli.value_of("METRIC"))
         }
         (InputType::Audio(_c1), InputType::Audio(_c2)) => {
-            Err("No audio metrics currently implemented, exiting.")
+            Err("No audio metrics currently implemented, exiting.".to_owned())
         }
         (InputType::Video(_), InputType::Audio(_)) | (InputType::Audio(_), InputType::Video(_)) => {
-            Err("Incompatible input files.")
+            Err("Incompatible input files.".to_owned())
         }
-        (InputType::Unknown, _) | (_, InputType::Unknown) => Err("Unsupported input format."),
+        (InputType::Unknown, _) | (_, InputType::Unknown) => {
+            Err("Unsupported input format.".to_owned())
+        }
     }
 }
 
@@ -130,9 +154,9 @@ fn run_video_metrics<P: AsRef<Path>>(
     container1: VideoContainer,
     input2: P,
     container2: VideoContainer,
-    serialize: bool,
+    writers: &mut Vec<OutputType>,
     metric: Option<&str>,
-) {
+) -> Result<(), String> {
     let mut results = MetricsResults::default();
 
     if metric.is_none() || metric == Some("psnr") {
@@ -160,41 +184,76 @@ fn run_video_metrics<P: AsRef<Path>>(
             Ciede2000::run(input1.as_ref(), container1, input2.as_ref(), container2);
     }
 
-    if serialize {
-        print!("{}", serde_json::to_string(&results).unwrap());
-    } else {
-        match metric {
-            Some(metr) => println!(
-                "  {} metric for: {} using the {} system...",
-                style("Computing").yellow(),
-                style(metr).cyan(),
-                style("YUV/YCbCr").magenta()
-            ),
-            None => println!(
-                "  {} metrics for: {}, {}, {}, {}, {}, {} using the {} system...",
-                style("Computing").yellow(),
-                style("PSNR").cyan(),
-                style("APSNR").cyan(),
-                style("PSNR-HVS").cyan(),
-                style("SSIM").cyan(),
-                style("MSSIM").cyan(),
-                style("CIEDE2000").cyan(),
-                style("YUV/YCbCr").magenta()
-            ),
-        }
+    for writer in writers.iter_mut() {
+        match writer {
+            OutputType::JSON(writer) => {
+                writeln!(writer, "{}", serde_json::to_string(&results).unwrap())
+                    .map_err(|err| err.to_string())?;
+            }
+            OutputType::Stdout(_) | OutputType::TEXT(_) => {
+                match metric {
+                    Some(metr) => writeln!(
+                        writer,
+                        "  {} metric for: {} using the {} system...",
+                        style("Computing").yellow(),
+                        style(metr).cyan(),
+                        style("YUV/YCbCr").magenta()
+                    )
+                    .map_err(|err| err.to_string())?,
+                    None => writeln!(
+                        writer,
+                        "  {} metrics for: {}, {}, {}, {}, {}, {} using the {} system...",
+                        style("Computing").yellow(),
+                        style("PSNR").cyan(),
+                        style("APSNR").cyan(),
+                        style("PSNR-HVS").cyan(),
+                        style("SSIM").cyan(),
+                        style("MSSIM").cyan(),
+                        style("CIEDE2000").cyan(),
+                        style("YUV/YCbCr").magenta()
+                    )
+                    .map_err(|err| err.to_string())?,
+                };
 
-        println!(
-            "    {} for comparing {} to {}: \n",
-            style("Results").yellow(),
-            style(input1.as_ref().display()).italic().cyan(),
-            style(input2.as_ref().display()).italic().cyan()
-        );
-        Text::print_result("PSNR", results.psnr);
-        Text::print_result("APSNR", results.apsnr);
-        Text::print_result("PSNR HVS", results.psnr_hvs);
-        Text::print_result("SSIM", results.ssim);
-        Text::print_result("MSSSIM", results.msssim);
-        Text::print_result("CIEDE2000", results.ciede2000);
+                writeln!(
+                    writer,
+                    "    {} for comparing {} to {}: \n",
+                    style("Results").yellow(),
+                    style(input1.as_ref().display()).italic().cyan(),
+                    style(input2.as_ref().display()).italic().cyan()
+                )
+                .map_err(|err| err.to_string())?;
+                Text::print_result(writer, "PSNR", results.psnr)?;
+                Text::print_result(writer, "APSNR", results.apsnr)?;
+                Text::print_result(writer, "PSNR HVS", results.psnr_hvs)?;
+                Text::print_result(writer, "SSIM", results.ssim)?;
+                Text::print_result(writer, "MSSSIM", results.msssim)?;
+                Text::print_result(writer, "CIEDE2000", results.ciede2000)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+enum OutputType {
+    JSON(BufWriter<File>),
+    TEXT(BufWriter<File>),
+    Stdout(BufWriter<Stdout>),
+}
+
+impl Write for OutputType {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        match self {
+            OutputType::JSON(f) | OutputType::TEXT(f) => f.write(buf),
+            OutputType::Stdout(s) => s.write(buf),
+        }
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        match self {
+            OutputType::JSON(f) | OutputType::TEXT(f) => f.flush(),
+            OutputType::Stdout(s) => s.flush(),
+        }
     }
 }
 
@@ -299,34 +358,49 @@ impl CliMetric for Ciede2000 {
 }
 
 trait PrintResult<T> {
-    fn print_result(header: &str, result: Option<T>);
+    fn print_result(writer: &mut OutputType, header: &str, result: Option<T>)
+        -> Result<(), String>;
 }
 
 struct Text;
 
 impl PrintResult<PlanarMetrics> for Text {
-    fn print_result(header: &str, result: Option<PlanarMetrics>) {
+    fn print_result(
+        writer: &mut OutputType,
+        header: &str,
+        result: Option<PlanarMetrics>,
+    ) -> Result<(), String> {
         if let Some(result) = result {
-            println!(
+            writeln!(
+                writer,
                 "     {:<10} →  Y: {:<8.4} U/Cb: {:<8.4} V/Cr: {:<8.4} Avg value: {:<8.4}",
                 style(header).cyan(),
                 result.y,
                 result.u,
                 result.v,
                 result.avg
-            );
+            )
+            .map_err(|err| err.to_string())?;
         }
+        Ok(())
     }
 }
 
 impl PrintResult<f64> for Text {
-    fn print_result(header: &str, result: Option<f64>) {
+    fn print_result(
+        writer: &mut OutputType,
+        header: &str,
+        result: Option<f64>,
+    ) -> Result<(), String> {
         if let Some(result) = result {
-            println!(
+            writeln!(
+                writer,
                 "     {:<10} →  Delta: {:<8.4}",
                 style(header).cyan(),
                 result
             )
+            .map_err(|err| err.to_string())?;
         }
+        Ok(())
     }
 }
