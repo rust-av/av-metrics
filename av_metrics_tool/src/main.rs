@@ -44,6 +44,13 @@ fn main() -> Result<(), String> {
                 .value_name("FILE"),
         )
         .arg(
+            Arg::with_name("CSV")
+                .help("Output results as CSV")
+                .long("export-csv")
+                .takes_value(true)
+                .value_name("FILE"),
+        )
+        .arg(
             Arg::with_name("FILE")
                 .help("Output results to a file")
                 .long("export-file")
@@ -72,7 +79,14 @@ fn main() -> Result<(), String> {
             File::create(filename).map_err(|err| err.to_string())?,
         )));
     };
-    if cli.is_present("OUTPUT") || !(cli.is_present("FILE") || cli.is_present("JSON")) {
+    if let Some(filename) = cli.value_of("CSV") {
+        writers.push(OutputType::CSV(BufWriter::new(
+            File::create(filename).map_err(|err| err.to_string())?,
+        )));
+    };
+    if cli.is_present("OUTPUT")
+        || !(cli.is_present("FILE") || cli.is_present("JSON") || cli.is_present("CSV"))
+    {
         writers.push(OutputType::Stdout(BufWriter::new(std::io::stdout())));
     }
 
@@ -190,6 +204,15 @@ fn run_video_metrics<P: AsRef<Path>>(
                 writeln!(writer, "{}", serde_json::to_string(&results).unwrap())
                     .map_err(|err| err.to_string())?;
             }
+            OutputType::CSV(_) => {
+                writeln!(writer, "Metric;Y;U/Cb;V/Cr;Avg;Delta").map_err(|err| err.to_string())?;
+                CSV::print_result(writer, "PSNR", results.psnr)?;
+                CSV::print_result(writer, "APSNR", results.apsnr)?;
+                CSV::print_result(writer, "PSNR HVS", results.psnr_hvs)?;
+                CSV::print_result(writer, "SSIM", results.ssim)?;
+                CSV::print_result(writer, "MSSSIM", results.msssim)?;
+                CSV::print_result(writer, "CIEDE2000", results.ciede2000)?;
+            }
             OutputType::Stdout(_) | OutputType::TEXT(_) => {
                 match metric {
                     Some(metr) => writeln!(
@@ -237,6 +260,7 @@ fn run_video_metrics<P: AsRef<Path>>(
 
 enum OutputType {
     JSON(BufWriter<File>),
+    CSV(BufWriter<File>),
     TEXT(BufWriter<File>),
     Stdout(BufWriter<Stdout>),
 }
@@ -244,14 +268,14 @@ enum OutputType {
 impl Write for OutputType {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         match self {
-            OutputType::JSON(f) | OutputType::TEXT(f) => f.write(buf),
+            OutputType::JSON(f) | OutputType::CSV(f) | OutputType::TEXT(f) => f.write(buf),
             OutputType::Stdout(s) => s.write(buf),
         }
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
         match self {
-            OutputType::JSON(f) | OutputType::TEXT(f) => f.flush(),
+            OutputType::JSON(f) | OutputType::CSV(f) | OutputType::TEXT(f) => f.flush(),
             OutputType::Stdout(s) => s.flush(),
         }
     }
@@ -400,6 +424,39 @@ impl PrintResult<f64> for Text {
                 result
             )
             .map_err(|err| err.to_string())?;
+        }
+        Ok(())
+    }
+}
+
+struct CSV;
+
+impl PrintResult<PlanarMetrics> for CSV {
+    fn print_result(
+        writer: &mut OutputType,
+        header: &str,
+        result: Option<PlanarMetrics>,
+    ) -> Result<(), String> {
+        if let Some(result) = result {
+            writeln!(
+                writer,
+                "{};{};{};{};{};",
+                header, result.y, result.u, result.v, result.avg,
+            )
+            .map_err(|err| err.to_string())?;
+        }
+        Ok(())
+    }
+}
+
+impl PrintResult<f64> for CSV {
+    fn print_result(
+        writer: &mut OutputType,
+        header: &str,
+        result: Option<f64>,
+    ) -> Result<(), String> {
+        if let Some(delta) = result {
+            writeln!(writer, "{};;;;;{}", header, delta).map_err(|err| err.to_string())?;
         }
         Ok(())
     }
