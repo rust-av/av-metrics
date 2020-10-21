@@ -51,6 +51,13 @@ fn main() -> Result<(), String> {
                 .value_name("FILE"),
         )
         .arg(
+            Arg::with_name("MARKDOWN")
+                .help("Output results as Markdown")
+                .long("export-markdown")
+                .takes_value(true)
+                .value_name("FILE"),
+        )
+        .arg(
             Arg::with_name("FILE")
                 .help("Output results to a file")
                 .long("export-file")
@@ -84,8 +91,16 @@ fn main() -> Result<(), String> {
             File::create(filename).map_err(|err| err.to_string())?,
         )));
     };
+    if let Some(filename) = cli.value_of("MARKDOWN") {
+        writers.push(OutputType::Markdown(BufWriter::new(
+            File::create(filename).map_err(|err| err.to_string())?,
+        )));
+    };
     if cli.is_present("OUTPUT")
-        || !(cli.is_present("FILE") || cli.is_present("JSON") || cli.is_present("CSV"))
+        || !(cli.is_present("FILE")
+            || cli.is_present("JSON")
+            || cli.is_present("CSV")
+            || cli.is_present("MARKDOWN"))
     {
         writers.push(OutputType::Stdout(BufWriter::new(std::io::stdout())));
     }
@@ -213,6 +228,40 @@ fn run_video_metrics<P: AsRef<Path>>(
                 CSV::print_result(writer, "MSSSIM", results.msssim)?;
                 CSV::print_result(writer, "CIEDE2000", results.ciede2000)?;
             }
+            OutputType::Markdown(_) => {
+                match metric {
+                    Some(metr) => {
+                        writeln!(
+                            writer,
+                            "  Computing metric for: {} using the YUV/YCbCr system...",
+                            metr,
+                        )
+                        .map_err(|err| err.to_string())?
+                    }
+                    None => {
+                        writeln!(
+                            writer,
+                            "  Computing metrics for: PSNR, APSNR, PSNR-HVS, SSIM, MSSIM, CIEDE2000 using the YUV/YCbCr system...",
+                        )
+                        .map_err(|err| err.to_string())?
+                    }
+                };
+
+                writeln!(
+                    writer,
+                    "    Results for comparing {} to {}: \n",
+                    input1.as_ref().display(),
+                    input2.as_ref().display()
+                )
+                .map_err(|err| err.to_string())?;
+
+                Markdown::print_result(writer, "PSNR", results.psnr)?;
+                Markdown::print_result(writer, "APSNR", results.apsnr)?;
+                Markdown::print_result(writer, "PSNR HVS", results.psnr_hvs)?;
+                Markdown::print_result(writer, "SSIM", results.ssim)?;
+                Markdown::print_result(writer, "MSSSIM", results.msssim)?;
+                Markdown::print_result(writer, "CIEDE2000", results.ciede2000)?;
+            }
             OutputType::Stdout(_) | OutputType::TEXT(_) => {
                 match metric {
                     Some(metr) => writeln!(
@@ -261,6 +310,7 @@ fn run_video_metrics<P: AsRef<Path>>(
 enum OutputType {
     JSON(BufWriter<File>),
     CSV(BufWriter<File>),
+    Markdown(BufWriter<File>),
     TEXT(BufWriter<File>),
     Stdout(BufWriter<Stdout>),
 }
@@ -268,14 +318,20 @@ enum OutputType {
 impl Write for OutputType {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         match self {
-            OutputType::JSON(f) | OutputType::CSV(f) | OutputType::TEXT(f) => f.write(buf),
+            OutputType::JSON(f)
+            | OutputType::CSV(f)
+            | OutputType::Markdown(f)
+            | OutputType::TEXT(f) => f.write(buf),
             OutputType::Stdout(s) => s.write(buf),
         }
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
         match self {
-            OutputType::JSON(f) | OutputType::CSV(f) | OutputType::TEXT(f) => f.flush(),
+            OutputType::JSON(f)
+            | OutputType::CSV(f)
+            | OutputType::Markdown(f)
+            | OutputType::TEXT(f) => f.flush(),
             OutputType::Stdout(s) => s.flush(),
         }
     }
@@ -457,6 +513,40 @@ impl PrintResult<f64> for CSV {
     ) -> Result<(), String> {
         if let Some(delta) = result {
             writeln!(writer, "{};;;;;{}", header, delta).map_err(|err| err.to_string())?;
+        }
+        Ok(())
+    }
+}
+
+struct Markdown;
+
+impl PrintResult<PlanarMetrics> for Markdown {
+    fn print_result(
+        writer: &mut OutputType,
+        header: &str,
+        result: Option<PlanarMetrics>,
+    ) -> Result<(), String> {
+        if let Some(result) = result {
+            writeln!(
+                writer,
+                "* {}\n    * Y: {}\n    * U/Cb:{}\n    * V/Cr:{}\n    Avg value:* {}",
+                header, result.y, result.u, result.v, result.avg,
+            )
+            .map_err(|err| err.to_string())?;
+        }
+        Ok(())
+    }
+}
+
+impl PrintResult<f64> for Markdown {
+    fn print_result(
+        writer: &mut OutputType,
+        header: &str,
+        result: Option<f64>,
+    ) -> Result<(), String> {
+        if let Some(delta) = result {
+            writeln!(writer, "* {}\n    * Delta: {}", header, delta)
+                .map_err(|err| err.to_string())?;
         }
         Ok(())
     }
