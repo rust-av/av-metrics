@@ -65,9 +65,9 @@ fn main() -> Result<(), String> {
                 .value_name("FILE"),
         )
         .arg(
-            Arg::with_name("OUTPUT")
-                .help("Output to stdout")
-                .long("output")
+            Arg::with_name("QUIET")
+                .help("Do not output to stdout")
+                .long("quiet")
                 .takes_value(false),
         )
         .get_matches();
@@ -96,12 +96,7 @@ fn main() -> Result<(), String> {
             File::create(filename).map_err(|err| err.to_string())?,
         )));
     };
-    if cli.is_present("OUTPUT")
-        || !(cli.is_present("FILE")
-            || cli.is_present("JSON")
-            || cli.is_present("CSV")
-            || cli.is_present("MARKDOWN"))
-    {
+    if !cli.is_present("QUIET") {
         writers.push(OutputType::Stdout(BufWriter::new(std::io::stdout())));
     }
 
