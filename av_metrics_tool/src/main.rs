@@ -224,32 +224,6 @@ fn run_video_metrics<P: AsRef<Path>>(
                 CSV::print_result(writer, "CIEDE2000", results.ciede2000)?;
             }
             OutputType::Markdown(_) => {
-                match metric {
-                    Some(metr) => {
-                        writeln!(
-                            writer,
-                            "  Computing metric for: {} using the YUV/YCbCr system...",
-                            metr,
-                        )
-                        .map_err(|err| err.to_string())?
-                    }
-                    None => {
-                        writeln!(
-                            writer,
-                            "  Computing metrics for: PSNR, APSNR, PSNR-HVS, SSIM, MSSIM, CIEDE2000 using the YUV/YCbCr system...",
-                        )
-                        .map_err(|err| err.to_string())?
-                    }
-                };
-
-                writeln!(
-                    writer,
-                    "    Results for comparing {} to {}: \n",
-                    input1.as_ref().display(),
-                    input2.as_ref().display()
-                )
-                .map_err(|err| err.to_string())?;
-
                 Markdown::print_result(writer, "PSNR", results.psnr)?;
                 Markdown::print_result(writer, "APSNR", results.apsnr)?;
                 Markdown::print_result(writer, "PSNR HVS", results.psnr_hvs)?;
