@@ -53,13 +53,14 @@ From any terminal, run the executable with your two video files as arguments:
 
 You should receive output for all supported metrics:
 
-```
-PSNR - Y: 32.5281  U: 36.4083  V: 39.8238  Avg: 33.6861
-APSNR - Y: 32.5450  U: 36.4087  V: 39.8244  Avg: 33.6995
-PSNR HVS - Y: 34.3225  U: 37.7400  V: 40.5569  Avg: 31.8674
-SSIM - Y: 13.2572  U: 10.8624  V: 12.8369  Avg: 12.6899
-MSSSIM - Y: 18.8343  U: 16.6943  V: 18.7662  Avg: 18.3859
-CIEDE2000 - 36.2820
-```
+|  |Y|U|V|Avg|
+|--|--|--|--|--|
+|PSNR|32.5281|36.4083|39.8238|33.6861|
+|APSNR|32.5450|36.4087|39.8244|33.6995|
+|PSNR HVS|34.3225|37.7400|40.5569|31.8674|
+|SSIM|13.2572|10.8624|12.8369|12.6899|
+|MSSSIM|18.8343|16.6943|18.7662|18.3859|
 
+CIEDE2000 -36.2820
+<br>
 Currently, the tool can only decode y4m files. Both files must match in resolution, bit depth, and color sampling.
