@@ -17,7 +17,7 @@ serde = { version = "1", features = ["derive"], optional = true }
 thiserror = "1"
 y4m = { version = "0.7", optional = true }
 v_frame = { version = "0.1.0" }
-rayon = "1.4"
+rayon = "1.5"
 crossbeam = "0.8"
 
 [dev-dependencies]
