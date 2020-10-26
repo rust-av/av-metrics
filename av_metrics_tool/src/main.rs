@@ -13,15 +13,16 @@ fn main() -> Result<(), String> {
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .arg(
-            Arg::with_name("INPUT1")
-                .help("The first input file to compare--currently supports Y4M files")
+            Arg::with_name("BASE")
+                .help("The base input file to compare--currently supports Y4M files")
                 .required(true)
                 .index(1),
         )
         .arg(
-            Arg::with_name("INPUT2")
-                .help("The second input file to compare--order does not matter")
+            Arg::with_name("FILES")
+                .help("The alternate input files to compare with the base file")
                 .required(true)
+                .multiple(true)
                 .index(2),
         )
         .arg(
@@ -71,10 +72,8 @@ fn main() -> Result<(), String> {
                 .takes_value(false),
         )
         .get_matches();
-    let input1 = cli.value_of("INPUT1").unwrap();
-    let input2 = cli.value_of("INPUT2").unwrap();
-    let input_type1 = InputType::detect(input1);
-    let input_type2 = InputType::detect(input2);
+    let base = cli.value_of("BASE").unwrap();
+    let inputs = cli.values_of("FILES").unwrap();
     let mut writers = vec![];
     if let Some(filename) = cli.value_of("FILE") {
         writers.push(OutputType::TEXT(BufWriter::new(
@@ -100,20 +99,41 @@ fn main() -> Result<(), String> {
         writers.push(OutputType::Stdout(BufWriter::new(std::io::stdout())));
     }
 
-    match (input_type1, input_type2) {
-        (InputType::Video(c1), InputType::Video(c2)) => {
-            run_video_metrics(input1, c1, input2, c2, &mut writers, cli.value_of("METRIC"))
-        }
-        (InputType::Audio(_c1), InputType::Audio(_c2)) => {
-            Err("No audio metrics currently implemented, exiting.".to_owned())
-        }
-        (InputType::Video(_), InputType::Audio(_)) | (InputType::Audio(_), InputType::Video(_)) => {
-            Err("Incompatible input files.".to_owned())
-        }
-        (InputType::Unknown, _) | (_, InputType::Unknown) => {
-            Err("Unsupported input format.".to_owned())
-        }
+    let base_type = InputType::detect(base);
+
+    let metrics = cli.value_of("METRIC");
+
+    let mut report = Report::default();
+
+    report.base = base;
+
+    for input in inputs {
+        let input_type = InputType::detect(input);
+
+        match (base_type, input_type) {
+            (InputType::Video(c1), InputType::Video(c2)) => {
+                report
+                    .comparisons
+                    .push(run_video_metrics(base, c1, input, c2, metrics));
+            }
+            (InputType::Audio(_c1), InputType::Audio(_c2)) => {
+                return Err("No audio metrics currently implemented, exiting.".to_owned());
+            }
+            (InputType::Video(_), InputType::Audio(_))
+            | (InputType::Audio(_), InputType::Video(_)) => {
+                return Err("Incompatible input files.".to_owned());
+            }
+            (InputType::Unknown, _) | (_, InputType::Unknown) => {
+                return Err("Unsupported input format.".to_owned());
+            }
+        };
     }
+
+    for writer in writers.iter_mut() {
+        report.print(writer)?;
+    }
+
+    Ok(())
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -157,8 +177,9 @@ enum AudioContainer {
     // Coming soon
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Default)]
+#[derive(Debug, Clone, Serialize, Default)]
 struct MetricsResults {
+    filename: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     psnr: Option<PlanarMetrics>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -173,107 +194,120 @@ struct MetricsResults {
     ciede2000: Option<f64>,
 }
 
-fn run_video_metrics<P: AsRef<Path>>(
-    input1: P,
+fn run_video_metrics(
+    input1: &str,
     container1: VideoContainer,
-    input2: P,
+    input2: &str,
     container2: VideoContainer,
-    writers: &mut Vec<OutputType>,
     metric: Option<&str>,
-) -> Result<(), String> {
+) -> MetricsResults {
     let mut results = MetricsResults::default();
 
+    results.filename = input2.to_owned();
+
     if metric.is_none() || metric == Some("psnr") {
-        results.psnr = Psnr::run(input1.as_ref(), container1, input2.as_ref(), container2);
+        results.psnr = Psnr::run(input1, container1, input2, container2);
     }
 
     if metric.is_none() || metric == Some("apsnr") {
-        results.apsnr = APsnr::run(input1.as_ref(), container1, input2.as_ref(), container2);
+        results.apsnr = APsnr::run(input1, container1, input2, container2);
     }
 
     if metric.is_none() || metric == Some("psnrhvs") {
-        results.psnr_hvs = PsnrHvs::run(input1.as_ref(), container1, input2.as_ref(), container2);
+        results.psnr_hvs = PsnrHvs::run(input1, container1, input2, container2);
     }
 
     if metric.is_none() || metric == Some("ssim") {
-        results.ssim = Ssim::run(input1.as_ref(), container1, input2.as_ref(), container2);
+        results.ssim = Ssim::run(input1, container1, input2, container2);
     }
 
     if metric.is_none() || metric == Some("msssim") {
-        results.msssim = MsSsim::run(input1.as_ref(), container1, input2.as_ref(), container2);
+        results.msssim = MsSsim::run(input1, container1, input2, container2);
     }
 
     if metric.is_none() || metric == Some("ciede2000") {
-        results.ciede2000 =
-            Ciede2000::run(input1.as_ref(), container1, input2.as_ref(), container2);
+        results.ciede2000 = Ciede2000::run(input1, container1, input2, container2);
     }
 
-    for writer in writers.iter_mut() {
+    results
+}
+
+#[derive(Debug, Serialize, Default)]
+struct Report<'s> {
+    base: &'s str,
+    comparisons: Vec<MetricsResults>,
+}
+
+impl Report<'_> {
+    fn print(&self, writer: &mut OutputType) -> Result<(), String> {
         match writer {
-            OutputType::JSON(writer) => {
-                writeln!(writer, "{}", serde_json::to_string(&results).unwrap())
+            OutputType::JSON(w) => {
+                writeln!(w, "{}", serde_json::to_string(&self).unwrap())
                     .map_err(|err| err.to_string())?;
             }
-            OutputType::CSV(_) => {
-                writeln!(writer, "Metric;Y;U/Cb;V/Cr;Avg;Delta").map_err(|err| err.to_string())?;
-                CSV::print_result(writer, "PSNR", results.psnr)?;
-                CSV::print_result(writer, "APSNR", results.apsnr)?;
-                CSV::print_result(writer, "PSNR HVS", results.psnr_hvs)?;
-                CSV::print_result(writer, "SSIM", results.ssim)?;
-                CSV::print_result(writer, "MSSSIM", results.msssim)?;
-                CSV::print_result(writer, "CIEDE2000", results.ciede2000)?;
-            }
-            OutputType::Markdown(_) => {
-                Markdown::print_result(writer, "PSNR", results.psnr)?;
-                Markdown::print_result(writer, "APSNR", results.apsnr)?;
-                Markdown::print_result(writer, "PSNR HVS", results.psnr_hvs)?;
-                Markdown::print_result(writer, "SSIM", results.ssim)?;
-                Markdown::print_result(writer, "MSSSIM", results.msssim)?;
-                Markdown::print_result(writer, "CIEDE2000", results.ciede2000)?;
-            }
-            OutputType::Stdout(_) | OutputType::TEXT(_) => {
-                match metric {
-                    Some(metr) => writeln!(
-                        writer,
-                        "  {} metric for: {} using the {} system...",
-                        style("Computing").yellow(),
-                        style(metr).cyan(),
-                        style("YUV/YCbCr").magenta()
+            OutputType::CSV(w) => {
+                writeln!(w, "filename,psnr,apsnr,psnr_hvs,ssim,msssim,ciede2000")
+                    .map_err(|err| err.to_string())?;
+                for cmp in self.comparisons.iter() {
+                    writeln!(
+                        w,
+                        "{},{},{},{},{},{},{}",
+                        cmp.filename,
+                        cmp.psnr.map(|v| v.avg).unwrap_or(-0.0),
+                        cmp.apsnr.map(|v| v.avg).unwrap_or(-0.0),
+                        cmp.psnr_hvs.map(|v| v.avg).unwrap_or(-0.0),
+                        cmp.ssim.map(|v| v.avg).unwrap_or(-0.0),
+                        cmp.msssim.map(|v| v.avg).unwrap_or(-0.0),
+                        cmp.ciede2000.unwrap_or(-0.0)
                     )
-                    .map_err(|err| err.to_string())?,
-                    None => writeln!(
-                        writer,
-                        "  {} metrics for: {}, {}, {}, {}, {}, {} using the {} system...",
-                        style("Computing").yellow(),
-                        style("PSNR").cyan(),
-                        style("APSNR").cyan(),
-                        style("PSNR-HVS").cyan(),
-                        style("SSIM").cyan(),
-                        style("MSSIM").cyan(),
-                        style("CIEDE2000").cyan(),
-                        style("YUV/YCbCr").magenta()
-                    )
-                    .map_err(|err| err.to_string())?,
-                };
-
+                    .map_err(|err| err.to_string())?;
+                }
+            }
+            OutputType::Markdown(w) => {
                 writeln!(
-                    writer,
-                    "    {} for comparing {} to {}: \n",
-                    style("Results").yellow(),
-                    style(input1.as_ref().display()).italic().cyan(),
-                    style(input2.as_ref().display()).italic().cyan()
+                    w,
+                    "|filename|psnr|apsnr|psnr_hvs|ssim|msssim|ciede2000|\n\
+                     |-|-|-|-|-|-|-|"
                 )
                 .map_err(|err| err.to_string())?;
-                Text::print_result(writer, "PSNR", results.psnr)?;
-                Text::print_result(writer, "APSNR", results.apsnr)?;
-                Text::print_result(writer, "PSNR HVS", results.psnr_hvs)?;
-                Text::print_result(writer, "SSIM", results.ssim)?;
-                Text::print_result(writer, "MSSSIM", results.msssim)?;
-                Text::print_result(writer, "CIEDE2000", results.ciede2000)?;
+                for cmp in self.comparisons.iter() {
+                    writeln!(
+                        w,
+                        "|{}|{}|{}|{}|{}|{}|{}|",
+                        cmp.filename,
+                        cmp.psnr.map(|v| v.avg).unwrap_or(-0.0),
+                        cmp.apsnr.map(|v| v.avg).unwrap_or(-0.0),
+                        cmp.psnr_hvs.map(|v| v.avg).unwrap_or(-0.0),
+                        cmp.ssim.map(|v| v.avg).unwrap_or(-0.0),
+                        cmp.msssim.map(|v| v.avg).unwrap_or(-0.0),
+                        cmp.ciede2000.unwrap_or(-0.0)
+                    )
+                    .map_err(|err| err.to_string())?;
+                }
+            }
+            OutputType::Stdout(_) | OutputType::TEXT(_) => {
+                writeln!(writer, "Comparing {}\n", style(self.base).italic().cyan())
+                    .map_err(|err| err.to_string())?;
+                for cmp in self.comparisons.iter() {
+                    writeln!(
+                        writer,
+                        "\n    {} for {}: \n",
+                        style("Results").yellow(),
+                        style(&cmp.filename).italic().cyan()
+                    )
+                    .map_err(|err| err.to_string())?;
+                    Text::print_result(writer, "PSNR", cmp.psnr)?;
+                    Text::print_result(writer, "APSNR", cmp.apsnr)?;
+                    Text::print_result(writer, "PSNR HVS", cmp.psnr_hvs)?;
+                    Text::print_result(writer, "SSIM", cmp.ssim)?;
+                    Text::print_result(writer, "MSSSIM", cmp.msssim)?;
+                    Text::print_result(writer, "CIEDE2000", cmp.ciede2000)?;
+                }
             }
         }
+
+        Ok(())
     }
-    Ok(())
 }
 
 enum OutputType {
@@ -449,73 +483,6 @@ impl PrintResult<f64> for Text {
                 result
             )
             .map_err(|err| err.to_string())?;
-        }
-        Ok(())
-    }
-}
-
-struct CSV;
-
-impl PrintResult<PlanarMetrics> for CSV {
-    fn print_result(
-        writer: &mut OutputType,
-        header: &str,
-        result: Option<PlanarMetrics>,
-    ) -> Result<(), String> {
-        if let Some(result) = result {
-            writeln!(
-                writer,
-                "{};{};{};{};{};",
-                header, result.y, result.u, result.v, result.avg,
-            )
-            .map_err(|err| err.to_string())?;
-        }
-        Ok(())
-    }
-}
-
-impl PrintResult<f64> for CSV {
-    fn print_result(
-        writer: &mut OutputType,
-        header: &str,
-        result: Option<f64>,
-    ) -> Result<(), String> {
-        if let Some(delta) = result {
-            writeln!(writer, "{};;;;;{}", header, delta).map_err(|err| err.to_string())?;
-        }
-        Ok(())
-    }
-}
-
-struct Markdown;
-
-impl PrintResult<PlanarMetrics> for Markdown {
-    fn print_result(
-        writer: &mut OutputType,
-        header: &str,
-        result: Option<PlanarMetrics>,
-    ) -> Result<(), String> {
-        if let Some(result) = result {
-            writeln!(
-                writer,
-                "* {}\n    * Y: {}\n    * U/Cb:{}\n    * V/Cr:{}\n    Avg value:* {}",
-                header, result.y, result.u, result.v, result.avg,
-            )
-            .map_err(|err| err.to_string())?;
-        }
-        Ok(())
-    }
-}
-
-impl PrintResult<f64> for Markdown {
-    fn print_result(
-        writer: &mut OutputType,
-        header: &str,
-        result: Option<f64>,
-    ) -> Result<(), String> {
-        if let Some(delta) = result {
-            writeln!(writer, "* {}\n    * Delta: {}", header, delta)
-                .map_err(|err| err.to_string())?;
         }
         Ok(())
     }
