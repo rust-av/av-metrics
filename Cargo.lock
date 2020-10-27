@@ -63,7 +63,7 @@ dependencies = [
 
 [[package]]
 name = "av-metrics-tool"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "av-metrics 0.6.0",
  "clap",

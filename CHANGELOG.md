@@ -1,3 +1,8 @@
+## Version 0.7.0
+- [CLI Feature] Support multiple file comparison
+- [CLI Feature] Add Markdown output
+- [CLI Feature] Add CSV output
+
 ## Version 0.6.0
 - [Breaking] Simplify the `Decoder` trait
 - [Breaking] Require `Send + Sync` on the `Decoder` trait
