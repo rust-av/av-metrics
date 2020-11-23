@@ -38,28 +38,10 @@ jobs:
 
   cargo-c:
 
-    env:
-      RUST_BACKTRACE: 1
-      RUSTC_WRAPPER: sccache
-      SCCACHE_CACHE_SIZE: 300M
-      SCCACHE_DIR: /home/runner/.cache/sccache
-      SCCACHE_IDLE_TIMEOUT: 0
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-
-    - name: Install sccache
-      env:
-        LINK: https://github.com/mozilla/sccache/releases/download
-        SCCACHE_VERSION: 0.2.13
-      run: |
-        SCCACHE_FILE=sccache-$SCCACHE_VERSION-x86_64-unknown-linux-musl
-        mkdir -p $HOME/.local/bin
-        curl -L "$LINK/$SCCACHE_VERSION/$SCCACHE_FILE.tar.gz" | tar xz
-        mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
-        echo "::add-path::$HOME/.local/bin"
 
     - name: Install stable
       uses: actions-rs/toolchain@v1
@@ -68,29 +50,13 @@ jobs:
         toolchain: stable
         override: true
 
-    - name: Cache cargo registry
-      uses: actions/cache@v1
-      with:
-        path: ~/.cargo/registry/cache
-        key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          cargo-registry-
-
-    - name: Cache sccache output
-      uses: actions/cache@v1
-      with:
-        path: ~/.cache/sccache
-        key: sccache-${{ hashFiles('**/Cargo.*') }}
-        restore-keys: |
-          sccache-
-
-    - name: Start sccache server
-      run: |
-        sccache --start-server
-
     - name: Install cargo-c
+      env:
+        LINK: https://github.com/lu-zero/cargo-c/releases/download
+        CARGO_C_VERSION: 0.6.17
       run: |
-        cargo install cargo-c
+        curl -L "$LINK/v$CARGO_C_VERSION/cargo-c-linux.tar.gz" |
+        tar xz -C $HOME/.cargo/bin
 
     - name: Run cargo-c
       run: |
@@ -108,10 +74,6 @@ jobs:
         export LD_LIBRARY_PATH=$HOME/av_metrics_deploy/lib/
         cd av_metrics/c-example
         ./test
-
-    - name: Stop sccache server
-      run: |
-        sccache --stop-server
 
   build:
 
