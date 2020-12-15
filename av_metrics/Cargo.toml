@@ -19,6 +19,7 @@ y4m = { version = "0.7", optional = true }
 v_frame = { version = "0.1.0" }
 rayon = "1.5"
 crossbeam = "0.8"
+ffmpeg = { version = "0.3.0", optional = true }
 
 [dev-dependencies]
 criterion = "0.3"
@@ -27,6 +28,7 @@ criterion = "0.3"
 default = ["y4m-decode"]
 decode = []
 y4m-decode = ["y4m", "decode"]
+ffmpeg-decode = ["ffmpeg", "decode"]
 bench = []
 
 [lib]

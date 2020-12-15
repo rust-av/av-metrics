@@ -191,7 +191,7 @@ trait VideoMetric: Send + Sync {
                     decoded += 1;
                     let frame1 = decoder1.read_video_frame::<P>();
                     let frame2 = decoder2.read_video_frame::<P>();
-                    if let (Ok(frame1), Ok(frame2)) = (frame1, frame2) {
+                    if let (Some(frame1), Some(frame2)) = (frame1, frame2) {
                         send.send((frame1, frame2)).unwrap();
                     } else {
                         break;

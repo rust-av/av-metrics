@@ -93,10 +93,16 @@ jobs:
         toolchain: stable
         override: true
 
-    - name: Build
+    - name: Build (y4m)
+      run: cargo build --tests --benches
+
+    - name: Run tests (y4m)
+      run: cargo test
+
+    - name: Build (ffmpeg)
       run: cargo build --all-features --tests --benches
 
-    - name: Run tests
+    - name: Run tests (ffmpeg)
       run: cargo test --all-features
 
     - name: Generate docs

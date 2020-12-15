@@ -23,7 +23,7 @@
 
 Add the following to your Cargo.toml
 ```toml
-av-metrics = "0.3"
+av-metrics = "0.7"
 ```
 
 Then check out [the API docs](https://docs.rs/av-metrics/).
@@ -32,7 +32,7 @@ Then check out [the API docs](https://docs.rs/av-metrics/).
 
 #### Windows
 
-Downlad the latest binary from the [Releases](https://github.com/rust-av/av-metrics/releases) tab.
+Download the latest binary from the [Releases](https://github.com/rust-av/av-metrics/releases) tab.
 
 #### OS X and Linux
 
@@ -62,4 +62,10 @@ MSSSIM - Y: 18.8343  U: 16.6943  V: 18.7662  Avg: 18.3859
 CIEDE2000 - 36.2820
 ```
 
-Currently, the tool can only decode y4m files. Both files must match in resolution, bit depth, and color sampling.
+By default, the tool can only decode y4m files. Both files must match in resolution, bit depth, and color sampling.
+
+Alternate input formats can be supported by enabling FFMpeg support.
+Due to limitations, this currently has to be enabled at compile time.
+
+In the crate, this can be enabled with the feature "ffmpeg-decode".
+In the binary, this can be enabled with the feature "ffmpeg".
