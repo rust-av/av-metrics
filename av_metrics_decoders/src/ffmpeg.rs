@@ -21,7 +21,8 @@ impl FfmpegDecoder {
     pub fn new<P: AsRef<Path>>(input: P) -> Result<Self, String> {
         ffmpeg::init().map_err(|e| e.to_string())?;
 
-        let input_ctx = format::input(&input).map_err(|e| e.to_string())?;
+        let input_ctx =
+            format::input(&input.as_ref().to_string_lossy()).map_err(|e| e.to_string())?;
         let input = input_ctx
             .streams()
             .best(Type::Video)

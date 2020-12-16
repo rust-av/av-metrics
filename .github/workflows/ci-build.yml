@@ -30,6 +30,12 @@ jobs:
         command: fmt
         args: -- --check --verbose
 
+    - name: Install ffmpeg for Ubuntu
+      run: |
+        set -e
+        export PKG_CONFIG_PATH=$(pkg-config --variable pc_path pkg-config)
+        sudo apt install libavutil-dev libavcodec-dev libavformat-dev libclang-dev
+
     - name: Run cargo clippy (y4m)
       uses: actions-rs/clippy-check@v1
       with:
@@ -46,7 +52,8 @@ jobs:
 
     strategy:
       matrix:
-        platform: [ubuntu-latest, windows-latest]
+        platform: [ubuntu-latest]
+#        platform: [ubuntu-latest, windows-latest]
 
     runs-on: ${{ matrix.platform }}
 
@@ -59,6 +66,29 @@ jobs:
         profile: minimal
         toolchain: stable
         override: true
+
+    - name: Install ffmpeg for Ubuntu
+      if: matrix.platform == 'ubuntu-latest'
+      run: |
+        set -e
+        export PKG_CONFIG_PATH=$(pkg-config --variable pc_path pkg-config)
+        sudo apt install libavutil-dev libavcodec-dev libavformat-dev libclang-dev
+
+# It takes 2+ hours to install these dependencies with vcpkg, we're just disabling it until there's a better way found
+#    - name: Cache Windows dependencies
+#      if: matrix.platform == 'windows-latest'
+#      id: cache-windows-deps
+#      uses: actions/cache@v2
+#      with:
+#        path: C:\Users\runneradmin\AppData\Local\vcpkg\archives
+#        key: ${{ runner.os }}-deps-cache
+#
+#    - name: Install ffmpeg for Windows
+#      if: matrix.platform == 'windows-latest'
+#      run: |
+#        vcpkg integrate install
+#        vcpkg install ffmpeg[avcodec,avformat,core,gpl]:x64-windows
+#        vcpkg install llvm[clang]
 
     - name: Build (y4m)
       run: cargo build --tests --benches

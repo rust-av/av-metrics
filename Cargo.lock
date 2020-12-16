@@ -374,12 +374,12 @@ dependencies = [
 [[package]]
 name = "ffmpeg"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65fa8441031e0aec713d9e96baeb6aaec4f017640e8dc47551a1a7f977ec7d75"
+source = "git+https://github.com/shssoichiro/rust-ffmpeg?branch=versioning#b4c36152e43a527274860874f3b3457781053b0e"
 dependencies = [
  "bitflags",
  "ffmpeg-sys",
  "libc",
+ "thiserror",
 ]
 
 [[package]]
