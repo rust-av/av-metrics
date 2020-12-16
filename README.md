@@ -23,7 +23,7 @@
 
 Add the following to your Cargo.toml
 ```toml
-av-metrics = "0.3"
+av-metrics = "0.7"
 ```
 
 Then check out [the API docs](https://docs.rs/av-metrics/).
@@ -32,7 +32,7 @@ Then check out [the API docs](https://docs.rs/av-metrics/).
 
 #### Windows
 
-Downlad the latest binary from the [Releases](https://github.com/rust-av/av-metrics/releases) tab.
+Download the latest binary from the [Releases](https://github.com/rust-av/av-metrics/releases) tab.
 
 #### OS X and Linux
 
