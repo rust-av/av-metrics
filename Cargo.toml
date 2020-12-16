@@ -3,7 +3,8 @@
 members = [
     "av_metrics",
     "av_metrics_tool",
-    "av_metrics_decoders"
+    "av_metrics_decoders",
+    "av_metrics_tests"
 ]
 
 [profile.dev]

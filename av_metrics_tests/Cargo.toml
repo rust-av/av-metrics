@@ -1,0 +1,16 @@
+[package]
+name = "av-metrics-tests"
+version = "0.0.1"
+authors = ["Josh Holmer <jholmer.in@gmail.com>"]
+edition = "2018"
+repository = "https://github.com/rust-av/av-metrics"
+publish = false
+
+[dependencies]
+av-metrics = { version = "0.6", features = ["serde"] }
+av-metrics-decoders = "0.1"
+
+[features]
+default = ["y4m"]
+y4m = ["av-metrics-decoders/y4m"]
+ffmpeg = ["av-metrics-decoders/ffmpeg"]

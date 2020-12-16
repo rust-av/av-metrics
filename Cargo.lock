@@ -61,6 +61,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "av-metrics-tests"
+version = "0.0.1"
+dependencies = [
+ "av-metrics",
+ "av-metrics-decoders",
+]
+
+[[package]]
 name = "av-metrics-tool"
 version = "0.7.0"
 dependencies = [
