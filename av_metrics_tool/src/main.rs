@@ -1,5 +1,8 @@
 use av_metrics::video::decode::Decoder;
 use av_metrics::video::*;
+#[cfg(feature = "ffmpeg")]
+use av_metrics_decoders::FfmpegDecoder;
+#[cfg(not(feature = "ffmpeg"))]
 use av_metrics_decoders::Y4MDecoder;
 use clap::{App, Arg};
 use console::style;
@@ -154,6 +157,11 @@ impl InputType {
 #[cfg(not(feature = "ffmpeg"))]
 pub fn get_decoder<P: AsRef<Path>>(input: P) -> Result<Y4MDecoder, String> {
     Y4MDecoder::new(input)
+}
+
+#[cfg(feature = "ffmpeg")]
+pub fn get_decoder<P: AsRef<Path>>(input: P) -> Result<FfmpegDecoder, String> {
+    FfmpegDecoder::new(input)
 }
 
 #[derive(Debug, Clone, Serialize, Default)]

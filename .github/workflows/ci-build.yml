@@ -30,7 +30,13 @@ jobs:
         command: fmt
         args: -- --check --verbose
 
-    - name: Run cargo clippy
+    - name: Run cargo clippy (y4m)
+      uses: actions-rs/clippy-check@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        args: --all-targets --tests --benches -- -D warnings
+
+    - name: Run cargo clippy (ffmpeg)
       uses: actions-rs/clippy-check@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
@@ -93,10 +99,16 @@ jobs:
         toolchain: stable
         override: true
 
-    - name: Build
+    - name: Build (y4m)
+      run: cargo build --tests --benches
+
+    - name: Run tests (y4m)
+      run: cargo test
+
+    - name: Build (ffmpeg)
       run: cargo build --all-features --tests --benches
 
-    - name: Run tests
+    - name: Run tests (ffmpeg)
       run: cargo test --all-features
 
     - name: Generate docs
