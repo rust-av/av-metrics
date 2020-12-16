@@ -6,6 +6,7 @@ use av_metrics_decoders::FfmpegDecoder;
 use av_metrics_decoders::Y4MDecoder;
 use clap::{App, Arg};
 use console::style;
+use indicatif::{ProgressBar, ProgressStyle};
 use serde::Serialize;
 use std::error::Error;
 use std::fs::File;
@@ -117,9 +118,12 @@ fn main() -> Result<(), String> {
 
         match (base_type, input_type) {
             (InputType::Video, InputType::Video) => {
-                report
-                    .comparisons
-                    .push(run_video_metrics(base, input, metrics));
+                report.comparisons.push(run_video_metrics(
+                    base,
+                    input,
+                    metrics,
+                    cli.is_present("QUIET"),
+                ));
             }
             (InputType::Audio, InputType::Audio) => {
                 return Err("No audio metrics currently implemented, exiting.".to_owned());
@@ -181,33 +185,61 @@ struct MetricsResults {
     ciede2000: Option<f64>,
 }
 
-fn run_video_metrics(input1: &str, input2: &str, metric: Option<&str>) -> MetricsResults {
+fn run_video_metrics(
+    input1: &str,
+    input2: &str,
+    metric: Option<&str>,
+    quiet: bool,
+) -> MetricsResults {
     let mut results = MetricsResults::default();
 
     results.filename = input2.to_owned();
 
+    let progress = if quiet || !console::user_attended() {
+        ProgressBar::hidden()
+    } else {
+        ProgressBar::new_spinner()
+            .with_style(ProgressStyle::default_spinner().template("{prefix} - Frame {pos}"))
+    };
+
+    let progress_fn = |frameno: usize| {
+        progress.set_position(frameno as u64);
+    };
+
     if metric.is_none() || metric == Some("psnr") {
-        results.psnr = Psnr::run(input1, input2);
+        progress.set_prefix("Computing PSNR");
+        progress.reset();
+        results.psnr = Psnr::run(input1, input2, progress_fn);
     }
 
     if metric.is_none() || metric == Some("apsnr") {
-        results.apsnr = APsnr::run(input1, input2);
+        progress.set_prefix("Computing APSNR");
+        progress.reset();
+        results.apsnr = APsnr::run(input1, input2, progress_fn);
     }
 
     if metric.is_none() || metric == Some("psnrhvs") {
-        results.psnr_hvs = PsnrHvs::run(input1, input2);
+        progress.set_prefix("Computing PSNR-HVS");
+        progress.reset();
+        results.psnr_hvs = PsnrHvs::run(input1, input2, progress_fn);
     }
 
     if metric.is_none() || metric == Some("ssim") {
-        results.ssim = Ssim::run(input1, input2);
+        progress.set_prefix("Computing SSIM");
+        progress.reset();
+        results.ssim = Ssim::run(input1, input2, progress_fn);
     }
 
     if metric.is_none() || metric == Some("msssim") {
-        results.msssim = MsSsim::run(input1, input2);
+        progress.set_prefix("Computing MSSSIM");
+        progress.reset();
+        results.msssim = MsSsim::run(input1, input2, progress_fn);
     }
 
     if metric.is_none() || metric == Some("ciede2000") {
-        results.ciede2000 = Ciede2000::run(input1, input2);
+        progress.set_prefix("Computing CIEDE2000");
+        progress.reset();
+        results.ciede2000 = Ciede2000::run(input1, input2, progress_fn);
     }
 
     results
@@ -324,15 +356,20 @@ impl Write for OutputType {
 trait CliMetric {
     type VideoResult: Serialize;
 
-    fn run<P: AsRef<Path>>(input1: P, input2: P) -> Option<Self::VideoResult> {
+    fn run<P: AsRef<Path>, F: Fn(usize) + Send>(
+        input1: P,
+        input2: P,
+        progress_callback: F,
+    ) -> Option<Self::VideoResult> {
         let mut dec1 = get_decoder(input1).expect("Failed to open input file 1");
         let mut dec2 = get_decoder(input2).expect("Failed to open input file 2");
-        Self::calculate_video_metric(&mut dec1, &mut dec2).ok()
+        Self::calculate_video_metric(&mut dec1, &mut dec2, progress_callback).ok()
     }
 
-    fn calculate_video_metric<D: Decoder>(
+    fn calculate_video_metric<D: Decoder, F: Fn(usize) + Send>(
         dec1: &mut D,
         dec2: &mut D,
+        progress_callback: F,
     ) -> Result<Self::VideoResult, Box<dyn Error>>;
 }
 
@@ -341,11 +378,12 @@ struct Psnr;
 impl CliMetric for Psnr {
     type VideoResult = PlanarMetrics;
 
-    fn calculate_video_metric<D: Decoder>(
+    fn calculate_video_metric<D: Decoder, F: Fn(usize) + Send>(
         dec1: &mut D,
         dec2: &mut D,
+        progress_callback: F,
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
-        psnr::calculate_video_psnr(dec1, dec2, None)
+        psnr::calculate_video_psnr(dec1, dec2, None, progress_callback)
     }
 }
 
@@ -354,11 +392,12 @@ struct APsnr;
 impl CliMetric for APsnr {
     type VideoResult = PlanarMetrics;
 
-    fn calculate_video_metric<D: Decoder>(
+    fn calculate_video_metric<D: Decoder, F: Fn(usize) + Send>(
         dec1: &mut D,
         dec2: &mut D,
+        progress_callback: F,
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
-        psnr::calculate_video_apsnr(dec1, dec2, None)
+        psnr::calculate_video_apsnr(dec1, dec2, None, progress_callback)
     }
 }
 
@@ -367,11 +406,12 @@ struct PsnrHvs;
 impl CliMetric for PsnrHvs {
     type VideoResult = PlanarMetrics;
 
-    fn calculate_video_metric<D: Decoder>(
+    fn calculate_video_metric<D: Decoder, F: Fn(usize) + Send>(
         dec1: &mut D,
         dec2: &mut D,
+        progress_callback: F,
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
-        psnr_hvs::calculate_video_psnr_hvs(dec1, dec2, None)
+        psnr_hvs::calculate_video_psnr_hvs(dec1, dec2, None, progress_callback)
     }
 }
 
@@ -380,11 +420,12 @@ struct Ssim;
 impl CliMetric for Ssim {
     type VideoResult = PlanarMetrics;
 
-    fn calculate_video_metric<D: Decoder>(
+    fn calculate_video_metric<D: Decoder, F: Fn(usize) + Send>(
         dec1: &mut D,
         dec2: &mut D,
+        progress_callback: F,
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
-        ssim::calculate_video_ssim(dec1, dec2, None)
+        ssim::calculate_video_ssim(dec1, dec2, None, progress_callback)
     }
 }
 
@@ -393,11 +434,12 @@ struct MsSsim;
 impl CliMetric for MsSsim {
     type VideoResult = PlanarMetrics;
 
-    fn calculate_video_metric<D: Decoder>(
+    fn calculate_video_metric<D: Decoder, F: Fn(usize) + Send>(
         dec1: &mut D,
         dec2: &mut D,
+        progress_callback: F,
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
-        ssim::calculate_video_msssim(dec1, dec2, None)
+        ssim::calculate_video_msssim(dec1, dec2, None, progress_callback)
     }
 }
 
@@ -406,11 +448,12 @@ struct Ciede2000;
 impl CliMetric for Ciede2000 {
     type VideoResult = f64;
 
-    fn calculate_video_metric<D: Decoder>(
+    fn calculate_video_metric<D: Decoder, F: Fn(usize) + Send>(
         dec1: &mut D,
         dec2: &mut D,
+        progress_callback: F,
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
-        ciede::calculate_video_ciede(dec1, dec2, None)
+        ciede::calculate_video_ciede(dec1, dec2, None, progress_callback)
     }
 }
 
