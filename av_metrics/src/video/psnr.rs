@@ -17,12 +17,13 @@ use v_frame::plane::Plane;
 /// from e.g. all black frames, which would
 /// otherwise show a PSNR of infinity.
 #[inline]
-pub fn calculate_video_psnr<D: Decoder>(
+pub fn calculate_video_psnr<D: Decoder, F: Fn(usize) + Send>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
+    progress_callback: F,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let metrics = Psnr.process_video(decoder1, decoder2, frame_limit)?;
+    let metrics = Psnr.process_video(decoder1, decoder2, frame_limit, progress_callback)?;
     Ok(metrics.psnr)
 }
 
@@ -32,12 +33,13 @@ pub fn calculate_video_psnr<D: Decoder>(
 /// from e.g. all black frames, which would
 /// otherwise show a APSNR of infinity.
 #[inline]
-pub fn calculate_video_apsnr<D: Decoder>(
+pub fn calculate_video_apsnr<D: Decoder, F: Fn(usize) + Send>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
+    progress_callback: F,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let metrics = Psnr.process_video(decoder1, decoder2, frame_limit)?;
+    let metrics = Psnr.process_video(decoder1, decoder2, frame_limit, progress_callback)?;
     Ok(metrics.apsnr)
 }
 

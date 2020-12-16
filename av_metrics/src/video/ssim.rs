@@ -20,10 +20,11 @@ use v_frame::plane::Plane;
 
 /// Calculates the SSIM score between two videos. Higher is better.
 #[inline]
-pub fn calculate_video_ssim<D: Decoder>(
+pub fn calculate_video_ssim<D: Decoder, F: Fn(usize) + Send>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
+    progress_callback: F,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
     let cweight = Some(
         decoder1
@@ -31,7 +32,7 @@ pub fn calculate_video_ssim<D: Decoder>(
             .chroma_sampling
             .get_chroma_weight(),
     );
-    Ssim { cweight }.process_video(decoder1, decoder2, frame_limit)
+    Ssim { cweight }.process_video(decoder1, decoder2, frame_limit, progress_callback)
 }
 
 /// Calculates the SSIM score between two video frames. Higher is better.
@@ -161,10 +162,11 @@ impl VideoMetric for Ssim {
 /// of an image. It is designed to be a more accurate metric
 /// than SSIM.
 #[inline]
-pub fn calculate_video_msssim<D: Decoder>(
+pub fn calculate_video_msssim<D: Decoder, F: Fn(usize) + Send>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
+    progress_callback: F,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
     let cweight = Some(
         decoder1
@@ -172,7 +174,7 @@ pub fn calculate_video_msssim<D: Decoder>(
             .chroma_sampling
             .get_chroma_weight(),
     );
-    MsSsim { cweight }.process_video(decoder1, decoder2, frame_limit)
+    MsSsim { cweight }.process_video(decoder1, decoder2, frame_limit, progress_callback)
 }
 
 /// Calculates the MSSSIM score between two video frames. Higher is better.

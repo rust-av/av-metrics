@@ -16,10 +16,11 @@ use v_frame::plane::Plane;
 
 /// Calculates the PSNR-HVS score between two videos. Higher is better.
 #[inline]
-pub fn calculate_video_psnr_hvs<D: Decoder>(
+pub fn calculate_video_psnr_hvs<D: Decoder, F: Fn(usize) + Send>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
+    progress_callback: F,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
     let cweight = Some(
         decoder1
@@ -27,7 +28,7 @@ pub fn calculate_video_psnr_hvs<D: Decoder>(
             .chroma_sampling
             .get_chroma_weight(),
     );
-    PsnrHvs { cweight }.process_video(decoder1, decoder2, frame_limit)
+    PsnrHvs { cweight }.process_video(decoder1, decoder2, frame_limit, progress_callback)
 }
 
 /// Calculates the PSNR-HVS score between two video frames. Higher is better.
