@@ -1,19 +1,18 @@
 //! Contains metrics related to video/image quality.
 
 pub mod ciede;
-#[cfg(feature = "decode")]
-mod decode;
+pub mod decode;
 mod pixel;
 pub mod psnr;
 pub mod psnr_hvs;
 pub mod ssim;
 
 use crate::MetricsError;
+use decode::*;
 use std::error::Error;
 
-#[cfg(feature = "decode")]
-pub use decode::*;
 pub use pixel::*;
+pub use v_frame::frame::Frame;
 pub use v_frame::plane::Plane;
 
 /// A container holding the data for one video frame. This includes all planes
@@ -140,7 +139,6 @@ trait VideoMetric: Send + Sync {
     ///
     /// `frame_fn` is the function to calculate metrics on one frame of the video.
     /// `acc_fn` is the accumulator function to calculate the aggregate metric.
-    #[cfg(feature = "decode")]
     fn process_video<D: Decoder>(
         &mut self,
         decoder1: &mut D,
@@ -171,7 +169,6 @@ trait VideoMetric: Send + Sync {
         metrics: &[Self::FrameResult],
     ) -> Result<Self::VideoResult, Box<dyn Error>>;
 
-    #[cfg(feature = "decode")]
     fn process_video_mt<D: Decoder, P: Pixel>(
         &mut self,
         decoder1: &mut D,

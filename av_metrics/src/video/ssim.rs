@@ -8,7 +8,6 @@
 //!
 //! See https://en.wikipedia.org/wiki/Structural_similarity for more details.
 
-#[cfg(feature = "decode")]
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
@@ -20,7 +19,6 @@ use std::f64::consts::{E, PI};
 use v_frame::plane::Plane;
 
 /// Calculates the SSIM score between two videos. Higher is better.
-#[cfg(feature = "decode")]
 #[inline]
 pub fn calculate_video_ssim<D: Decoder>(
     decoder1: &mut D,
@@ -162,7 +160,6 @@ impl VideoMetric for Ssim {
 /// MSSSIM is a variant of SSIM computed over subsampled versions
 /// of an image. It is designed to be a more accurate metric
 /// than SSIM.
-#[cfg(feature = "decode")]
 #[inline]
 pub fn calculate_video_msssim<D: Decoder>(
     decoder1: &mut D,

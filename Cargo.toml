@@ -2,7 +2,8 @@
 
 members = [
     "av_metrics",
-    "av_metrics_tool"
+    "av_metrics_tool",
+    "av_metrics_decoders"
 ]
 
 [profile.dev]
@@ -12,5 +13,6 @@ opt-level = 1
 lto = "thin"
 codegen-units = 1
 
-[replace]
-"av-metrics:0.6.1" = { path = "av_metrics" }
+[patch.crates-io]
+av-metrics = { path = "av_metrics" }
+av-metrics-decoders = { path = "av_metrics_decoders" }

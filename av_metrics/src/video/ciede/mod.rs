@@ -5,7 +5,6 @@
 //! CIEDE2000 implementation adapted from
 //! [Kyle Siefring's](https://github.com/KyleSiefring/dump_ciede2000).
 
-#[cfg(feature = "decode")]
 use crate::video::decode::Decoder;
 use crate::video::pixel::{CastFromPrimitive, Pixel};
 use crate::video::{FrameInfo, VideoMetric};
@@ -24,7 +23,6 @@ use delta_e::*;
 ///
 /// Optionally, `frame_limit` can be set to only compare the first
 /// `frame_limit` frames in each video.
-#[cfg(feature = "decode")]
 #[inline]
 pub fn calculate_video_ciede<D: Decoder>(
     decoder1: &mut D,
@@ -38,8 +36,8 @@ pub fn calculate_video_ciede<D: Decoder>(
 ///
 /// This version disables SIMD. It is intended to only be used
 /// by tests and benchmarks.
-#[cfg(all(feature = "decode", any(test, feature = "bench")))]
 #[inline]
+#[doc(hidden)]
 pub fn calculate_video_ciede_nosimd<D: Decoder>(
     decoder1: &mut D,
     decoder2: &mut D,
@@ -61,8 +59,8 @@ pub fn calculate_frame_ciede<T: Pixel>(
 ///
 /// This version disables SIMD. It is intended to only be used
 /// by tests and benchmarks.
-#[cfg(any(test, feature = "bench"))]
 #[inline]
+#[doc(hidden)]
 pub fn calculate_frame_ciede_nosimd<T: Pixel>(
     frame1: &FrameInfo<T>,
     frame2: &FrameInfo<T>,

@@ -1,4 +1,6 @@
+use av_metrics::video::decode::Decoder;
 use av_metrics::video::*;
+use av_metrics_decoders::Y4MDecoder;
 use clap::{App, Arg};
 use console::style;
 use serde::Serialize;
