@@ -43,7 +43,6 @@ dependencies = [
  "crossbeam",
  "itertools",
  "lab",
- "libc",
  "num-traits",
  "rayon",
  "serde",

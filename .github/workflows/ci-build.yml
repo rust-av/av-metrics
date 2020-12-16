@@ -42,45 +42,6 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         args: --all-targets --all-features --tests --benches -- -D warnings
 
-  cargo-c:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
-
-    - name: Install cargo-c
-      env:
-        LINK: https://github.com/lu-zero/cargo-c/releases/download
-        CARGO_C_VERSION: 0.6.17
-      run: |
-        curl -L "$LINK/v$CARGO_C_VERSION/cargo-c-linux.tar.gz" |
-        tar xz -C $HOME/.cargo/bin
-
-    - name: Run cargo-c
-      run: |
-        cargo cinstall --manifest-path=av_metrics/Cargo.toml \
-                       --prefix=$HOME/av_metrics_deploy
-
-    - name: Build cargo-c tests
-      run: |
-        export PKG_CONFIG_PATH=$HOME/av_metrics_deploy/lib/pkgconfig
-        cd av_metrics/c-example
-        gcc test.c -o test `pkg-config --static --cflags --libs av_metrics`
-
-    - name: Run tests
-      run: |
-        export LD_LIBRARY_PATH=$HOME/av_metrics_deploy/lib/
-        cd av_metrics/c-example
-        ./test
-
   build:
 
     strategy:

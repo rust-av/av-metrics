@@ -15,12 +15,6 @@ extern crate thiserror;
 
 pub mod video;
 
-#[cfg(cargo_c)]
-mod capi;
-
-#[cfg(cargo_c)]
-pub use capi::*;
-
 /// Possible errors that may occur during processing of a metric.
 ///
 /// This enum may be added to in the future and should not be assumed to be exhaustive.
