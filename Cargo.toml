@@ -8,5 +8,9 @@ members = [
 [profile.dev]
 opt-level = 1
 
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
 [replace]
 "av-metrics:0.6.1" = { path = "av_metrics" }
