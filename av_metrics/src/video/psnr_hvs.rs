@@ -6,7 +6,6 @@
 //!
 //! See https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio for more details.
 
-#[cfg(feature = "decode")]
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
@@ -16,7 +15,6 @@ use std::error::Error;
 use v_frame::plane::Plane;
 
 /// Calculates the PSNR-HVS score between two videos. Higher is better.
-#[cfg(feature = "decode")]
 #[inline]
 pub fn calculate_video_psnr_hvs<D: Decoder>(
     decoder1: &mut D,

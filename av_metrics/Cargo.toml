@@ -15,19 +15,12 @@ libc = "0.2"
 num-traits = "0.2"
 serde = { version = "1", features = ["derive"], optional = true }
 thiserror = "1"
-y4m = { version = "0.7", optional = true }
 v_frame = { version = "0.1.0" }
 rayon = "1.5"
 crossbeam = "0.8"
 
 [dev-dependencies]
 criterion = "0.3"
-
-[features]
-default = ["y4m-decode"]
-decode = []
-y4m-decode = ["y4m", "decode"]
-bench = []
 
 [lib]
 bench = false

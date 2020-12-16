@@ -40,26 +40,26 @@ dependencies = [
  "serde",
  "thiserror",
  "v_frame",
- "y4m",
 ]
 
 [[package]]
-name = "av-metrics"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ceef264fa3a3564e84f9ff4658e8b9e00ffe7d731acb639dc53ccc19e67d460"
-replace = "av-metrics 0.6.1"
+name = "av-metrics-decoders"
+version = "0.1.0"
+dependencies = [
+ "av-metrics",
+ "y4m",
+]
 
 [[package]]
 name = "av-metrics-tool"
 version = "0.7.0"
 dependencies = [
- "av-metrics 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "av-metrics",
+ "av-metrics-decoders",
  "clap",
  "console",
  "serde",
  "serde_json",
- "y4m",
 ]
 
 [[package]]

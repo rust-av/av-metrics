@@ -4,7 +4,6 @@
 //!
 //! See https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio for more details.
 
-#[cfg(feature = "decode")]
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
@@ -17,7 +16,6 @@ use v_frame::plane::Plane;
 /// PSNR is capped at 100 in order to avoid skewed statistics
 /// from e.g. all black frames, which would
 /// otherwise show a PSNR of infinity.
-#[cfg(feature = "decode")]
 #[inline]
 pub fn calculate_video_psnr<D: Decoder>(
     decoder1: &mut D,
@@ -33,7 +31,6 @@ pub fn calculate_video_psnr<D: Decoder>(
 /// APSNR is capped at 100 in order to avoid skewed statistics
 /// from e.g. all black frames, which would
 /// otherwise show a APSNR of infinity.
-#[cfg(feature = "decode")]
 #[inline]
 pub fn calculate_video_apsnr<D: Decoder>(
     decoder1: &mut D,
