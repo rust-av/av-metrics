@@ -11,3 +11,9 @@ mod y4m;
 
 #[cfg(feature = "y4m")]
 pub use crate::y4m::Y4MDecoder;
+
+#[cfg(feature = "ffmpeg")]
+mod ffmpeg;
+
+#[cfg(feature = "ffmpeg")]
+pub use crate::ffmpeg::FfmpegDecoder;

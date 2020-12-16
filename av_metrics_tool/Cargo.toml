@@ -19,3 +19,4 @@ serde_json = "1"
 [features]
 default = ["y4m"]
 y4m = ["av-metrics-decoders/y4m"]
+ffmpeg = ["av-metrics-decoders/ffmpeg"]
