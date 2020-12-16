@@ -141,11 +141,12 @@ trait VideoMetric: Send + Sync {
     /// `frame_fn` is the function to calculate metrics on one frame of the video.
     /// `acc_fn` is the accumulator function to calculate the aggregate metric.
     #[cfg(feature = "decode")]
-    fn process_video<D: Decoder>(
+    fn process_video<D: Decoder, F: Fn(usize) + Send>(
         &mut self,
         decoder1: &mut D,
         decoder2: &mut D,
         frame_limit: Option<usize>,
+        progress_callback: Option<F>,
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
         if decoder1.get_bit_depth() != decoder2.get_bit_depth() {
             return Err(Box::new(MetricsError::InputMismatch {
@@ -154,9 +155,9 @@ trait VideoMetric: Send + Sync {
         }
 
         if decoder1.get_bit_depth() > 8 {
-            self.process_video_mt::<D, u16>(decoder1, decoder2, frame_limit)
+            self.process_video_mt::<D, u16, F>(decoder1, decoder2, frame_limit, progress_callback)
         } else {
-            self.process_video_mt::<D, u8>(decoder1, decoder2, frame_limit)
+            self.process_video_mt::<D, u8, F>(decoder1, decoder2, frame_limit, progress_callback)
         }
     }
 
@@ -172,11 +173,12 @@ trait VideoMetric: Send + Sync {
     ) -> Result<Self::VideoResult, Box<dyn Error>>;
 
     #[cfg(feature = "decode")]
-    fn process_video_mt<D: Decoder, P: Pixel>(
+    fn process_video_mt<D: Decoder, P: Pixel, F: Fn(usize) + Send>(
         &mut self,
         decoder1: &mut D,
         decoder2: &mut D,
         frame_limit: Option<usize>,
+        progress_callback: Option<F>,
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
         let num_threads = (rayon::current_num_threads() - 1).max(1);
 
@@ -192,6 +194,9 @@ trait VideoMetric: Send + Sync {
                     let frame1 = decoder1.read_video_frame::<P>();
                     let frame2 = decoder2.read_video_frame::<P>();
                     if let (Some(frame1), Some(frame2)) = (frame1, frame2) {
+                        if let Some(ref progress_callback) = progress_callback {
+                            progress_callback(decoded);
+                        }
                         send.send((frame1, frame2)).unwrap();
                     } else {
                         break;

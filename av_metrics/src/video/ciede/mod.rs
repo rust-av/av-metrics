@@ -26,12 +26,13 @@ use delta_e::*;
 /// `frame_limit` frames in each video.
 #[cfg(feature = "decode")]
 #[inline]
-pub fn calculate_video_ciede<D: Decoder>(
+pub fn calculate_video_ciede<D: Decoder, F: Fn(usize) + Send>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
+    progress_callback: Option<F>,
 ) -> Result<f64, Box<dyn Error>> {
-    Ciede2000::default().process_video(decoder1, decoder2, frame_limit)
+    Ciede2000::default().process_video(decoder1, decoder2, frame_limit, progress_callback)
 }
 
 /// Calculate the CIEDE2000 metric between two video clips. Higher is better.
@@ -40,12 +41,18 @@ pub fn calculate_video_ciede<D: Decoder>(
 /// by tests and benchmarks.
 #[cfg(all(feature = "decode", any(test, feature = "bench")))]
 #[inline]
-pub fn calculate_video_ciede_nosimd<D: Decoder>(
+pub fn calculate_video_ciede_nosimd<D: Decoder, F: Fn(usize) + Send>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
+    progress_callback: Option<F>,
 ) -> Result<f64, Box<dyn Error>> {
-    (Ciede2000 { use_simd: false }).process_video(decoder1, decoder2, frame_limit)
+    (Ciede2000 { use_simd: false }).process_video(
+        decoder1,
+        decoder2,
+        frame_limit,
+        progress_callback,
+    )
 }
 
 /// Calculate the CIEDE2000 metric between two video frames. Higher is better.

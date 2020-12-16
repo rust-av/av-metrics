@@ -19,12 +19,13 @@ use v_frame::plane::Plane;
 /// otherwise show a PSNR of infinity.
 #[cfg(feature = "decode")]
 #[inline]
-pub fn calculate_video_psnr<D: Decoder>(
+pub fn calculate_video_psnr<D: Decoder, F: Fn(usize) + Send>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
+    progress_callback: Option<F>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let metrics = Psnr.process_video(decoder1, decoder2, frame_limit)?;
+    let metrics = Psnr.process_video(decoder1, decoder2, frame_limit, progress_callback)?;
     Ok(metrics.psnr)
 }
 
@@ -35,12 +36,13 @@ pub fn calculate_video_psnr<D: Decoder>(
 /// otherwise show a APSNR of infinity.
 #[cfg(feature = "decode")]
 #[inline]
-pub fn calculate_video_apsnr<D: Decoder>(
+pub fn calculate_video_apsnr<D: Decoder, F: Fn(usize) + Send>(
     decoder1: &mut D,
     decoder2: &mut D,
     frame_limit: Option<usize>,
+    progress_callback: Option<F>,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let metrics = Psnr.process_video(decoder1, decoder2, frame_limit)?;
+    let metrics = Psnr.process_video(decoder1, decoder2, frame_limit, progress_callback)?;
     Ok(metrics.apsnr)
 }
 
