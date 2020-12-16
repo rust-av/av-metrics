@@ -21,6 +21,7 @@ crossbeam = "0.8"
 
 [dev-dependencies]
 criterion = "0.3"
+y4m = "0.7.0"
 
 [lib]
 bench = false
