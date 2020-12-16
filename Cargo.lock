@@ -49,6 +49,7 @@ dependencies = [
  "serde",
  "thiserror",
  "v_frame",
+ "y4m",
 ]
 
 [[package]]
