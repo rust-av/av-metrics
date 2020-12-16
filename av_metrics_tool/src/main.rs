@@ -113,16 +113,15 @@ fn main() -> Result<(), String> {
         let input_type = InputType::detect(input);
 
         match (base_type, input_type) {
-            (InputType::Video(c1), InputType::Video(c2)) => {
+            (InputType::Video, InputType::Video) => {
                 report
                     .comparisons
-                    .push(run_video_metrics(base, c1, input, c2, metrics));
+                    .push(run_video_metrics(base, input, metrics));
             }
-            (InputType::Audio(_c1), InputType::Audio(_c2)) => {
+            (InputType::Audio, InputType::Audio) => {
                 return Err("No audio metrics currently implemented, exiting.".to_owned());
             }
-            (InputType::Video(_), InputType::Audio(_))
-            | (InputType::Audio(_), InputType::Video(_)) => {
+            (InputType::Video, InputType::Audio) | (InputType::Audio, InputType::Video) => {
                 return Err("Incompatible input files.".to_owned());
             }
             (InputType::Unknown, _) | (_, InputType::Unknown) => {
@@ -140,43 +139,21 @@ fn main() -> Result<(), String> {
 
 #[derive(Debug, Clone, Copy)]
 enum InputType {
-    Video(VideoContainer),
-    #[allow(dead_code)]
-    Audio(AudioContainer),
+    Video,
+    Audio,
     Unknown,
 }
 
 impl InputType {
-    pub fn detect<P: AsRef<Path>>(filename: P) -> Self {
-        let ext = filename
-            .as_ref()
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .unwrap_or("");
-        match ext.to_lowercase().as_str() {
-            "y4m" => InputType::Video(VideoContainer::Y4M),
-            _ => InputType::Unknown,
-        }
+    pub fn detect<P: AsRef<Path>>(_filename: P) -> Self {
+        // FIXME: For now, just assume anything is a video, since that's all we currently support.
+        InputType::Video
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum VideoContainer {
-    Y4M,
-}
-
-impl VideoContainer {
-    // TODO: Actually be generic and support more input types
-    pub fn get_decoder<'d>(self, file: &'d mut File) -> y4m::Decoder<&'d mut File> {
-        match self {
-            VideoContainer::Y4M => y4m::Decoder::new(file).expect("Failed to read y4m file"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum AudioContainer {
-    // Coming soon
+#[cfg(not(feature = "ffmpeg"))]
+pub fn get_decoder<P: AsRef<Path>>(input: P) -> Result<Y4MDecoder, String> {
+    Y4MDecoder::new(input)
 }
 
 #[derive(Debug, Clone, Serialize, Default)]
@@ -196,39 +173,33 @@ struct MetricsResults {
     ciede2000: Option<f64>,
 }
 
-fn run_video_metrics(
-    input1: &str,
-    container1: VideoContainer,
-    input2: &str,
-    container2: VideoContainer,
-    metric: Option<&str>,
-) -> MetricsResults {
+fn run_video_metrics(input1: &str, input2: &str, metric: Option<&str>) -> MetricsResults {
     let mut results = MetricsResults::default();
 
     results.filename = input2.to_owned();
 
     if metric.is_none() || metric == Some("psnr") {
-        results.psnr = Psnr::run(input1, container1, input2, container2);
+        results.psnr = Psnr::run(input1, input2);
     }
 
     if metric.is_none() || metric == Some("apsnr") {
-        results.apsnr = APsnr::run(input1, container1, input2, container2);
+        results.apsnr = APsnr::run(input1, input2);
     }
 
     if metric.is_none() || metric == Some("psnrhvs") {
-        results.psnr_hvs = PsnrHvs::run(input1, container1, input2, container2);
+        results.psnr_hvs = PsnrHvs::run(input1, input2);
     }
 
     if metric.is_none() || metric == Some("ssim") {
-        results.ssim = Ssim::run(input1, container1, input2, container2);
+        results.ssim = Ssim::run(input1, input2);
     }
 
     if metric.is_none() || metric == Some("msssim") {
-        results.msssim = MsSsim::run(input1, container1, input2, container2);
+        results.msssim = MsSsim::run(input1, input2);
     }
 
     if metric.is_none() || metric == Some("ciede2000") {
-        results.ciede2000 = Ciede2000::run(input1, container1, input2, container2);
+        results.ciede2000 = Ciede2000::run(input1, input2);
     }
 
     results
@@ -345,16 +316,9 @@ impl Write for OutputType {
 trait CliMetric {
     type VideoResult: Serialize;
 
-    fn run<P: AsRef<Path>>(
-        input1: P,
-        container1: VideoContainer,
-        input2: P,
-        container2: VideoContainer,
-    ) -> Option<Self::VideoResult> {
-        let mut file1 = File::open(input1).expect("Failed to open input file 1");
-        let mut file2 = File::open(input2).expect("Failed to open input file 2");
-        let mut dec1 = container1.get_decoder(&mut file1);
-        let mut dec2 = container2.get_decoder(&mut file2);
+    fn run<P: AsRef<Path>>(input1: P, input2: P) -> Option<Self::VideoResult> {
+        let mut dec1 = get_decoder(input1).expect("Failed to open input file 1");
+        let mut dec2 = get_decoder(input2).expect("Failed to open input file 2");
         Self::calculate_video_metric(&mut dec1, &mut dec2).ok()
     }
 
