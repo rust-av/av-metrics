@@ -68,8 +68,14 @@ fn map_y4m_color_space(color_space: y4m::Colorspace) -> (ChromaSampling, ChromaS
 }
 
 pub fn psnr_benchmark(c: &mut Criterion) {
-    let frame1 = get_video_frame::<u8>("./testfiles/yuv420p8_input.y4m");
-    let frame2 = get_video_frame::<u8>("./testfiles/yuv420p8_output.y4m");
+    let frame1 = get_video_frame::<u8>(&format!(
+        "{}/../testfiles/yuv420p8_input.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    let frame2 = get_video_frame::<u8>(&format!(
+        "{}/../testfiles/yuv420p8_output.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
     c.bench_function("PSNR yuv420p8", |b| {
         b.iter(|| {
             calculate_frame_psnr(&frame1, &frame2).unwrap();
@@ -78,8 +84,14 @@ pub fn psnr_benchmark(c: &mut Criterion) {
 }
 
 pub fn psnrhvs_benchmark(c: &mut Criterion) {
-    let frame1 = get_video_frame::<u8>("./testfiles/yuv420p8_input.y4m");
-    let frame2 = get_video_frame::<u8>("./testfiles/yuv420p8_output.y4m");
+    let frame1 = get_video_frame::<u8>(&format!(
+        "{}/../testfiles/yuv420p8_input.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    let frame2 = get_video_frame::<u8>(&format!(
+        "{}/../testfiles/yuv420p8_output.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
     c.bench_function("PSNR-HVS yuv420p8", |b| {
         b.iter(|| {
             calculate_frame_psnr_hvs(&frame1, &frame2).unwrap();
@@ -88,8 +100,14 @@ pub fn psnrhvs_benchmark(c: &mut Criterion) {
 }
 
 pub fn ssim_benchmark(c: &mut Criterion) {
-    let frame1 = get_video_frame::<u8>("./testfiles/yuv420p8_input.y4m");
-    let frame2 = get_video_frame::<u8>("./testfiles/yuv420p8_output.y4m");
+    let frame1 = get_video_frame::<u8>(&format!(
+        "{}/../testfiles/yuv420p8_input.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    let frame2 = get_video_frame::<u8>(&format!(
+        "{}/../testfiles/yuv420p8_output.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
     c.bench_function("SSIM", |b| {
         b.iter(|| {
             calculate_frame_ssim(&frame1, &frame2).unwrap();
@@ -98,8 +116,14 @@ pub fn ssim_benchmark(c: &mut Criterion) {
 }
 
 pub fn msssim_benchmark(c: &mut Criterion) {
-    let frame1 = get_video_frame::<u8>("./testfiles/yuv420p8_input.y4m");
-    let frame2 = get_video_frame::<u8>("./testfiles/yuv420p8_output.y4m");
+    let frame1 = get_video_frame::<u8>(&format!(
+        "{}/../testfiles/yuv420p8_input.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    let frame2 = get_video_frame::<u8>(&format!(
+        "{}/../testfiles/yuv420p8_output.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
     c.bench_function("MSSSIM", |b| {
         b.iter(|| {
             calculate_frame_msssim(&frame1, &frame2).unwrap();
@@ -108,8 +132,14 @@ pub fn msssim_benchmark(c: &mut Criterion) {
 }
 
 pub fn ciede2000_nosimd_benchmark(c: &mut Criterion) {
-    let frame1 = get_video_frame::<u8>("./testfiles/yuv420p8_input.y4m");
-    let frame2 = get_video_frame::<u8>("./testfiles/yuv420p8_output.y4m");
+    let frame1 = get_video_frame::<u8>(&format!(
+        "{}/../testfiles/yuv420p8_input.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    let frame2 = get_video_frame::<u8>(&format!(
+        "{}/../testfiles/yuv420p8_output.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
     c.bench_function("CIEDE2000", |b| {
         b.iter(|| {
             calculate_frame_ciede_nosimd(&frame1, &frame2).unwrap();
@@ -118,8 +148,14 @@ pub fn ciede2000_nosimd_benchmark(c: &mut Criterion) {
 }
 
 pub fn ciede2000_simd_benchmark(c: &mut Criterion) {
-    let frame1 = get_video_frame::<u8>("./testfiles/yuv420p8_input.y4m");
-    let frame2 = get_video_frame::<u8>("./testfiles/yuv420p8_output.y4m");
+    let frame1 = get_video_frame::<u8>(&format!(
+        "{}/../testfiles/yuv420p8_input.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    let frame2 = get_video_frame::<u8>(&format!(
+        "{}/../testfiles/yuv420p8_output.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
     c.bench_function("CIEDE2000", |b| {
         b.iter(|| {
             calculate_frame_ciede(&frame1, &frame2).unwrap();

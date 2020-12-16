@@ -4,8 +4,8 @@
 
 #define CREATE_METRICS(func, metrics) \
     void test_ ## func(int frame) { \
-        const char video_path1[] = "../testfiles/yuv444p8_input.y4m"; \
-        const char video_path2[] = "../testfiles/yuv444p8_output.y4m"; \
+        const char video_path1[] = ".../../testfiles/yuv444p8_input.y4m"; \
+        const char video_path2[] = ".../../testfiles/yuv444p8_output.y4m"; \
         const AVMContext *val = avm_calculate_ ## func(&video_path1[0], \
                                                       &video_path2[0], frame); \
         \
@@ -17,8 +17,8 @@
 
 #define CREATE_CIEDE_METRICS(func) \
     void test_ ## func(int frame) { \
-        const char video_path1[] = "../testfiles/yuv444p8_input.y4m"; \
-        const char video_path2[] = "../testfiles/yuv444p8_output.y4m"; \
+        const char video_path1[] = ".../../testfiles/yuv444p8_input.y4m"; \
+        const char video_path2[] = ".../../testfiles/yuv444p8_output.y4m"; \
         double val = avm_calculate_ ## func(&video_path1[0], \
                                         &video_path2[0], frame); \
         \
