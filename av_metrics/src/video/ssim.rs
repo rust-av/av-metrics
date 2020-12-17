@@ -282,7 +282,7 @@ const SSIM_K2: f64 = 0.03 * 0.03;
 fn calculate_plane_ssim<T: Pixel>(
     plane1: &Plane<T>,
     plane2: &Plane<T>,
-    sample_max: usize,
+    sample_max: u64,
     vert_kernel: &[i64],
     horiz_kernel: &[i64],
 ) -> f64 {
@@ -305,7 +305,7 @@ fn calculate_plane_ssim_internal(
     plane2: &[u32],
     width: usize,
     height: usize,
-    sample_max: usize,
+    sample_max: u64,
     vert_kernel: &[i64],
     horiz_kernel: &[i64],
 ) -> (f64, f64) {
