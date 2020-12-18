@@ -108,7 +108,7 @@ pub fn ssim_benchmark(c: &mut Criterion) {
         "{}/../testfiles/yuv420p8_output.y4m",
         env!("CARGO_MANIFEST_DIR")
     ));
-    c.bench_function("SSIM", |b| {
+    c.bench_function("SSIM yuv420p8", |b| {
         b.iter(|| {
             calculate_frame_ssim(&frame1, &frame2).unwrap();
         })
@@ -124,7 +124,7 @@ pub fn msssim_benchmark(c: &mut Criterion) {
         "{}/../testfiles/yuv420p8_output.y4m",
         env!("CARGO_MANIFEST_DIR")
     ));
-    c.bench_function("MSSSIM", |b| {
+    c.bench_function("MSSSIM yuv420p8", |b| {
         b.iter(|| {
             calculate_frame_msssim(&frame1, &frame2).unwrap();
         })
@@ -140,7 +140,7 @@ pub fn ciede2000_nosimd_benchmark(c: &mut Criterion) {
         "{}/../testfiles/yuv420p8_output.y4m",
         env!("CARGO_MANIFEST_DIR")
     ));
-    c.bench_function("CIEDE2000", |b| {
+    c.bench_function("CIEDE2000 yuv420p8 nosimd", |b| {
         b.iter(|| {
             calculate_frame_ciede_nosimd(&frame1, &frame2).unwrap();
         })
@@ -156,7 +156,103 @@ pub fn ciede2000_simd_benchmark(c: &mut Criterion) {
         "{}/../testfiles/yuv420p8_output.y4m",
         env!("CARGO_MANIFEST_DIR")
     ));
-    c.bench_function("CIEDE2000", |b| {
+    c.bench_function("CIEDE2000 yuv420p8", |b| {
+        b.iter(|| {
+            calculate_frame_ciede(&frame1, &frame2).unwrap();
+        })
+    });
+}
+
+pub fn psnr_10bit_benchmark(c: &mut Criterion) {
+    let frame1 = get_video_frame::<u16>(&format!(
+        "{}/../testfiles/yuv420p10_input.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    let frame2 = get_video_frame::<u16>(&format!(
+        "{}/../testfiles/yuv420p10_output.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    c.bench_function("PSNR yuv420p10", |b| {
+        b.iter(|| {
+            calculate_frame_psnr(&frame1, &frame2).unwrap();
+        })
+    });
+}
+
+pub fn psnrhvs_10bit_benchmark(c: &mut Criterion) {
+    let frame1 = get_video_frame::<u16>(&format!(
+        "{}/../testfiles/yuv420p10_input.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    let frame2 = get_video_frame::<u16>(&format!(
+        "{}/../testfiles/yuv420p10_output.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    c.bench_function("PSNR-HVS yuv420p10", |b| {
+        b.iter(|| {
+            calculate_frame_psnr_hvs(&frame1, &frame2).unwrap();
+        })
+    });
+}
+
+pub fn ssim_10bit_benchmark(c: &mut Criterion) {
+    let frame1 = get_video_frame::<u16>(&format!(
+        "{}/../testfiles/yuv420p10_input.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    let frame2 = get_video_frame::<u16>(&format!(
+        "{}/../testfiles/yuv420p10_output.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    c.bench_function("SSIM yuv420p10", |b| {
+        b.iter(|| {
+            calculate_frame_ssim(&frame1, &frame2).unwrap();
+        })
+    });
+}
+
+pub fn msssim_10bit_benchmark(c: &mut Criterion) {
+    let frame1 = get_video_frame::<u16>(&format!(
+        "{}/../testfiles/yuv420p10_input.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    let frame2 = get_video_frame::<u16>(&format!(
+        "{}/../testfiles/yuv420p10_output.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    c.bench_function("MSSSIM yuv420p10", |b| {
+        b.iter(|| {
+            calculate_frame_msssim(&frame1, &frame2).unwrap();
+        })
+    });
+}
+
+pub fn ciede2000_nosimd_10bit_benchmark(c: &mut Criterion) {
+    let frame1 = get_video_frame::<u16>(&format!(
+        "{}/../testfiles/yuv420p10_input.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    let frame2 = get_video_frame::<u16>(&format!(
+        "{}/../testfiles/yuv420p10_output.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    c.bench_function("CIEDE2000 yuv420p10 nosimd", |b| {
+        b.iter(|| {
+            calculate_frame_ciede_nosimd(&frame1, &frame2).unwrap();
+        })
+    });
+}
+
+pub fn ciede2000_simd_10bit_benchmark(c: &mut Criterion) {
+    let frame1 = get_video_frame::<u16>(&format!(
+        "{}/../testfiles/yuv420p10_input.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    let frame2 = get_video_frame::<u16>(&format!(
+        "{}/../testfiles/yuv420p10_output.y4m",
+        env!("CARGO_MANIFEST_DIR")
+    ));
+    c.bench_function("CIEDE2000 yuv420p10", |b| {
         b.iter(|| {
             calculate_frame_ciede(&frame1, &frame2).unwrap();
         })
@@ -170,6 +266,12 @@ criterion_group!(
     ssim_benchmark,
     msssim_benchmark,
     ciede2000_nosimd_benchmark,
-    ciede2000_simd_benchmark
+    ciede2000_simd_benchmark,
+    psnr_10bit_benchmark,
+    psnrhvs_10bit_benchmark,
+    ssim_10bit_benchmark,
+    msssim_10bit_benchmark,
+    ciede2000_nosimd_10bit_benchmark,
+    ciede2000_simd_10bit_benchmark
 );
 criterion_main!(benches);
