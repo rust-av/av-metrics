@@ -12,7 +12,7 @@ include = ["src/**/*"]
 
 [dependencies]
 av-metrics = "0.6.1"
-# FIXME: Once https://github.com/meh/rust-ffmpeg/pull/137 is merged and published, use the crates.io ffmpeg
+# FIXME: Once https://github.com/meh/rust-ffmpeg/pull/137 is published, use the crates.io ffmpeg
 #ffmpeg = { version = "0.3.0", optional = true, default-features = false, features = ["codec", "format", "ffmpeg_3_1"] }
-ffmpeg = { git = "https://github.com/shssoichiro/rust-ffmpeg", branch = "versioning", optional = true, default-features = false, features = ["codec", "format", "ffmpeg_3_1"] }
+ffmpeg = { git = "https://github.com/meh/rust-ffmpeg", optional = true, default-features = false, features = ["codec", "format", "ffmpeg_3_1"] }
 y4m = { version = "0.7", optional = true }
