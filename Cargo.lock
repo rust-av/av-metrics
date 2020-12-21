@@ -375,7 +375,7 @@ dependencies = [
 [[package]]
 name = "ffmpeg"
 version = "0.3.0"
-source = "git+https://github.com/shssoichiro/rust-ffmpeg?branch=versioning#b4c36152e43a527274860874f3b3457781053b0e"
+source = "git+https://github.com/shssoichiro/rust-ffmpeg?branch=versioning#9d5558a45f51a3275ecf244aec8ac6f23d6b23cc"
 dependencies = [
  "bitflags",
  "ffmpeg-sys",
