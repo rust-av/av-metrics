@@ -93,7 +93,7 @@ impl Decoder for FfmpegDecoder {
 
     fn read_video_frame<T: Pixel>(&mut self) -> Option<FrameInfo<T>> {
         // For some reason there's a crap ton of work needed to get ffmpeg to do something simple,
-        // because each codec has it's own stupid way or doing things and they don't all
+        // because each codec has it's own stupid way of doing things and they don't all
         // decode the same way.
         //
         // Maybe ffmpeg could have made a simple, singular interface that does this for us,
@@ -107,7 +107,12 @@ impl Decoder for FfmpegDecoder {
         loop {
             // This iterator is actually really stupid... it doesn't reset itself after each `new`.
             // But that solves our lifetime hell issues, ironically.
-            let mut packet = self.input_ctx.packets().next().map(|(_, packet)| packet);
+            let mut packet = self
+                .input_ctx
+                .packets()
+                .next()
+                .and_then(Result::ok)
+                .map(|(_, packet)| packet);
             if packet.is_none() {
                 self.end_of_stream = true;
                 packet = Some(packet::Packet::empty());
@@ -123,12 +128,9 @@ impl Decoder for FfmpegDecoder {
                     packet.set_pts(Some(self.frameno as i64));
                     packet.set_dts(Some(self.frameno as i64));
                 }
-                let result = self
-                    .decoder
-                    .decode(&packet, &mut decoded)
-                    .map_err(|e| dbg!(e))
-                    .ok()?;
-                if result {
+                let result = self.decoder.decode(&packet, &mut decoded);
+
+                if result.is_ok() {
                     let mut f: Frame<T> = Frame::new_with_padding(
                         self.video_details.width,
                         self.video_details.height,
