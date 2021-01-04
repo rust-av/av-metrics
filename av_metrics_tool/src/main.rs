@@ -109,9 +109,10 @@ fn main() -> Result<(), String> {
 
     let metrics = cli.value_of("METRIC");
 
-    let mut report = Report::default();
-
-    report.base = base;
+    let mut report = Report {
+        base,
+        ..Default::default()
+    };
 
     for input in inputs {
         let input_type = InputType::detect(input);
@@ -191,9 +192,10 @@ fn run_video_metrics(
     metric: Option<&str>,
     quiet: bool,
 ) -> MetricsResults {
-    let mut results = MetricsResults::default();
-
-    results.filename = input2.to_owned();
+    let mut results = MetricsResults {
+        filename: input2.to_owned(),
+        ..Default::default()
+    };
 
     let progress = if quiet || !console::user_attended() {
         ProgressBar::hidden()
