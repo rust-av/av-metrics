@@ -32,9 +32,9 @@ jobs:
 
     - name: Install ffmpeg for Ubuntu
       run: |
-        set -e
         export PKG_CONFIG_PATH=$(pkg-config --variable pc_path pkg-config)
-        sudo apt install libavutil-dev libavcodec-dev libavformat-dev libclang-dev
+        sudo apt-get update
+        sudo apt-get install libavutil-dev libavcodec-dev libavformat-dev libclang-dev
 
     - name: Run cargo clippy (y4m)
       uses: actions-rs/clippy-check@v1
@@ -70,9 +70,9 @@ jobs:
     - name: Install ffmpeg for Ubuntu
       if: matrix.platform == 'ubuntu-latest'
       run: |
-        set -e
         export PKG_CONFIG_PATH=$(pkg-config --variable pc_path pkg-config)
-        sudo apt install libavutil-dev libavcodec-dev libavformat-dev libclang-dev
+        sudo apt-get update
+        sudo apt-get install libavutil-dev libavcodec-dev libavformat-dev libclang-dev
 
 # It takes 2+ hours to install these dependencies with vcpkg, we're just disabling it until there's a better way found
 #    - name: Cache Windows dependencies
