@@ -197,6 +197,8 @@ trait VideoMetric: Send + Sync {
                         break;
                     }
                 }
+                // Mark the end of the decoding process
+                progress_callback(usize::MAX);
             });
 
             use rayon::prelude::*;
