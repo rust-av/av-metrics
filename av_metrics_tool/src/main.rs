@@ -79,6 +79,12 @@ fn main() -> Result<(), String> {
                 .long("quiet")
                 .takes_value(false),
         )
+        .arg(
+            Arg::with_name("FRAMES")
+                .help("Count the number of frames in a file")
+                .long("frames")
+                .takes_value(false),
+        )
         .get_matches();
     let base = cli.value_of("BASE").unwrap();
     let inputs = cli.values_of("FILES").unwrap();
@@ -126,6 +132,7 @@ fn main() -> Result<(), String> {
                     input,
                     metrics,
                     cli.is_present("QUIET"),
+                    cli.is_present("FRAMES"),
                 ));
             }
             (InputType::Audio, InputType::Audio) => {
@@ -195,18 +202,34 @@ fn run_video_metrics(
     input2: &str,
     metric: Option<&str>,
     quiet: bool,
+    all_frames: bool,
 ) -> MetricsResults {
     let mut results = MetricsResults {
         filename: input2.to_owned(),
         ..Default::default()
     };
 
-    let progress = if quiet || !console::user_attended() {
-        ProgressBar::hidden()
+    let (progress, total_frames) = if quiet || !console::user_attended() {
+        (ProgressBar::hidden(), 0)
+    } else if all_frames {
+        let total_frames = total_frames(&input1, &input2);
+        (
+            ProgressBar::new(total_frames).with_style(
+                ProgressStyle::default_spinner().template("{prefix} - Frame {pos}/{msg}"),
+            ),
+            total_frames,
+        )
     } else {
-        ProgressBar::new_spinner()
-            .with_style(ProgressStyle::default_spinner().template("{prefix} - Frame {pos}"))
+        (
+            ProgressBar::new_spinner()
+                .with_style(ProgressStyle::default_spinner().template("{prefix} - Frame {pos}")),
+            0,
+        )
     };
+
+    if all_frames {
+        progress.set_message(&total_frames.to_string());
+    }
 
     let progress_fn = |frameno: usize| {
         if frameno != usize::MAX {
@@ -251,6 +274,28 @@ fn run_video_metrics(
     }
 
     results
+}
+
+#[inline(always)]
+fn count_frames<D: Decoder, P: Pixel>(dec1: &mut D, dec2: &mut D) -> u64 {
+    let mut frame_number = 0;
+
+    while dec1.read_video_frame::<P>().is_some() && dec2.read_video_frame::<P>().is_some() {
+        frame_number += 1;
+    }
+    frame_number
+}
+
+fn total_frames<P: AsRef<Path>>(input1: P, input2: P) -> u64 {
+    let mut decoder1 =
+        get_decoder(input1).expect("Failed to open input file 1 for counting frames");
+    let mut decoder2 =
+        get_decoder(input2).expect("Failed to open input file 2 for counting frames");
+    if decoder1.get_bit_depth() > 8 {
+        count_frames::<_, u16>(&mut decoder1, &mut decoder2)
+    } else {
+        count_frames::<_, u8>(&mut decoder1, &mut decoder2)
+    }
 }
 
 #[derive(Debug, Serialize, Default)]
