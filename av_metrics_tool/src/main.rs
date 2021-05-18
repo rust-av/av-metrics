@@ -1,3 +1,5 @@
+#![allow(clippy::upper_case_acronyms)]
+
 use av_metrics::video::decode::Decoder;
 use av_metrics::video::*;
 #[cfg(feature = "ffmpeg")]
@@ -148,7 +150,9 @@ fn main() -> Result<(), String> {
 #[derive(Debug, Clone, Copy)]
 enum InputType {
     Video,
+    #[allow(dead_code)]
     Audio,
+    #[allow(dead_code)]
     Unknown,
 }
 
