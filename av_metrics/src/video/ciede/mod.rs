@@ -336,7 +336,7 @@ mod avx2 {
             #[target_feature(enable = "avx2")]
             unsafe fn set1(val: f32) -> __m256 {
                 _mm256_set1_ps(val)
-            };
+            }
             let y = _mm256_mul_ps(
                 _mm256_sub_ps(yuv.0, set1(16. * scale)),
                 set1(1. / (219. * scale)),
@@ -398,13 +398,13 @@ mod avx2 {
                         unsafe fn load_luma(chunk: &[u8]) -> __m256 {
                             let tmp = _mm_loadl_epi64(chunk.as_ptr() as *const _);
                             _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(tmp))
-                        };
+                        }
 
                         #[inline(always)]
                         unsafe fn load_chroma(chunk: &[u8]) -> __m256 {
                             let tmp = _mm_cvtsi32_si128(*(chunk.as_ptr() as *const i32));
                             _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(_mm_unpacklo_epi8(tmp, tmp)))
-                        };
+                        }
 
                         Self::delta_e_avx2(
                             (
@@ -480,13 +480,13 @@ mod avx2 {
                         unsafe fn load_luma(chunk: &[u16]) -> __m256 {
                             let tmp = _mm_loadu_si128(chunk.as_ptr() as *const _);
                             _mm256_cvtepi32_ps(_mm256_cvtepu16_epi32(tmp))
-                        };
+                        }
 
                         #[inline(always)]
                         unsafe fn load_chroma(chunk: &[u16]) -> __m256 {
                             let tmp = _mm_loadl_epi64(chunk.as_ptr() as *const _);
                             _mm256_cvtepi32_ps(_mm256_cvtepu16_epi32(_mm_unpacklo_epi16(tmp, tmp)))
-                        };
+                        }
 
                         Self::delta_e_avx2(
                             (
