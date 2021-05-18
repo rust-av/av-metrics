@@ -205,7 +205,9 @@ fn run_video_metrics(
     };
 
     let progress_fn = |frameno: usize| {
-        progress.set_position(frameno as u64);
+        if frameno != usize::MAX {
+            progress.set_position(frameno as u64);
+        }
     };
 
     if metric.is_none() || metric == Some("psnr") {
