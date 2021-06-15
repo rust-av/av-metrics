@@ -228,7 +228,7 @@ fn run_video_metrics(
     };
 
     if all_frames {
-        progress.set_message(&total_frames.to_string());
+        progress.set_message(total_frames.to_string());
     }
 
     let progress_fn = |frameno: usize| {
