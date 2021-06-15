@@ -183,8 +183,8 @@ trait VideoMetric: Send + Sync {
 
         let (send, recv) = crossbeam::channel::bounded(num_threads);
 
-        crossbeam::scope(|s| {
-            s.spawn(move |_| {
+        if let Ok((send_error, process_error)) = crossbeam::scope(|s| {
+            let send_result = s.spawn(move |_| {
                 let mut decoded = 0;
                 while frame_limit.map(|limit| limit > decoded).unwrap_or(true) {
                     decoded += 1;
@@ -192,44 +192,82 @@ trait VideoMetric: Send + Sync {
                     let frame2 = decoder2.read_video_frame::<P>();
                     if let (Some(frame1), Some(frame2)) = (frame1, frame2) {
                         progress_callback(decoded);
-                        send.send((frame1, frame2)).unwrap();
+                        if let Err(e) = send.send((frame1, frame2)) {
+                            let (frame1, frame2) = e.into_inner();
+                            return Err(format!(
+                                "Error sending frame {:?} and frame {:?}",
+                                frame1, frame2
+                            ));
+                        }
                     } else {
                         break;
                     }
                 }
                 // Mark the end of the decoding process
                 progress_callback(usize::MAX);
+                Ok(())
             });
 
             use rayon::prelude::*;
             let mut metrics = Vec::with_capacity(frame_limit.unwrap_or(0));
+            let mut process_error = Ok(());
             loop {
                 let working_set: Vec<_> = (0..num_threads)
                     .into_par_iter()
                     .filter_map(|_w| {
                         recv.recv()
-                            .map(|(f1, f2)| self.process_frame(&f1, &f2).unwrap())
+                            .map(|(f1, f2)| {
+                                self.process_frame(&f1, &f2).map_err(|e| {
+                                    format!(
+                                        "Error {:?} processing frame {:?} and frame {:?}",
+                                        e, f1, f2
+                                    )
+                                })
+                            })
                             .ok()
                     })
                     .collect();
-                if working_set.is_empty() {
+                let work_set: Vec<_> = working_set
+                    .into_iter()
+                    .filter_map(|v| v.map_err(|e| process_error = Err(e)).ok())
+                    .collect();
+                if work_set.is_empty() || process_error.is_err() {
                     break;
                 } else {
-                    metrics.extend(working_set);
+                    metrics.extend(work_set);
                 }
             }
 
             out = metrics;
-        })
-        .unwrap();
 
-        if out.is_empty() {
-            return Err(MetricsError::UnsupportedInput {
-                reason: "No readable frames found in one or more input files",
+            (
+                send_result
+                    .join()
+                    .unwrap_or_else(|_| Err("Failed joining the sender thread".to_owned())),
+                process_error,
+            )
+        }) {
+            if let Err(error) = send_error {
+                return Err(MetricsError::SendError { reason: error }.into());
             }
-            .into());
-        }
 
-        self.aggregate_frame_results(&out)
+            if let Err(error) = process_error {
+                return Err(MetricsError::ProcessError { reason: error }.into());
+            }
+
+            if out.is_empty() {
+                return Err(MetricsError::UnsupportedInput {
+                    reason: "No readable frames found in one or more input files",
+                }
+                .into());
+            }
+
+            self.aggregate_frame_results(&out)
+        } else {
+            Err(MetricsError::VideoError {
+                reason: "Error processing the two videos".to_owned(),
+            }
+            .into())
+        }
     }
 }

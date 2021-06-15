@@ -38,6 +38,24 @@ pub enum MetricsError {
         #[doc(hidden)]
         reason: &'static str,
     },
+    /// Indicates the impossibility to process the videos.
+    #[error("Could not process the two videos: {reason}")]
+    VideoError {
+        #[doc(hidden)]
+        reason: String,
+    },
+    /// Indicates the impossibility to send two frames in order to be processed.
+    #[error("Could not send two frames to be processed: {reason}")]
+    SendError {
+        #[doc(hidden)]
+        reason: String,
+    },
+    /// Indicates the impossibility to process two frames.
+    #[error("Could not process two frames: {reason}")]
+    ProcessError {
+        #[doc(hidden)]
+        reason: String,
+    },
     /// Placeholder
     #[doc(hidden)]
     #[error("Unreachable")]
