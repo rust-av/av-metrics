@@ -71,7 +71,7 @@ impl VideoMetric for Ssim {
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
-        frame1.can_compare(&frame2)?;
+        frame1.can_compare(frame2)?;
         const KERNEL_SHIFT: usize = 8;
         const KERNEL_WEIGHT: usize = 1 << KERNEL_SHIFT;
         let sample_max = (1 << frame1.bit_depth) - 1;
@@ -217,7 +217,7 @@ impl VideoMetric for MsSsim {
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
-        frame1.can_compare(&frame2)?;
+        frame1.can_compare(frame2)?;
 
         let bit_depth = frame1.bit_depth;
         let mut y = 0.0;
