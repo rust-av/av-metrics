@@ -79,7 +79,7 @@ impl VideoMetric for Psnr {
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
-        frame1.can_compare(&frame2)?;
+        frame1.can_compare(frame2)?;
 
         let bit_depth = frame1.bit_depth;
         let mut y = Default::default();

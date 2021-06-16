@@ -96,7 +96,7 @@ impl VideoMetric for Ciede2000 {
         frame1: &FrameInfo<T>,
         frame2: &FrameInfo<T>,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
-        frame1.can_compare(&frame2)?;
+        frame1.can_compare(frame2)?;
 
         let dec = frame1.chroma_sampling.get_decimation().unwrap_or((1, 1));
         let y_width = frame1.planes[0].cfg.width;
