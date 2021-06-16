@@ -107,17 +107,20 @@ impl Decoder for FfmpegDecoder {
         loop {
             // This iterator is actually really stupid... it doesn't reset itself after each `new`.
             // But that solves our lifetime hell issues, ironically.
-            let mut packet = self
+            let packet = self
                 .input_ctx
                 .packets()
                 .next()
                 .and_then(Result::ok)
                 .map(|(_, packet)| packet);
-            if packet.is_none() {
+
+            let mut packet = if let Some(packet) = packet {
+                packet
+            } else {
                 self.end_of_stream = true;
-                packet = Some(packet::Packet::empty());
-            }
-            let mut packet = packet.unwrap();
+                packet::Packet::empty()
+            };
+
             if self.end_of_stream || packet.stream() == self.stream_index {
                 let mut decoded = frame::Video::new(
                     self.decoder.format(),
