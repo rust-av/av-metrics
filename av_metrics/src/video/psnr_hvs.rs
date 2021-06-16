@@ -99,7 +99,7 @@ impl VideoMetric for PsnrHvs {
         &self,
         metrics: &[Self::FrameResult],
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
-        let cweight = self.cweight.unwrap();
+        let cweight = self.cweight.unwrap_or(1.0);
         let sum_y = metrics.iter().map(|m| m.y).sum::<f64>();
         let sum_u = metrics.iter().map(|m| m.u).sum::<f64>();
         let sum_v = metrics.iter().map(|m| m.v).sum::<f64>();

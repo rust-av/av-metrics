@@ -140,7 +140,7 @@ impl VideoMetric for Ssim {
         &self,
         metrics: &[Self::FrameResult],
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
-        let cweight = self.cweight.unwrap();
+        let cweight = self.cweight.unwrap_or(1.0);
         let y_sum = metrics.iter().map(|m| m.y).sum::<f64>();
         let u_sum = metrics.iter().map(|m| m.u).sum::<f64>();
         let v_sum = metrics.iter().map(|m| m.v).sum::<f64>();
