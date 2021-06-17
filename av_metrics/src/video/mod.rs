@@ -195,7 +195,7 @@ trait VideoMetric: Send + Sync {
                         if let Err(e) = send.send((frame1, frame2)) {
                             let (frame1, frame2) = e.into_inner();
                             return Err(format!(
-                                "Error sending frame {:?} and frame {:?}",
+                                "Error sending\n\nframe1: {:?}\n\nframe2: {:?}",
                                 frame1, frame2
                             ));
                         }
@@ -219,8 +219,10 @@ trait VideoMetric: Send + Sync {
                             .map(|(f1, f2)| {
                                 self.process_frame(&f1, &f2).map_err(|e| {
                                     format!(
-                                        "Error {:?} processing frame {:?} and frame {:?}",
-                                        e, f1, f2
+                                        "\n\n{} on\n\nframe1: {:?}\n\nand\n\nframe2: {:?}",
+                                        e.to_string(),
+                                        f1,
+                                        f2
                                     )
                                 })
                             })

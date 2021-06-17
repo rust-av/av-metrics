@@ -38,7 +38,7 @@ pub enum MetricsError {
         #[doc(hidden)]
         reason: &'static str,
     },
-    /// Indicates the impossibility to process the videos.
+    /// Indicates the impossibility to process the two videos.
     #[error("Could not process the two videos: {reason}")]
     VideoError {
         #[doc(hidden)]
