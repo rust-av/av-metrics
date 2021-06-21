@@ -183,7 +183,7 @@ trait VideoMetric: Send + Sync {
 
         let (send, recv) = crossbeam::channel::bounded(num_threads);
 
-        if let Ok((send_error, process_error)) = crossbeam::scope(|s| {
+        match crossbeam::scope(|s| {
             let send_result = s.spawn(move |_| {
                 let mut decoded = 0;
                 while frame_limit.map(|limit| limit > decoded).unwrap_or(true) {
@@ -195,7 +195,7 @@ trait VideoMetric: Send + Sync {
                         if let Err(e) = send.send((frame1, frame2)) {
                             let (frame1, frame2) = e.into_inner();
                             return Err(format!(
-                                "Error sending frame {:?} and frame {:?}",
+                                "Error sending\n\nframe1: {:?}\n\nframe2: {:?}",
                                 frame1, frame2
                             ));
                         }
@@ -219,8 +219,10 @@ trait VideoMetric: Send + Sync {
                             .map(|(f1, f2)| {
                                 self.process_frame(&f1, &f2).map_err(|e| {
                                     format!(
-                                        "Error {:?} processing frame {:?} and frame {:?}",
-                                        e, f1, f2
+                                        "\n\n{} on\n\nframe1: {:?}\n\nand\n\nframe2: {:?}",
+                                        e.to_string(),
+                                        f1,
+                                        f2
                                     )
                                 })
                             })
@@ -247,27 +249,28 @@ trait VideoMetric: Send + Sync {
                 process_error,
             )
         }) {
-            if let Err(error) = send_error {
-                return Err(MetricsError::SendError { reason: error }.into());
-            }
-
-            if let Err(error) = process_error {
-                return Err(MetricsError::ProcessError { reason: error }.into());
-            }
-
-            if out.is_empty() {
-                return Err(MetricsError::UnsupportedInput {
-                    reason: "No readable frames found in one or more input files",
+            Ok((send_error, process_error)) => {
+                if let Err(error) = send_error {
+                    return Err(MetricsError::SendError { reason: error }.into());
                 }
-                .into());
-            }
 
-            self.aggregate_frame_results(&out)
-        } else {
-            Err(MetricsError::VideoError {
-                reason: "Error processing the two videos".to_owned(),
+                if let Err(error) = process_error {
+                    return Err(MetricsError::ProcessError { reason: error }.into());
+                }
+
+                if out.is_empty() {
+                    return Err(MetricsError::UnsupportedInput {
+                        reason: "No readable frames found in one or more input files",
+                    }
+                    .into());
+                }
+
+                self.aggregate_frame_results(&out)
             }
-            .into())
+            Err(e) => Err(MetricsError::VideoError {
+                reason: format!("\n\nError {:?} processing the two videos", e),
+            }
+            .into()),
         }
     }
 }
