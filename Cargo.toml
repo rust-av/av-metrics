@@ -1,11 +1,11 @@
 [workspace]
-
 members = [
     "av_metrics",
     "av_metrics_tool",
     "av_metrics_decoders",
-    "av_metrics_tests"
+    "av_metrics_tests",
 ]
+exclude = ["av_metrics_gui_tool"]
 
 [profile.dev]
 opt-level = 1
