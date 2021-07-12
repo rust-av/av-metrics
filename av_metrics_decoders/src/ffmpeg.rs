@@ -1,10 +1,15 @@
-use av_metrics::video::decode::*;
-use av_metrics::video::*;
+extern crate ffmpeg_next as ffmpeg;
+
+use std::path::Path;
+
 use ffmpeg::codec::{decoder, packet};
 use ffmpeg::format::context;
 use ffmpeg::media::Type;
+use ffmpeg::util::frame::video::Video;
 use ffmpeg::{format, frame};
-use std::path::Path;
+
+use av_metrics::video::decode::*;
+use av_metrics::video::*;
 
 /// An interface that is used for decoding a video stream using FFMpeg
 pub struct FfmpegDecoder {
@@ -21,8 +26,7 @@ impl FfmpegDecoder {
     pub fn new<P: AsRef<Path>>(input: P) -> Result<Self, String> {
         ffmpeg::init().map_err(|e| e.to_string())?;
 
-        let input_ctx =
-            format::input(&*input.as_ref().to_string_lossy()).map_err(|e| e.to_string())?;
+        let input_ctx = format::input(&input).map_err(|e| e.to_string())?;
         let input = input_ctx
             .streams()
             .best(Type::Video)
@@ -107,12 +111,7 @@ impl Decoder for FfmpegDecoder {
         loop {
             // This iterator is actually really stupid... it doesn't reset itself after each `new`.
             // But that solves our lifetime hell issues, ironically.
-            let packet = self
-                .input_ctx
-                .packets()
-                .next()
-                .and_then(Result::ok)
-                .map(|(_, packet)| packet);
+            let packet = self.input_ctx.packets().next().map(|(_, packet)| packet);
 
             let mut packet = if let Some(packet) = packet {
                 packet
@@ -131,9 +130,13 @@ impl Decoder for FfmpegDecoder {
                     packet.set_pts(Some(self.frameno as i64));
                     packet.set_dts(Some(self.frameno as i64));
                 }
-                let result = self.decoder.decode(&packet, &mut decoded);
 
-                if result.is_ok() {
+                // If there is an error sending a packet, skip to the next packet
+                if self.decoder.send_packet(&packet).is_err() {
+                    continue;
+                }
+
+                if self.decoder.receive_frame(&mut decoded).is_ok() {
                     let mut f: Frame<T> = Frame::new_with_padding(
                         self.video_details.width,
                         self.video_details.height,
@@ -172,9 +175,13 @@ impl Decoder for FfmpegDecoder {
                         bit_depth,
                         chroma_sampling: self.video_details.chroma_sampling,
                     });
-                } else if self.end_of_stream {
-                    return None;
                 }
+            }
+            // Close decoder
+            if self.end_of_stream {
+                let _ = self.decoder.send_eof();
+                let _ = self.decoder.receive_frame(&mut Video::empty());
+                return None;
             }
         }
     }
