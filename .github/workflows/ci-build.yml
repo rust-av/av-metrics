@@ -52,8 +52,7 @@ jobs:
 
     strategy:
       matrix:
-        platform: [ubuntu-latest]
-#        platform: [ubuntu-latest, windows-latest]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
 
     runs-on: ${{ matrix.platform }}
 
@@ -67,28 +66,31 @@ jobs:
         toolchain: stable
         override: true
 
-    - name: Install ffmpeg for Ubuntu
+    - name: Install FFmpeg for Ubuntu
       if: matrix.platform == 'ubuntu-latest'
       run: |
         export PKG_CONFIG_PATH=$(pkg-config --variable pc_path pkg-config)
         sudo apt-get update
         sudo apt-get install libavutil-dev libavcodec-dev libavformat-dev libclang-dev
 
-# It takes 2+ hours to install these dependencies with vcpkg, we're just disabling it until there's a better way found
-#    - name: Cache Windows dependencies
-#      if: matrix.platform == 'windows-latest'
-#      id: cache-windows-deps
-#      uses: actions/cache@v2
-#      with:
-#        path: C:\Users\runneradmin\AppData\Local\vcpkg\archives
-#        key: ${{ runner.os }}-deps-cache
-#
-#    - name: Install ffmpeg for Windows
-#      if: matrix.platform == 'windows-latest'
-#      run: |
-#        vcpkg integrate install
-#        vcpkg install ffmpeg[avcodec,avformat,core,gpl]:x64-windows
-#        vcpkg install llvm[clang]
+    - name: Install FFmpeg for MacOs
+      if: matrix.platform == 'macos-latest'
+      run: |
+        brew install ffmpeg pkg-config
+
+    - name: Install FFmpeg for Windows
+      if: matrix.platform == 'windows-latest'
+      env:
+        FFMPEG_URL: https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full-shared.7z
+      run: |
+        $VCINSTALLDIR = $(& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath)
+        Add-Content $env:GITHUB_ENV "LIBCLANG_PATH=${VCINSTALLDIR}\VC\Tools\LLVM\x64\bin`n"
+        Invoke-WebRequest "${env:FFMPEG_URL}" -OutFile ffmpeg-release-full-shared.7z
+        7z x ffmpeg-release-full-shared.7z
+        mkdir ffmpeg
+        mv ffmpeg-*/* ffmpeg/
+        Add-Content $env:GITHUB_ENV "FFMPEG_DIR=${pwd}\ffmpeg`n"
+        Add-Content $env:GITHUB_PATH "${pwd}\ffmpeg\bin`n"
 
     - name: Build (y4m)
       run: cargo build --tests --benches
