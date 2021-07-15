@@ -17,3 +17,5 @@ mod ffmpeg;
 
 #[cfg(feature = "ffmpeg")]
 pub use crate::ffmpeg::FfmpegDecoder;
+
+pub use av_metrics::video::decode::Decoder;
