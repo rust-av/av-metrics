@@ -528,6 +528,23 @@ mod tests {
         assert_metric_eq(36.3691, result);
     }
 
+    #[test]
+    fn error_on_different_input() {
+        let mut dec1 = get_decoder(&format!(
+            "{}/../testfiles/first.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let mut dec2 = get_decoder(&format!(
+            "{}/../testfiles/second.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+
+        // A mismatch input error should be returned
+        calculate_video_psnr(&mut dec1, &mut dec2, None, |_| ()).unwrap_err();
+    }
+
     fn assert_metric_eq(expected: f64, value: f64) {
         assert!(
             (expected - value).abs() < 0.01,
