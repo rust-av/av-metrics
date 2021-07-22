@@ -46,7 +46,7 @@ jobs:
       uses: actions-rs/clippy-check@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        args: --all-targets --all-features --tests --benches -- -D warnings
+        args: --all-targets --features ffmpeg --tests --benches -- -D warnings
 
   build:
 
@@ -105,4 +105,4 @@ jobs:
       run: cargo test --features ffmpeg
 
     - name: Generate docs
-      run: cargo doc --all-features --no-deps
+      run: cargo doc --features y4m,ffmpeg --no-deps
