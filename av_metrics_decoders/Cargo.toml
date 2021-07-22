@@ -17,3 +17,4 @@ y4m = { version = "0.7", optional = true }
 
 [features]
 ffmpeg = ["ffmpeg-next"]
+ffmpeg_static = ["ffmpeg-next/static"]

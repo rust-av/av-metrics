@@ -99,10 +99,10 @@ jobs:
       run: cargo test
 
     - name: Build (ffmpeg)
-      run: cargo build --all-features --tests --benches
+      run: cargo build --features ffmpeg --tests --benches
 
     - name: Run tests (ffmpeg)
-      run: cargo test --all-features
+      run: cargo test --features ffmpeg
 
     - name: Generate docs
       run: cargo doc --all-features --no-deps
