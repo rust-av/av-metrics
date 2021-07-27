@@ -12,10 +12,18 @@ mod y4m;
 #[cfg(feature = "y4m")]
 pub use crate::y4m::Y4MDecoder;
 
-#[cfg(any(feature = "ffmpeg", feature = "ffmpeg_static"))]
+#[cfg(any(
+    feature = "ffmpeg",
+    feature = "ffmpeg_static",
+    feature = "ffmpeg_build"
+))]
 mod ffmpeg;
 
-#[cfg(any(feature = "ffmpeg", feature = "ffmpeg_static"))]
+#[cfg(any(
+    feature = "ffmpeg",
+    feature = "ffmpeg_static",
+    feature = "ffmpeg_build"
+))]
 pub use crate::ffmpeg::FfmpegDecoder;
 
 pub use av_metrics::video::decode::Decoder;
