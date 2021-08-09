@@ -7,7 +7,7 @@ repository = "https://github.com/rust-av/av-metrics"
 publish = false
 
 [dependencies]
-av-metrics = { version = "0.6", features = ["serde"] }
+av-metrics = { version = "0.7", features = ["serde"] }
 av-metrics-decoders = "0.1"
 
 [features]

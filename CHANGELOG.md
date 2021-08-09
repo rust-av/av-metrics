@@ -1,3 +1,12 @@
+## Version 0.7.1
+- Add ffmpeg decoding support; this is optional and currently requires building from source
+- Fix a math overflow on 32-bit for MSSSIM
+- Publish a new av_metrics_decoder crate, to use the y4m and ffmpeg decoders independently.
+These are re-exported through av-metrics, so the av-metrics interface is unchanged.
+- Add progress indicator
+- Remove internal unwraps (enables cleaner exiting, especially when used as a crate)
+- Improve error messages
+
 ## Version 0.7.0
 - [CLI Feature] Support multiple file comparison
 - [CLI Feature] Add Markdown output
