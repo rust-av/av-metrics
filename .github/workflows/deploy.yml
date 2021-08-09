@@ -58,14 +58,11 @@ jobs:
       id: data
       run: |
         VERSION=$(head -n 1 CHANGELOG.md | tr -d "## Version ")
-        FILENAME=av-metrics-$VERSION-windows-sdk
         echo "::set-output name=version::$VERSION"
         tail -n +2 CHANGELOG.md | sed -e '/^$/,$d' > CHANGELOG.txt
         cd av-metrics-bins
-        mv local $FILENAME
-        zip -r $FILENAME.zip $FILENAME
         strip av-metrics-tool.exe
-        mv $FILENAME.zip av-metrics-tool.exe ..
+        mv av-metrics-tool.exe ..
 
     - name: Create a release
       uses: softprops/action-gh-release@v1
@@ -73,7 +70,6 @@ jobs:
         name: Version ${{ steps.data.outputs.version }}
         body_path: CHANGELOG.txt
         files: |
-          av-metrics-${{ steps.data.outputs.version }}-windows-sdk.zip
           av-metrics-tool.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
