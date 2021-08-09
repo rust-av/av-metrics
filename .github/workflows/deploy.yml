@@ -28,7 +28,7 @@ jobs:
     - name: Create zip
       run: |
         $METRICS_PATH="$Env:GITHUB_WORKSPACE\target\release"
-        7z a av-metrics.zip "$METRICS_PATH\av-metrics-tool.exe" "C:\usr\local"
+        7z a av-metrics.zip "$METRICS_PATH\av-metrics-tool.exe"
 
     - name: Upload binaries
       uses: actions/upload-artifact@v1
