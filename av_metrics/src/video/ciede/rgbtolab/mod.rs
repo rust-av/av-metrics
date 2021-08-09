@@ -248,7 +248,7 @@ mod avx2 {
             }
         };
         ( $(($vec:expr, $mul:expr)),* ) => {
-            sum_mult_avx!((0.0), $(($vec, $mul)),*);
+            sum_mult_avx!((0.0), $(($vec, $mul)),*)
         };
     }
 
