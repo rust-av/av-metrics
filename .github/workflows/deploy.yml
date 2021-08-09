@@ -21,22 +21,9 @@ jobs:
         toolchain: stable
         override: true
 
-    - name: Install cargo-c
-      run: |
-        $LINK = "https://github.com/lu-zero/cargo-c/releases/download/v0.6.17"
-        $CARGO_C_FILE = "cargo-c-windows-msvc"
-        curl -LO "$LINK/$CARGO_C_FILE.zip"
-        7z e -y "$CARGO_C_FILE.zip" -o"${env:USERPROFILE}\.cargo\bin"
-
     - name: Build
       run: |
         cargo build --release
-
-    - name: Run cargo-c
-      run: |
-        cargo cinstall --release `
-                       --manifest-path=av_metrics/Cargo.toml `
-                       --destdir="C:\"
 
     - name: Create zip
       run: |
