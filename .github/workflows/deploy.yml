@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  create-binaries:
+  cli-binaries:
 
     runs-on: windows-latest
 
@@ -25,20 +25,253 @@ jobs:
       run: |
         cargo build --release
 
-    - name: Create zip
+    - name: Upload binaries
+      uses: actions/upload-artifact@v2
+      with:
+        path: target\release\av-metrics-tool.exe
+
+  linux-gui-binaries:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install nasm
+      uses: ilammy/setup-nasm@v1
+
+    - name: Install rfd dependencies
       run: |
-        $METRICS_PATH="$Env:GITHUB_WORKSPACE\target\release"
-        7z a av-metrics.zip "$METRICS_PATH\av-metrics-tool.exe"
+        sudo apt update && sudo apt install libgtk-3-dev
+
+    - name: Install iced dependencies
+      run: |
+        export DEBIAN_FRONTED=noninteractive
+        sudo apt-get -qq update
+        sudo apt-get install -y libxkbcommon-dev
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Enable Link Time Optimizations
+      run: |
+        cd av_metrics_gui_tool
+        echo "[profile.release]" >> Cargo.toml
+        echo "lto = true" >> Cargo.toml
+
+    - name: Build gui tool
+      run: |
+        cd av_metrics_gui_tool
+        cargo build --release --features ffmpeg_static
+
+    - name: Strip av-metrics-gui-tool
+      run: |
+        strip av_metrics_gui_tool/target/release/av-metrics-gui-tool
+
+    - name: Package binary
+      run: |
+        cd av_metrics_gui_tool/target/release
+        tar -czvf $GITHUB_WORKSPACE/av-metrics-gui-ffmpeg-linux.tar.gz \
+                  av-metrics-gui-tool
 
     - name: Upload binaries
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
-        name: av-metrics-bins
-        path: av-metrics.zip
+        path: av-metrics-gui-ffmpeg-linux.tar.gz
+
+#  wasm-gui-binaries:
+#
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#
+#    - name: Install Rust
+#      uses: actions-rs/toolchain@v1
+#      with:
+#        profile: minimal
+#        toolchain: stable
+#        target: wasm32-unknown-unknown
+#        override: true
+#
+#    - name: Enable Link Time Optimizations
+#      run: |
+#        cd av_metrics_gui_tool
+#        echo "[profile.release]" >> Cargo.toml
+#        echo "lto = true" >> Cargo.toml
+#
+#    - name: Build gui tool for wasm
+#      run: |
+#        cd av_metrics_gui_tool
+#        cargo build --release --target wasm32-unknown-unknown
+#
+#    - name: Move the wasm file in current directory
+#      run: |
+#        mv av_metrics_gui_tool/target/wasm32-unknown-unknown/release/av-metrics-gui-tool.wasm .
+#
+#    - name: Install wasm-bindgen
+#      env:
+#        LINK: https://github.com/rustwasm/wasm-bindgen/releases/download
+#        WASM_BINDGEN_VERSION: 0.2.69
+#      run: |
+#        WASM_BINDGEN_FILE=wasm-bindgen-$WASM_BINDGEN_VERSION-x86_64-unknown-linux-musl
+#        curl -L "$LINK/$WASM_BINDGEN_VERSION/$WASM_BINDGEN_FILE.tar.gz" | tar xz -C .
+#        mv $WASM_BINDGEN_FILE/wasm-bindgen $HOME/.cargo/bin
+#
+#    - name: Produce JavaScript bindings
+#      run: |
+#        wasm-bindgen ./av-metrics-gui-tool.wasm --out-dir av-metrics-gui-tool-web --web
+#
+#    - name: Create HTML file
+#      run: |
+#        HTML_TEXT=$(cat << EOF
+#        <!DOCTYPE html>
+#        <html>
+#          <head>
+#            <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
+#            <meta name="viewport" content="width=device-width, initial-scale=1">
+#            <title>av-metrics-gui-tool</title>
+#          </head>
+#          <body>
+#            <script type="module">
+#              import init from "./av-metrics-gui-tool-web/av-metrics-gui-tool.js";
+#
+#              init('./av-metrics-gui-tool-web/av-metrics-gui-tool_bg.wasm');
+#            </script>
+#          </body>
+#        </html>
+#        EOF
+#        )
+#        echo "$HTML_TEXT" > av-metrics-gui-tool.html
+#
+#    - name: Upload binaries
+#      uses: actions/upload-artifact@v2
+#      with:
+#        name: av-metrics-gui-y4m-wasm
+#        path: |
+#           av-metrics-gui-tool.wasm
+#           av-metrics-gui-tool-web
+#           av-metrics-gui-tool.html
+
+#  macos-gui-binaries:
+#
+#    runs-on: macos-latest
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#
+#    - name: Install nasm
+#      uses: ilammy/setup-nasm@v1
+#
+#    - name: Install Rust
+#      uses: actions-rs/toolchain@v1
+#      with:
+#        profile: minimal
+#        toolchain: stable
+#        override: true
+#
+#    - name: Enable Link Time Optimizations
+#      run: |
+#        cd av_metrics_gui_tool
+#        echo "[profile.release]" >> Cargo.toml
+#        echo "lto = true" >> Cargo.toml
+#
+#    - name: Build gui tool
+#      env:
+#        MACOSX_DEPLOYMENT_TARGET: 10.14
+#      run: |
+#        cd av_metrics_gui_tool
+#        cargo build --release --features ffmpeg_static
+#
+#    - name: Strip av-metrics-gui-tool
+#      run: |
+#        strip av_metrics_gui_tool/target/release/av-metrics-gui-tool
+#
+#    - name: Open binary via double-click
+#      run: |
+#        chmod +x av_metrics_gui_tool/target/release/av-metrics-gui-tool
+#
+#    - name: Move the binary file in current directory
+#      run: |
+#        mv av_metrics_gui_tool/target/release/av-metrics-gui-tool .
+#
+#    - name: Upload binaries
+#      uses: actions/upload-artifact@v2
+#      with:
+#        name: av-metrics-gui-ffmpeg-macos
+#        path: av-metrics-gui-tool
+
+  windows-gui-binaries:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Install FFmpeg for Windows
+      env:
+        FFMPEG_URL: https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full-shared.7z
+      run: |
+        $VCINSTALLDIR = $(& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath)
+        Add-Content $env:GITHUB_ENV "LIBCLANG_PATH=${VCINSTALLDIR}\VC\Tools\LLVM\x64\bin`n"
+        Invoke-WebRequest "${env:FFMPEG_URL}" -OutFile ffmpeg-release-full-shared.7z
+        7z x ffmpeg-release-full-shared.7z
+        mkdir ffmpeg
+        mv ffmpeg-*/* ffmpeg/
+        Add-Content $env:GITHUB_ENV "FFMPEG_DIR=${pwd}\ffmpeg`n"
+        Add-Content $env:GITHUB_PATH "${pwd}\ffmpeg\bin`n"
+
+    - name: Enable Link Time Optimizations
+      run: |
+        cd av_metrics_gui_tool
+        echo "[profile.release]" >> Cargo.toml
+        echo "lto = true" >> Cargo.toml
+
+    - name: Enable static CRT linkage
+      run: |
+        cd av_metrics_gui_tool
+        mkdir .cargo
+        echo '[target.x86_64-pc-windows-msvc]' >> .cargo/config
+        echo 'rustflags = ["-Ctarget-feature=+crt-static"]' >> .cargo/config
+
+    - name: Build gui tool
+      run: |
+        cd av_metrics_gui_tool
+        cargo build --release --features ffmpeg
+
+    - name: Package binary
+      run: |
+        mv av_metrics_gui_tool/target/release/av-metrics-gui-tool.exe .
+        mv ffmpeg/bin/avcodec-58.dll .
+        mv ffmpeg/bin/avformat-58.dll .
+        mv ffmpeg/bin/avutil-56.dll .
+        mv ffmpeg/bin/swresample-3.dll .
+        7z a "av-metrics-gui-ffmpeg-windows.zip" `
+             "av-metrics-gui-tool.exe" `
+             "avcodec-58.dll" `
+             "avformat-58.dll" `
+             "avutil-56.dll" `
+             "swresample-3.dll"
+
+    - name: Upload binaries
+      uses: actions/upload-artifact@v2
+      with:
+        path: av-metrics-gui-ffmpeg-windows.zip
 
   deploy:
 
-    needs: create-binaries
+    needs: [cli-binaries, linux-gui-binaries, windows-gui-binaries]
 
     runs-on: ubuntu-latest
 
@@ -46,13 +279,9 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Download the zip
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v2
       with:
-        name: av-metrics-bins
-
-    - name: Unzip av-metrics Windows binaries
-      run: |
-        unzip av-metrics-bins/av-metrics.zip -d av-metrics-bins
+        name: artifact
 
     - name: Handle release data and files
       id: data
@@ -60,9 +289,6 @@ jobs:
         VERSION=$(head -n 1 CHANGELOG.md | tr -d "## Version ")
         echo "::set-output name=version::$VERSION"
         tail -n +2 CHANGELOG.md | sed -e '/^$/,$d' > CHANGELOG.txt
-        cd av-metrics-bins
-        strip av-metrics-tool.exe
-        mv av-metrics-tool.exe ..
 
     - name: Create a release
       uses: softprops/action-gh-release@v1
@@ -71,5 +297,7 @@ jobs:
         body_path: CHANGELOG.txt
         files: |
           av-metrics-tool.exe
+          av-metrics-gui-ffmpeg-linux.tar.gz
+          av-metrics-gui-ffmpeg-windows.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
