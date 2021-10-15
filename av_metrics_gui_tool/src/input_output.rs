@@ -22,17 +22,17 @@ impl FileType {
 
 #[cfg(target_arch = "wasm32")]
 fn get_path(file_handle: rfd::FileHandle) -> Option<String> {
-        Some(file_handle.file_name())
+    Some(file_handle.file_name())
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 fn get_path(file_handle: rfd::FileHandle) -> Option<String> {
-        file_handle
-            .path()
-            .to_path_buf()
-            .into_os_string()
-            .into_string()
-            .ok()
+    file_handle
+        .path()
+        .to_path_buf()
+        .into_os_string()
+        .into_string()
+        .ok()
 }
 
 pub fn get_root_path() -> &'static Path {
@@ -51,7 +51,8 @@ pub async fn select_file(
     let file_handle = rfd::AsyncFileDialog::new()
         .add_filter(filter_name, extensions)
         .set_directory(directory)
-        .pick_file().await;
+        .pick_file()
+        .await;
 
     file_handle.map(get_path).flatten()
 }
@@ -63,7 +64,7 @@ pub async fn select_file(
     base_dir: Option<PathBuf>,
 ) -> Option<String> {
     let (filter_name, extensions) = filetype.filter_name_extensions();
-    let directory = base_dir.unwrap_or(get_root_path().to_path_buf());
+    let directory = base_dir.unwrap_or_else(|| get_root_path().to_path_buf());
 
     let async_dialog = rfd::AsyncFileDialog::new()
         .add_filter(filter_name, extensions)
@@ -75,7 +76,7 @@ pub async fn select_file(
         async_dialog.pick_file().await
     };
 
-    file_handle.map(|h| get_path(h)).flatten()
+    file_handle.map(get_path).flatten()
 }
 
 #[cfg(any(not(target_arch = "wasm32"), target_os = "macos"))]
