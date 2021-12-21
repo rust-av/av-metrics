@@ -220,9 +220,7 @@ trait VideoMetric: Send + Sync {
                                 self.process_frame(&f1, &f2).map_err(|e| {
                                     format!(
                                         "\n\n{} on\n\nframe1: {:?}\n\nand\n\nframe2: {:?}",
-                                        e.to_string(),
-                                        f1,
-                                        f2
+                                        e, f1, f2
                                     )
                                 })
                             })
