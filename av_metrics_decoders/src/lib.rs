@@ -27,4 +27,4 @@ mod ffmpeg;
 pub use crate::ffmpeg::FfmpegDecoder;
 
 pub use av_metrics::video::decode::{Decoder, VideoDetails};
-pub use av_metrics::video::{ChromaSampling, FrameInfo, Plane};
+pub use av_metrics::video::{CastFromPrimitive, ChromaSampling, FrameInfo, Pixel, Plane};
