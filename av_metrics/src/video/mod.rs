@@ -10,6 +10,7 @@ pub mod ssim;
 use crate::MetricsError;
 use decode::*;
 use std::error::Error;
+use std::sync::Arc;
 
 pub use pixel::*;
 pub use v_frame::frame::Frame;
@@ -26,7 +27,7 @@ pub struct FrameInfo<T: Pixel> {
     /// - 0 - Y/Luma plane
     /// - 1 - U/Cb plane
     /// - 2 - V/Cr plane
-    pub planes: [Plane<T>; 3],
+    pub planes: Arc<[Plane<T>; 3]>,
     /// The number of bits per pixel.
     pub bit_depth: usize,
     /// The chroma sampling format of the video. Most videos are in 4:2:0 format.

@@ -11,6 +11,7 @@ use av_metrics::video::{ChromaSamplePosition, ChromaSampling, Pixel};
 use av_metrics::video::{Frame, FrameInfo};
 use criterion::Criterion;
 use std::fs::File;
+use std::sync::Arc;
 use y4m::Decoder as Y4MDec;
 
 fn get_video_frame<T: Pixel>(filename: &str) -> FrameInfo<T> {
@@ -48,7 +49,7 @@ fn get_video_frame<T: Pixel>(filename: &str) -> FrameInfo<T> {
     FrameInfo {
         bit_depth,
         chroma_sampling,
-        planes: f.planes,
+        planes: Arc::new(f.planes),
     }
 }
 

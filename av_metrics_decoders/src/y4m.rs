@@ -3,6 +3,7 @@ use av_metrics::video::*;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
+use std::sync::Arc;
 
 /// A decoder for a y4m input stream
 pub struct Y4MDecoder {
@@ -88,7 +89,7 @@ impl Decoder for Y4MDecoder {
             FrameInfo {
                 bit_depth,
                 chroma_sampling,
-                planes: f.planes,
+                planes: Arc::new(f.planes),
             }
         })
     }
