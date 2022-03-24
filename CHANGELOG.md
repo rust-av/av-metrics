@@ -3,6 +3,7 @@
 - [Breaking] Wrap `FrameInfo.planes` in an `Arc` (this should help users of the library avoid clones)
 - Migrate to edition 2021
 - Upgrade `clap` to `3.x`
+- Upgrade `ffmpeg-next` to `5.x`
 
 ## Version 0.7.2
 
