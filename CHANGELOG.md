@@ -1,3 +1,7 @@
+## Version 0.8.0
+
+- [Breaking] Wrap `FrameInfo.planes` in an `Arc` (this should help users of the library avoid clones)
+
 ## Version 0.7.2
 
 - Add a new GUI version of the av-metrics-tool

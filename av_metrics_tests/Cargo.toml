@@ -2,12 +2,12 @@
 name = "av-metrics-tests"
 version = "0.0.1"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
-edition = "2018"
+edition = "2021"
 repository = "https://github.com/rust-av/av-metrics"
 publish = false
 
 [dependencies]
-av-metrics = { version = "0.7", features = ["serde"] }
+av-metrics = { version = "0.8", features = ["serde"] }
 av-metrics-decoders = "0.1"
 
 [features]

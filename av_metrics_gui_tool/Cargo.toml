@@ -2,14 +2,14 @@
 name = "av-metrics-gui-tool"
 version = "0.1.0"
 authors = ["Luni-4 <luni-4@hotmail.it>"]
-edition = "2018"
+edition = "2021"
 description = "A GUI tool for measuring audio/video metrics"
 license = "MIT"
 repository = "https://github.com/rust-av/av-metrics"
 include = ["src/**/*"]
 
 [dependencies]
-av-metrics = { version = "0.7.2", features = ["serde"] }
+av-metrics = { version = "0.8", features = ["serde"] }
 av-metrics-decoders = "0.1.2"
 
 iced = "0.3.0"

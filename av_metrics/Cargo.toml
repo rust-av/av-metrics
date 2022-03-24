@@ -1,8 +1,8 @@
 [package]
 name = "av-metrics"
-version = "0.7.2"
+version = "0.8.0"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A collection of algorithms for measuring audio/video metrics"
 license = "MIT"
 repository = "https://github.com/rust-av/av-metrics"

@@ -2,14 +2,14 @@
 name = "av-metrics-tool"
 version = "0.7.2"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "A CLI tool for measuring audio/video metrics"
 license = "MIT"
 repository = "https://github.com/rust-av/av-metrics"
 include = ["src/**/*"]
 
 [dependencies]
-av-metrics = { version = "0.7.2", features = ["serde"] }
+av-metrics = { version = "0.8", features = ["serde"] }
 av-metrics-decoders = "0.1.2"
 clap = "2.33"
 console = "0.15.0"
