@@ -76,7 +76,7 @@ pub async fn select_file(
         async_dialog.pick_file().await
     };
 
-    file_handle.map(get_path).flatten()
+    file_handle.and_then(get_path)
 }
 
 #[cfg(any(not(target_arch = "wasm32"), target_os = "macos"))]
@@ -95,13 +95,11 @@ pub fn select_macos_file(
     if save {
         sync_dialog
             .save_file()
-            .map(|p| p.into_os_string().into_string().ok())
-            .flatten()
+            .and_then(|p| p.into_os_string().into_string().ok())
     } else {
         sync_dialog
             .pick_file()
-            .map(|p| p.into_os_string().into_string().ok())
-            .flatten()
+            .and_then(|p| p.into_os_string().into_string().ok())
     }
 }
 
