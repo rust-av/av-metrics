@@ -32,7 +32,11 @@ impl FfmpegDecoder {
             .best(Type::Video)
             .ok_or_else(|| "Could not find video stream".to_string())?;
         let stream_index = input.index();
-        let mut decoder = input.codec().decoder().video().map_err(|e| e.to_string())?;
+        let mut decoder = ffmpeg::codec::context::Context::from_parameters(input.parameters())
+            .map_err(|e| e.to_string())?
+            .decoder()
+            .video()
+            .map_err(|e| e.to_string())?;
         decoder
             .set_parameters(input.parameters())
             .map_err(|e| e.to_string())?;
@@ -95,7 +99,7 @@ impl Decoder for FfmpegDecoder {
         self.video_details
     }
 
-    fn read_video_frame<T: Pixel>(&mut self) -> Option<FrameInfo<T>> {
+    fn read_video_frame<T: Pixel>(&mut self) -> Option<Frame<T>> {
         // For some reason there's a crap ton of work needed to get ffmpeg to do something simple,
         // because each codec has it's own stupid way of doing things and they don't all
         // decode the same way.
@@ -170,11 +174,7 @@ impl Decoder for FfmpegDecoder {
                     );
 
                     self.frameno += 1;
-                    return Some(FrameInfo {
-                        planes: f.planes,
-                        bit_depth,
-                        chroma_sampling: self.video_details.chroma_sampling,
-                    });
+                    return Some(f);
                 }
             }
             // Close decoder
