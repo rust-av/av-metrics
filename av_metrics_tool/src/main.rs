@@ -6,7 +6,7 @@ use av_metrics::video::*;
 use av_metrics_decoders::FfmpegDecoder;
 #[cfg(not(feature = "ffmpeg"))]
 use av_metrics_decoders::Y4MDecoder;
-use clap::{App, Arg};
+use clap::{Arg, Command};
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::Serialize;
@@ -16,25 +16,25 @@ use std::io::{BufWriter, Stdout, Write};
 use std::path::Path;
 
 fn main() -> Result<(), String> {
-    let cli = App::new("AV Metrics")
+    let cli = Command::new("AV Metrics")
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .arg(
-            Arg::with_name("BASE")
+            Arg::new("BASE")
                 .help("The base input file to compare--currently supports Y4M files")
                 .required(true)
                 .index(1),
         )
         .arg(
-            Arg::with_name("FILES")
+            Arg::new("FILES")
                 .help("The alternate input files to compare with the base file")
                 .required(true)
-                .multiple(true)
+                .multiple_values(true)
                 .index(2),
         )
         .arg(
-            Arg::with_name("METRIC")
+            Arg::new("METRIC")
                 .help("Run only one metric, instead of the entire suite")
                 .long("metric")
                 .takes_value(true)
@@ -46,41 +46,41 @@ fn main() -> Result<(), String> {
                 .possible_value("ciede2000"),
         )
         .arg(
-            Arg::with_name("JSON")
+            Arg::new("JSON")
                 .help("Output results as JSON--useful for piping to other programs")
                 .long("export-json")
                 .takes_value(true)
                 .value_name("FILE"),
         )
         .arg(
-            Arg::with_name("CSV")
+            Arg::new("CSV")
                 .help("Output results as CSV")
                 .long("export-csv")
                 .takes_value(true)
                 .value_name("FILE"),
         )
         .arg(
-            Arg::with_name("MARKDOWN")
+            Arg::new("MARKDOWN")
                 .help("Output results as Markdown")
                 .long("export-markdown")
                 .takes_value(true)
                 .value_name("FILE"),
         )
         .arg(
-            Arg::with_name("FILE")
+            Arg::new("FILE")
                 .help("Output results to a file")
                 .long("export-file")
                 .takes_value(true)
                 .value_name("FILE"),
         )
         .arg(
-            Arg::with_name("QUIET")
+            Arg::new("QUIET")
                 .help("Do not output to stdout")
                 .long("quiet")
                 .takes_value(false),
         )
         .arg(
-            Arg::with_name("FRAMES")
+            Arg::new("FRAMES")
                 .help("Count the number of frames in a file")
                 .long("frames")
                 .takes_value(false),

@@ -1,6 +1,8 @@
 ## Version 0.8.0
 
 - [Breaking] Wrap `FrameInfo.planes` in an `Arc` (this should help users of the library avoid clones)
+- Migrate to edition 2021
+- Upgrade `clap` to `3.x`
 
 ## Version 0.7.2
 
