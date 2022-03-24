@@ -101,13 +101,11 @@ impl DE2000 {
 }
 
 fn get_h_prime_fn(x: f32, y: f32) -> f32 {
-    let mut hue_angle;
-
     if x == 0.0 && y == 0.0 {
         return 0.0;
     }
 
-    hue_angle = x.atan2(y);
+    let mut hue_angle = x.atan2(y);
 
     if hue_angle < 0.0 {
         hue_angle += 2. * PI;
