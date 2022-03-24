@@ -10,9 +10,15 @@ use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
 use crate::video::ChromaWeight;
-use crate::video::{FrameInfo, PlanarMetrics, VideoMetric};
+use crate::video::{PlanarMetrics, VideoMetric};
+use crate::MetricsError;
 use std::error::Error;
+use std::mem::size_of;
+use v_frame::frame::Frame;
 use v_frame::plane::Plane;
+use v_frame::prelude::ChromaSampling;
+
+use super::FrameCompare;
 
 /// Calculates the PSNR-HVS score between two videos. Higher is better.
 #[inline]
@@ -34,12 +40,14 @@ pub fn calculate_video_psnr_hvs<D: Decoder, F: Fn(usize) + Send>(
 /// Calculates the PSNR-HVS score between two video frames. Higher is better.
 #[inline]
 pub fn calculate_frame_psnr_hvs<T: Pixel>(
-    frame1: &FrameInfo<T>,
-    frame2: &FrameInfo<T>,
+    frame1: &Frame<T>,
+    frame2: &Frame<T>,
+    bit_depth: usize,
+    chroma_sampling: ChromaSampling,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
     let processor = PsnrHvs::default();
-    let result = processor.process_frame(frame1, frame2)?;
-    let cweight = frame1.chroma_sampling.get_chroma_weight();
+    let result = processor.process_frame(frame1, frame2, bit_depth, chroma_sampling)?;
+    let cweight = chroma_sampling.get_chroma_weight();
     Ok(PlanarMetrics {
         y: log10_convert(result.y, 1.0),
         u: log10_convert(result.u, 1.0),
@@ -64,12 +72,20 @@ impl VideoMetric for PsnrHvs {
     /// or per-video, these will be weighted at different points.
     fn process_frame<T: Pixel>(
         &self,
-        frame1: &FrameInfo<T>,
-        frame2: &FrameInfo<T>,
+        frame1: &Frame<T>,
+        frame2: &Frame<T>,
+        bit_depth: usize,
+        _chroma_sampling: ChromaSampling,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
+        if (size_of::<T>() == 1 && bit_depth > 8) || (size_of::<T>() == 2 && bit_depth <= 8) {
+            return Err(Box::new(MetricsError::InputMismatch {
+                reason: "Bit depths does not match pixel width",
+            }));
+        }
+
         frame1.can_compare(frame2)?;
 
-        let bit_depth = frame1.bit_depth;
+        let bit_depth = bit_depth;
         let mut y = 0.0;
         let mut u = 0.0;
         let mut v = 0.0;

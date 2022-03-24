@@ -3,7 +3,6 @@ use av_metrics::video::*;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
-use std::sync::Arc;
 
 /// A decoder for a y4m input stream
 pub struct Y4MDecoder {
@@ -57,7 +56,7 @@ impl Decoder for Y4MDecoder {
         }
     }
 
-    fn read_video_frame<T: Pixel>(&mut self) -> Option<FrameInfo<T>> {
+    fn read_video_frame<T: Pixel>(&mut self) -> Option<Frame<T>> {
         let bit_depth = self.inner.get_bit_depth();
         let color_space = self.inner.get_colorspace();
         let (chroma_sampling, chroma_sample_pos) = map_y4m_color_space(color_space);
@@ -86,11 +85,7 @@ impl Decoder for Y4MDecoder {
                 bytes,
             );
 
-            FrameInfo {
-                bit_depth,
-                chroma_sampling,
-                planes: Arc::new(f.planes),
-            }
+            f
         })
     }
 

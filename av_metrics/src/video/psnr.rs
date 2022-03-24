@@ -7,9 +7,15 @@
 use crate::video::decode::Decoder;
 use crate::video::pixel::CastFromPrimitive;
 use crate::video::pixel::Pixel;
-use crate::video::{FrameInfo, PlanarMetrics, VideoMetric};
+use crate::video::{PlanarMetrics, VideoMetric};
+use crate::MetricsError;
 use std::error::Error;
+use std::mem::size_of;
+use v_frame::frame::Frame;
 use v_frame::plane::Plane;
+use v_frame::prelude::ChromaSampling;
+
+use super::FrameCompare;
 
 /// Calculates the PSNR for two videos. Higher is better.
 ///
@@ -50,10 +56,12 @@ pub fn calculate_video_apsnr<D: Decoder, F: Fn(usize) + Send>(
 /// otherwise show a PSNR of infinity.
 #[inline]
 pub fn calculate_frame_psnr<T: Pixel>(
-    frame1: &FrameInfo<T>,
-    frame2: &FrameInfo<T>,
+    frame1: &Frame<T>,
+    frame2: &Frame<T>,
+    bit_depth: usize,
+    chroma_sampling: ChromaSampling,
 ) -> Result<PlanarMetrics, Box<dyn Error>> {
-    let metrics = Psnr.process_frame(frame1, frame2)?;
+    let metrics = Psnr.process_frame(frame1, frame2, bit_depth, chroma_sampling)?;
     Ok(PlanarMetrics {
         y: calculate_psnr(metrics[0]),
         u: calculate_psnr(metrics[1]),
@@ -76,12 +84,20 @@ impl VideoMetric for Psnr {
 
     fn process_frame<T: Pixel>(
         &self,
-        frame1: &FrameInfo<T>,
-        frame2: &FrameInfo<T>,
+        frame1: &Frame<T>,
+        frame2: &Frame<T>,
+        bit_depth: usize,
+        _chroma_sampling: ChromaSampling,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
+        if (size_of::<T>() == 1 && bit_depth > 8) || (size_of::<T>() == 2 && bit_depth <= 8) {
+            return Err(Box::new(MetricsError::InputMismatch {
+                reason: "Bit depths does not match pixel width",
+            }));
+        }
+
         frame1.can_compare(frame2)?;
 
-        let bit_depth = frame1.bit_depth;
+        let bit_depth = bit_depth;
         let mut y = Default::default();
         let mut u = Default::default();
         let mut v = Default::default();

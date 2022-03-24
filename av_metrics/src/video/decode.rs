@@ -2,9 +2,9 @@
 //! Prebuilt decoders are included in the `av-metrics-decoders` crate.
 
 use crate::video::pixel::Pixel;
-use crate::video::FrameInfo;
 use crate::video::{ChromaSamplePosition, ChromaSampling};
 use std::cmp;
+use v_frame::frame::Frame;
 use v_frame::pixel::CastFromPrimitive;
 use v_frame::plane::Plane;
 
@@ -17,11 +17,11 @@ pub trait Decoder: Send {
     /// Read the next frame from the input video.
     ///
     /// Expected to return `Err` if the end of the video is reached.
-    fn read_video_frame<T: Pixel>(&mut self) -> Option<FrameInfo<T>>;
+    fn read_video_frame<T: Pixel>(&mut self) -> Option<Frame<T>>;
     /// Read a specific frame from the input video
     ///
     /// Expected to return `Err` if the frame is not found.
-    fn read_specific_frame<T: Pixel>(&mut self, frame_number: usize) -> Option<FrameInfo<T>> {
+    fn read_specific_frame<T: Pixel>(&mut self, frame_number: usize) -> Option<Frame<T>> {
         let mut frame_no = 0;
         while frame_no <= frame_number {
             let frame = self.read_video_frame();

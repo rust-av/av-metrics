@@ -10,47 +10,17 @@ pub mod ssim;
 use crate::MetricsError;
 use decode::*;
 use std::error::Error;
-use std::sync::Arc;
 
 pub use pixel::*;
 pub use v_frame::frame::Frame;
 pub use v_frame::plane::Plane;
 
-/// A container holding the data for one video frame. This includes all planes
-/// of the video. Currently, only YUV/YCbCr format is supported. Bit depths up to 16-bit
-/// are supported.
-#[derive(Clone, Debug)]
-pub struct FrameInfo<T: Pixel> {
-    /// A container holding three planes worth of video data.
-    /// The indices in the array correspond to the following planes:
-    ///
-    /// - 0 - Y/Luma plane
-    /// - 1 - U/Cb plane
-    /// - 2 - V/Cr plane
-    pub planes: Arc<[Plane<T>; 3]>,
-    /// The number of bits per pixel.
-    pub bit_depth: usize,
-    /// The chroma sampling format of the video. Most videos are in 4:2:0 format.
-    pub chroma_sampling: ChromaSampling,
+trait FrameCompare {
+    fn can_compare(&self, other: &Self) -> Result<(), MetricsError>;
 }
 
-impl<T: Pixel> FrameInfo<T> {
-    pub(crate) fn can_compare(&self, other: &Self) -> Result<(), MetricsError> {
-        if self.bit_depth != other.bit_depth {
-            return Err(MetricsError::InputMismatch {
-                reason: "Bit depths do not match",
-            });
-        }
-        if self.bit_depth > 16 {
-            return Err(MetricsError::UnsupportedInput {
-                reason: "Bit depths above 16 are not supported",
-            });
-        }
-        if self.chroma_sampling != other.chroma_sampling {
-            return Err(MetricsError::InputMismatch {
-                reason: "Chroma subsampling offsets do not match",
-            });
-        }
+impl<T: Pixel> FrameCompare for Frame<T> {
+    fn can_compare(&self, other: &Self) -> Result<(), MetricsError> {
         self.planes[0].can_compare(&other.planes[0])?;
         self.planes[1].can_compare(&other.planes[1])?;
         self.planes[2].can_compare(&other.planes[2])?;
@@ -152,6 +122,13 @@ trait VideoMetric: Send + Sync {
                 reason: "Bit depths do not match",
             }));
         }
+        if decoder1.get_video_details().chroma_sampling
+            != decoder2.get_video_details().chroma_sampling
+        {
+            return Err(Box::new(MetricsError::InputMismatch {
+                reason: "Chroma samplings do not match",
+            }));
+        }
 
         if decoder1.get_bit_depth() > 8 {
             self.process_video_mt::<D, u16, F>(decoder1, decoder2, frame_limit, progress_callback)
@@ -162,8 +139,10 @@ trait VideoMetric: Send + Sync {
 
     fn process_frame<T: Pixel>(
         &self,
-        frame1: &FrameInfo<T>,
-        frame2: &FrameInfo<T>,
+        frame1: &Frame<T>,
+        frame2: &Frame<T>,
+        bit_depth: usize,
+        chroma_sampling: ChromaSampling,
     ) -> Result<Self::FrameResult, Box<dyn Error>>;
 
     fn aggregate_frame_results(
@@ -183,6 +162,7 @@ trait VideoMetric: Send + Sync {
         let mut out = Vec::new();
 
         let (send, recv) = crossbeam::channel::bounded(num_threads);
+        let vid_info = decoder1.get_video_details();
 
         match crossbeam::scope(|s| {
             let send_result = s.spawn(move |_| {
@@ -218,7 +198,13 @@ trait VideoMetric: Send + Sync {
                     .filter_map(|_w| {
                         recv.recv()
                             .map(|(f1, f2)| {
-                                self.process_frame(&f1, &f2).map_err(|e| {
+                                self.process_frame(
+                                    &f1,
+                                    &f2,
+                                    vid_info.bit_depth,
+                                    vid_info.chroma_sampling,
+                                )
+                                .map_err(|e| {
                                     format!(
                                         "\n\n{} on\n\nframe1: {:?}\n\nand\n\nframe2: {:?}",
                                         e, f1, f2

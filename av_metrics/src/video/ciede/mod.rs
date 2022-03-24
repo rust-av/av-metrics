@@ -7,8 +7,10 @@
 
 use crate::video::decode::Decoder;
 use crate::video::pixel::{CastFromPrimitive, Pixel};
-use crate::video::{FrameInfo, VideoMetric};
+use crate::video::VideoMetric;
+use crate::MetricsError;
 use std::f64;
+use std::mem::size_of;
 
 mod rgbtolab;
 use rgbtolab::*;
@@ -56,10 +58,12 @@ pub fn calculate_video_ciede_nosimd<D: Decoder, F: Fn(usize) + Send>(
 /// Calculate the CIEDE2000 metric between two video frames. Higher is better.
 #[inline]
 pub fn calculate_frame_ciede<T: Pixel>(
-    frame1: &FrameInfo<T>,
-    frame2: &FrameInfo<T>,
+    frame1: &Frame<T>,
+    frame2: &Frame<T>,
+    bit_depth: usize,
+    chroma_sampling: ChromaSampling,
 ) -> Result<f64, Box<dyn Error>> {
-    Ciede2000::default().process_frame(frame1, frame2)
+    Ciede2000::default().process_frame(frame1, frame2, bit_depth, chroma_sampling)
 }
 
 /// Calculate the CIEDE2000 metric between two video frames. Higher is better.
@@ -69,10 +73,12 @@ pub fn calculate_frame_ciede<T: Pixel>(
 #[inline]
 #[doc(hidden)]
 pub fn calculate_frame_ciede_nosimd<T: Pixel>(
-    frame1: &FrameInfo<T>,
-    frame2: &FrameInfo<T>,
+    frame1: &Frame<T>,
+    frame2: &Frame<T>,
+    bit_depth: usize,
+    chroma_sampling: ChromaSampling,
 ) -> Result<f64, Box<dyn Error>> {
-    (Ciede2000 { use_simd: false }).process_frame(frame1, frame2)
+    (Ciede2000 { use_simd: false }).process_frame(frame1, frame2, bit_depth, chroma_sampling)
 }
 
 struct Ciede2000 {
@@ -86,6 +92,8 @@ impl Default for Ciede2000 {
 }
 
 use rayon::prelude::*;
+use v_frame::frame::Frame;
+use v_frame::prelude::ChromaSampling;
 
 impl VideoMetric for Ciede2000 {
     type FrameResult = f64;
@@ -93,16 +101,24 @@ impl VideoMetric for Ciede2000 {
 
     fn process_frame<T: Pixel>(
         &self,
-        frame1: &FrameInfo<T>,
-        frame2: &FrameInfo<T>,
+        frame1: &Frame<T>,
+        frame2: &Frame<T>,
+        bit_depth: usize,
+        chroma_sampling: ChromaSampling,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
+        if (size_of::<T>() == 1 && bit_depth > 8) || (size_of::<T>() == 2 && bit_depth <= 8) {
+            return Err(Box::new(MetricsError::InputMismatch {
+                reason: "Bit depths does not match pixel width",
+            }));
+        }
+
         frame1.can_compare(frame2)?;
 
-        let dec = frame1.chroma_sampling.get_decimation().unwrap_or((1, 1));
+        let dec = chroma_sampling.get_decimation().unwrap_or((1, 1));
         let y_width = frame1.planes[0].cfg.width;
         let y_height = frame1.planes[0].cfg.height;
         let c_width = frame1.planes[1].cfg.width;
-        let delta_e_row_fn = get_delta_e_row_fn(frame1.bit_depth, dec.0, self.use_simd);
+        let delta_e_row_fn = get_delta_e_row_fn(bit_depth, dec.0, self.use_simd);
         // let mut delta_e_vec: Vec<f32> = vec![0.0; y_width * y_height];
 
         let delta_e_per_line = (0..y_height).into_par_iter().map(|i| {
@@ -319,6 +335,8 @@ impl DeltaEScalar for BD12_444 {}
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use self::avx2::*;
 use std::error::Error;
+
+use super::FrameCompare;
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 mod avx2 {

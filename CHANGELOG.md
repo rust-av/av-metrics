@@ -1,6 +1,6 @@
-## Version 0.8.0
+## Version 0.8.1
 
-- [Breaking] Wrap `FrameInfo.planes` in an `Arc` (this should help users of the library avoid clones)
+- [Breaking] Remove the `FrameInfo` struct and use `v_frame::Frame` directly
 - Migrate to edition 2021
 - Upgrade `clap` to `3.x`
 - Upgrade `ffmpeg-next` to `5.x`

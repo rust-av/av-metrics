@@ -7,14 +7,13 @@ use av_metrics::video::decode::convert_chroma_data;
 use av_metrics::video::psnr::calculate_frame_psnr;
 use av_metrics::video::psnr_hvs::calculate_frame_psnr_hvs;
 use av_metrics::video::ssim::{calculate_frame_msssim, calculate_frame_ssim};
+use av_metrics::video::Frame;
 use av_metrics::video::{ChromaSamplePosition, ChromaSampling, Pixel};
-use av_metrics::video::{Frame, FrameInfo};
 use criterion::Criterion;
 use std::fs::File;
-use std::sync::Arc;
 use y4m::Decoder as Y4MDec;
 
-fn get_video_frame<T: Pixel>(filename: &str) -> FrameInfo<T> {
+fn get_video_frame<T: Pixel>(filename: &str) -> Frame<T> {
     let mut file = File::open(filename).unwrap();
     let mut dec = Y4MDec::new(&mut file).unwrap();
 
@@ -46,11 +45,7 @@ fn get_video_frame<T: Pixel>(filename: &str) -> FrameInfo<T> {
         bytes,
     );
 
-    FrameInfo {
-        bit_depth,
-        chroma_sampling,
-        planes: Arc::new(f.planes),
-    }
+    f
 }
 
 fn map_y4m_color_space(color_space: y4m::Colorspace) -> (ChromaSampling, ChromaSamplePosition) {
@@ -79,7 +74,7 @@ pub fn psnr_benchmark(c: &mut Criterion) {
     ));
     c.bench_function("PSNR yuv420p8", |b| {
         b.iter(|| {
-            calculate_frame_psnr(&frame1, &frame2).unwrap();
+            calculate_frame_psnr(&frame1, &frame2, 8, ChromaSampling::Cs420).unwrap();
         })
     });
 }
@@ -95,7 +90,7 @@ pub fn psnrhvs_benchmark(c: &mut Criterion) {
     ));
     c.bench_function("PSNR-HVS yuv420p8", |b| {
         b.iter(|| {
-            calculate_frame_psnr_hvs(&frame1, &frame2).unwrap();
+            calculate_frame_psnr_hvs(&frame1, &frame2, 8, ChromaSampling::Cs420).unwrap();
         })
     });
 }
@@ -111,7 +106,7 @@ pub fn ssim_benchmark(c: &mut Criterion) {
     ));
     c.bench_function("SSIM yuv420p8", |b| {
         b.iter(|| {
-            calculate_frame_ssim(&frame1, &frame2).unwrap();
+            calculate_frame_ssim(&frame1, &frame2, 8, ChromaSampling::Cs420).unwrap();
         })
     });
 }
@@ -127,7 +122,7 @@ pub fn msssim_benchmark(c: &mut Criterion) {
     ));
     c.bench_function("MSSSIM yuv420p8", |b| {
         b.iter(|| {
-            calculate_frame_msssim(&frame1, &frame2).unwrap();
+            calculate_frame_msssim(&frame1, &frame2, 8, ChromaSampling::Cs420).unwrap();
         })
     });
 }
@@ -143,7 +138,7 @@ pub fn ciede2000_nosimd_benchmark(c: &mut Criterion) {
     ));
     c.bench_function("CIEDE2000 yuv420p8 nosimd", |b| {
         b.iter(|| {
-            calculate_frame_ciede_nosimd(&frame1, &frame2).unwrap();
+            calculate_frame_ciede_nosimd(&frame1, &frame2, 8, ChromaSampling::Cs420).unwrap();
         })
     });
 }
@@ -159,7 +154,7 @@ pub fn ciede2000_simd_benchmark(c: &mut Criterion) {
     ));
     c.bench_function("CIEDE2000 yuv420p8", |b| {
         b.iter(|| {
-            calculate_frame_ciede(&frame1, &frame2).unwrap();
+            calculate_frame_ciede(&frame1, &frame2, 8, ChromaSampling::Cs420).unwrap();
         })
     });
 }
@@ -175,7 +170,7 @@ pub fn psnr_10bit_benchmark(c: &mut Criterion) {
     ));
     c.bench_function("PSNR yuv420p10", |b| {
         b.iter(|| {
-            calculate_frame_psnr(&frame1, &frame2).unwrap();
+            calculate_frame_psnr(&frame1, &frame2, 10, ChromaSampling::Cs420).unwrap();
         })
     });
 }
@@ -191,7 +186,7 @@ pub fn psnrhvs_10bit_benchmark(c: &mut Criterion) {
     ));
     c.bench_function("PSNR-HVS yuv420p10", |b| {
         b.iter(|| {
-            calculate_frame_psnr_hvs(&frame1, &frame2).unwrap();
+            calculate_frame_psnr_hvs(&frame1, &frame2, 10, ChromaSampling::Cs420).unwrap();
         })
     });
 }
@@ -207,7 +202,7 @@ pub fn ssim_10bit_benchmark(c: &mut Criterion) {
     ));
     c.bench_function("SSIM yuv420p10", |b| {
         b.iter(|| {
-            calculate_frame_ssim(&frame1, &frame2).unwrap();
+            calculate_frame_ssim(&frame1, &frame2, 10, ChromaSampling::Cs420).unwrap();
         })
     });
 }
@@ -223,7 +218,7 @@ pub fn msssim_10bit_benchmark(c: &mut Criterion) {
     ));
     c.bench_function("MSSSIM yuv420p10", |b| {
         b.iter(|| {
-            calculate_frame_msssim(&frame1, &frame2).unwrap();
+            calculate_frame_msssim(&frame1, &frame2, 10, ChromaSampling::Cs420).unwrap();
         })
     });
 }
@@ -239,7 +234,7 @@ pub fn ciede2000_nosimd_10bit_benchmark(c: &mut Criterion) {
     ));
     c.bench_function("CIEDE2000 yuv420p10 nosimd", |b| {
         b.iter(|| {
-            calculate_frame_ciede_nosimd(&frame1, &frame2).unwrap();
+            calculate_frame_ciede_nosimd(&frame1, &frame2, 10, ChromaSampling::Cs420).unwrap();
         })
     });
 }
@@ -255,7 +250,7 @@ pub fn ciede2000_simd_10bit_benchmark(c: &mut Criterion) {
     ));
     c.bench_function("CIEDE2000 yuv420p10", |b| {
         b.iter(|| {
-            calculate_frame_ciede(&frame1, &frame2).unwrap();
+            calculate_frame_ciede(&frame1, &frame2, 10, ChromaSampling::Cs420).unwrap();
         })
     });
 }
