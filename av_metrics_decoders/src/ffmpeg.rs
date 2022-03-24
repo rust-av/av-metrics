@@ -41,9 +41,7 @@ impl FfmpegDecoder {
             .set_parameters(input.parameters())
             .map_err(|e| e.to_string())?;
 
-        let frame_rate = decoder
-            .frame_rate()
-            .ok_or_else(|| "Could not get frame rate".to_string())?;
+        let frame_rate = input.avg_frame_rate();
         Ok(Self {
             video_details: VideoDetails {
                 width: decoder.width() as usize,
@@ -82,7 +80,10 @@ impl FfmpegDecoder {
                     | format::pixel::Pixel::YUV422P12LE => ChromaSamplePosition::Vertical,
                     _ => ChromaSamplePosition::Colocated,
                 },
-                time_base: Rational::new(frame_rate.1 as u64, frame_rate.0 as u64),
+                time_base: Rational::new(
+                    frame_rate.denominator() as u64,
+                    frame_rate.numerator() as u64,
+                ),
                 luma_padding: 0,
             },
             decoder,
