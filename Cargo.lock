@@ -37,7 +37,7 @@ dependencies = [
 
 [[package]]
 name = "av-metrics-decoders"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "av-metrics",
  "ffmpeg-next",
@@ -54,7 +54,7 @@ dependencies = [
 
 [[package]]
 name = "av-metrics-tool"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "av-metrics",
  "av-metrics-decoders",
@@ -332,7 +332,8 @@ checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 [[package]]
 name = "ffmpeg-next"
 version = "5.0.3"
-source = "git+https://github.com/zmwangx/rust-ffmpeg#4275a8b0a28b8a654ff8f857de77861020bc920a"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "585e5eaf57eceaa199ba6f6a1f46bdad7992930bb7b45b40275d9445b5ba2bc8"
 dependencies = [
  "bitflags",
  "ffmpeg-sys-next",

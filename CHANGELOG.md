@@ -1,3 +1,8 @@
+## Version 0.8.2
+
+- Export `Frame` from the decoders crate as well
+- Bump dependencies
+
 ## Version 0.8.1
 
 - [Breaking] Remove the `FrameInfo` struct and use `v_frame::Frame` directly

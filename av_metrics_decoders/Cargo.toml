@@ -1,6 +1,6 @@
 [package]
 name = "av-metrics-decoders"
-version = "0.1.6"
+version = "0.1.7"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
 edition = "2021"
 description = "Decoders for use with av-metrics"
@@ -12,7 +12,7 @@ include = ["src/**/*"]
 
 [dependencies]
 av-metrics = "0.8"
-ffmpeg-next = { git = "https://github.com/zmwangx/rust-ffmpeg", optional = true, default-features = false, features = [
+ffmpeg-next = { version = "5.0.3", optional = true, default-features = false, features = [
     "codec",
     "format",
 ] }
