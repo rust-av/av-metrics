@@ -1,3 +1,8 @@
+## Version 0.9.0
+
+- Bump dependencies, including `v_frame` to `0.3`
+- Minor fixes
+
 ## Version 0.8.2
 
 - Export `Frame` from the decoders crate as well
