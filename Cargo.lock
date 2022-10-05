@@ -78,7 +78,7 @@ dependencies = [
 name = "av-metrics-tool"
 version = "0.9.0"
 dependencies = [
- "av-metrics 0.8.1",
+ "av-metrics 0.9.0",
  "av-metrics-decoders",
  "clap",
  "console",
