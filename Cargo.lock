@@ -59,9 +59,9 @@ dependencies = [
 
 [[package]]
 name = "av-metrics-decoders"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
- "av-metrics 0.8.1",
+ "av-metrics 0.9.0",
  "ffmpeg-next",
  "y4m",
 ]

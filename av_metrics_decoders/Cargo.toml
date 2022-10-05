@@ -1,6 +1,6 @@
 [package]
 name = "av-metrics-decoders"
-version = "0.1.7"
+version = "0.1.8"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
 edition = "2021"
 description = "Decoders for use with av-metrics"
@@ -11,7 +11,7 @@ include = ["src/**/*"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-av-metrics = "0.8"
+av-metrics = "0.9"
 ffmpeg-next = { version = "5.0.3", optional = true, default-features = false, features = [
     "codec",
     "format",
