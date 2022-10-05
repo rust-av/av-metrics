@@ -63,7 +63,7 @@ impl ChromaWeight for ChromaSampling {
 }
 
 /// Sample position for subsampled chroma
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ChromaSamplePosition {
     /// The source video transfer function is not signaled. This crate will assume
     /// no transformation needs to be done on this data, but there is a risk of metric

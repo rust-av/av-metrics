@@ -215,14 +215,19 @@ fn run_video_metrics(
         let total_frames = total_frames(&input1, &input2);
         (
             ProgressBar::new(total_frames).with_style(
-                ProgressStyle::default_spinner().template("{prefix} - Frame {pos}/{msg}"),
+                ProgressStyle::default_spinner()
+                    .template("{prefix} - Frame {pos}/{msg}")
+                    .unwrap(),
             ),
             total_frames,
         )
     } else {
         (
-            ProgressBar::new_spinner()
-                .with_style(ProgressStyle::default_spinner().template("{prefix} - Frame {pos}")),
+            ProgressBar::new_spinner().with_style(
+                ProgressStyle::default_spinner()
+                    .template("{prefix} - Frame {pos}")
+                    .unwrap(),
+            ),
             0,
         )
     };

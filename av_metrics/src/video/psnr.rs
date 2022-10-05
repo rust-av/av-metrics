@@ -191,7 +191,7 @@ fn calculate_plane_total_squared_error<T: Pixel>(plane1: &Plane<T>, plane2: &Pla
         .data
         .iter()
         .zip(plane2.data.iter())
-        .map(|(a, b)| (i32::cast_from(*a) - i32::cast_from(*b)).abs() as u64)
+        .map(|(a, b)| (i32::cast_from(*a) - i32::cast_from(*b)).unsigned_abs() as u64)
         .map(|err| err * err)
         .sum::<u64>() as f64
 }
