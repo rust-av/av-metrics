@@ -5,7 +5,6 @@ members = [
     "av_metrics_decoders",
     "av_metrics_tests",
 ]
-exclude = ["av_metrics_gui_tool"]
 
 [profile.dev]
 opt-level = 1
