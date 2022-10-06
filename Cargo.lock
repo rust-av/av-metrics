@@ -27,22 +27,6 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "av-metrics"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b8825dd904295038848caf33a2d9fc631672a5b2116cdbe8db99d251dc7eb23"
-dependencies = [
- "crossbeam",
- "itertools",
- "lab",
- "num-traits",
- "rayon",
- "serde",
- "thiserror",
- "v_frame 0.2.5",
-]
-
-[[package]]
-name = "av-metrics"
 version = "0.9.0"
 dependencies = [
  "criterion",
@@ -53,7 +37,7 @@ dependencies = [
  "rayon",
  "serde",
  "thiserror",
- "v_frame 0.3.0",
+ "v_frame",
  "y4m",
 ]
 
@@ -61,7 +45,7 @@ dependencies = [
 name = "av-metrics-decoders"
 version = "0.1.8"
 dependencies = [
- "av-metrics 0.9.0",
+ "av-metrics",
  "ffmpeg-next",
  "y4m",
 ]
@@ -70,7 +54,7 @@ dependencies = [
 name = "av-metrics-tests"
 version = "0.0.1"
 dependencies = [
- "av-metrics 0.8.1",
+ "av-metrics",
  "av-metrics-decoders",
 ]
 
@@ -78,7 +62,7 @@ dependencies = [
 name = "av-metrics-tool"
 version = "0.9.0"
 dependencies = [
- "av-metrics 0.9.0",
+ "av-metrics",
  "av-metrics-decoders",
  "clap",
  "console",
@@ -839,20 +823,6 @@ name = "unicode-width"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0edd1e5b14653f783770bce4a4dabb4a5108a5370a5f5d8cfe8710c361f6c8b"
-
-[[package]]
-name = "v_frame"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c70a928a3fbba9cbb0f86ffb4aabed536e7acf692a46b3bfb70c3d9c15b8c6ab"
-dependencies = [
- "cfg-if",
- "noop_proc_macro",
- "num-derive",
- "num-traits",
- "rayon",
- "rust_hawktracer",
-]
 
 [[package]]
 name = "v_frame"
