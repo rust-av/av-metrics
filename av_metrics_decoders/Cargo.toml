@@ -23,4 +23,4 @@ ffmpeg = ["ffmpeg-next"]
 # Link a FFmpeg version built statically
 ffmpeg_static = ["ffmpeg-next/static"]
 # Build FFmpeg statically (https://github.com/zmwangx/rust-ffmpeg-sys/blob/master/Cargo.toml)
-ffmpeg_build = ["ffmpeg-next/build"]
+ffmpeg_build = ["ffmpeg-next/build", "ffmpeg-next/build-lib-dav1d"]
