@@ -1,3 +1,8 @@
+## decoder Version 0.1.9
+
+- Include libdav1d with ffmpeg_build feature
+- Add YUVJ support
+
 ## Version 0.9.0
 
 - Bump dependencies, including `v_frame` to `0.3`
