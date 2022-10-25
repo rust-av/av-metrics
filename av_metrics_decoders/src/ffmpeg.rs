@@ -49,7 +49,10 @@ impl FfmpegDecoder {
                 bit_depth: match decoder.format() {
                     format::pixel::Pixel::YUV420P
                     | format::pixel::Pixel::YUV422P
-                    | format::pixel::Pixel::YUV444P => 8,
+                    | format::pixel::Pixel::YUV444P
+                    | format::pixel::Pixel::YUVJ420P
+                    | format::pixel::Pixel::YUVJ422P
+                    | format::pixel::Pixel::YUVJ444P => 8,
                     format::pixel::Pixel::YUV420P10LE
                     | format::pixel::Pixel::YUV422P10LE
                     | format::pixel::Pixel::YUV444P10LE => 10,
@@ -62,12 +65,15 @@ impl FfmpegDecoder {
                 },
                 chroma_sampling: match decoder.format() {
                     format::pixel::Pixel::YUV420P
+                    | format::pixel::Pixel::YUVJ420P
                     | format::pixel::Pixel::YUV420P10LE
                     | format::pixel::Pixel::YUV420P12LE => ChromaSampling::Cs420,
                     format::pixel::Pixel::YUV422P
+                    | format::pixel::Pixel::YUVJ422P
                     | format::pixel::Pixel::YUV422P10LE
                     | format::pixel::Pixel::YUV422P12LE => ChromaSampling::Cs422,
                     format::pixel::Pixel::YUV444P
+                    | format::pixel::Pixel::YUVJ444P
                     | format::pixel::Pixel::YUV444P10LE
                     | format::pixel::Pixel::YUV444P12LE => ChromaSampling::Cs444,
                     _ => {
