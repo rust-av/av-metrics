@@ -1,3 +1,7 @@
+## decoder Version 0.1.10
+
+- Fix a bug where certain codecs may not return the final frame
+
 ## decoder Version 0.1.9
 
 - Include libdav1d with ffmpeg_build feature
