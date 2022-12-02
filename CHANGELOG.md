@@ -1,3 +1,7 @@
+## decoder Version 0.2.0
+
+- Add Vapoursynth decoder, available with `vapoursynth` cargo feature
+
 ## decoder Version 0.1.10
 
 - Fix a bug where certain codecs may not return the final frame

@@ -50,6 +50,17 @@ dependencies = [
 [[package]]
 name = "av-metrics-decoders"
 version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01053470942f9fa12cf3c20f24c47823dfd7122438a7dbe4bba360f9f3ef404b"
+dependencies = [
+ "av-metrics",
+ "ffmpeg-next",
+ "y4m",
+]
+
+[[package]]
+name = "av-metrics-decoders"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "av-metrics",
@@ -63,7 +74,7 @@ name = "av-metrics-tests"
 version = "0.0.1"
 dependencies = [
  "av-metrics",
- "av-metrics-decoders",
+ "av-metrics-decoders 0.1.10",
 ]
 
 [[package]]
@@ -71,7 +82,7 @@ name = "av-metrics-tool"
 version = "0.9.0"
 dependencies = [
  "av-metrics",
- "av-metrics-decoders",
+ "av-metrics-decoders 0.1.10",
  "clap",
  "console",
  "indicatif",

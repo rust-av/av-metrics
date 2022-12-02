@@ -1,6 +1,6 @@
 [package]
 name = "av-metrics-decoders"
-version = "0.1.10"
+version = "0.2.0"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
 edition = "2021"
 description = "Decoders for use with av-metrics"
