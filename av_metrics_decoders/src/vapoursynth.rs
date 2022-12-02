@@ -101,7 +101,13 @@ impl Decoder for VapoursynthDecoder {
         &mut self,
     ) -> Option<av_metrics::video::Frame<T>> {
         let details = self.get_video_details();
-        assert!(details.bit_depth == size_of::<T>());
+        if details.bit_depth <= 8 {
+            assert!(size_of::<T>() == 1);
+        } else if details.bit_depth <= 16 {
+            assert!(size_of::<T>() == 2);
+        } else {
+            panic!("Unsupported bit depth");
+        }
 
         let mut f: av_metrics::video::Frame<T> = av_metrics::video::Frame::new_with_padding(
             details.width,
