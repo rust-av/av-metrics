@@ -12,6 +12,9 @@ use av_metrics::video::decode::*;
 use av_metrics::video::*;
 
 /// An interface that is used for decoding a video stream using FFMpeg
+///
+/// There have been desync issue reported with this decoder
+/// on some video files. Use at your own risk!
 pub struct FfmpegDecoder {
     input_ctx: context::Input,
     decoder: decoder::Video,

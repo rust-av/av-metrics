@@ -11,11 +11,18 @@ include = ["src/**/*"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.66"
 av-metrics = "0.9"
 ffmpeg-next = { version = "5.0.3", optional = true, default-features = false, features = [
     "codec",
     "format",
 ] }
+vapoursynth = { version = "0.4.0", features = [
+    "vsscript-functions",
+    "vapoursynth-functions",
+    "vapoursynth-api-36",
+    "vsscript-api-32",
+], optional = true }
 y4m = { version = "0.7", optional = true }
 
 [features]
