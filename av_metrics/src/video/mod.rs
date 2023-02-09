@@ -176,8 +176,7 @@ trait VideoMetric: Send + Sync {
                         if let Err(e) = send.send((frame1, frame2)) {
                             let (frame1, frame2) = e.into_inner();
                             return Err(format!(
-                                "Error sending\n\nframe1: {:?}\n\nframe2: {:?}",
-                                frame1, frame2
+                                "Error sending\n\nframe1: {frame1:?}\n\nframe2: {frame2:?}"
                             ));
                         }
                     } else {
@@ -205,10 +204,7 @@ trait VideoMetric: Send + Sync {
                                     vid_info.chroma_sampling,
                                 )
                                 .map_err(|e| {
-                                    format!(
-                                        "\n\n{} on\n\nframe1: {:?}\n\nand\n\nframe2: {:?}",
-                                        e, f1, f2
-                                    )
+                                    format!("\n\n{e} on\n\nframe1: {f1:?}\n\nand\n\nframe2: {f2:?}")
                                 })
                             })
                             .ok()
@@ -253,7 +249,7 @@ trait VideoMetric: Send + Sync {
                 self.aggregate_frame_results(&out)
             }
             Err(e) => Err(MetricsError::VideoError {
-                reason: format!("\n\nError {:?} processing the two videos", e),
+                reason: format!("\n\nError {e:?} processing the two videos"),
             }
             .into()),
         }

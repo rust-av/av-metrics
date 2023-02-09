@@ -1,11 +1,10 @@
-extern crate ffmpeg_next as ffmpeg;
+extern crate ffmpeg_the_third as ffmpeg;
 
 use std::path::Path;
 
 use ffmpeg::codec::{decoder, packet};
 use ffmpeg::format::context;
 use ffmpeg::media::Type;
-use ffmpeg::util::frame::video::Video;
 use ffmpeg::{format, frame};
 
 use av_metrics::video::decode::*;
@@ -22,6 +21,7 @@ pub struct FfmpegDecoder {
     frameno: usize,
     stream_index: usize,
     end_of_stream: bool,
+    eof_sent: bool,
 }
 
 impl FfmpegDecoder {
@@ -100,7 +100,43 @@ impl FfmpegDecoder {
             frameno: 0,
             stream_index,
             end_of_stream: false,
+            eof_sent: false,
         })
+    }
+
+    fn decode_frame<T: Pixel>(&self, decoded: &frame::Video) -> Frame<T> {
+        let mut f: Frame<T> = Frame::new_with_padding(
+            self.video_details.width,
+            self.video_details.height,
+            self.video_details.chroma_sampling,
+            0,
+        );
+        let width = self.video_details.width;
+        let height = self.video_details.height;
+        let bit_depth = self.video_details.bit_depth;
+        let bytes = if bit_depth > 8 { 2 } else { 1 };
+        let (chroma_width, _) = self
+            .video_details
+            .chroma_sampling
+            .get_chroma_dimensions(width, height);
+        f.planes[0].copy_from_raw_u8(decoded.data(0), width * bytes, bytes);
+        convert_chroma_data(
+            &mut f.planes[1],
+            self.video_details.chroma_sample_position,
+            bit_depth,
+            decoded.data(1),
+            chroma_width * bytes,
+            bytes,
+        );
+        convert_chroma_data(
+            &mut f.planes[2],
+            self.video_details.chroma_sample_position,
+            bit_depth,
+            decoded.data(2),
+            chroma_width * bytes,
+            bytes,
+        );
+        f
     }
 }
 
@@ -130,64 +166,31 @@ impl Decoder for FfmpegDecoder {
                 packet::Packet::empty()
             };
 
+            if self.end_of_stream && !self.eof_sent {
+                let _ = self.decoder.send_eof();
+                self.eof_sent = true;
+            }
+
             if self.end_of_stream || packet.stream() == self.stream_index {
                 let mut decoded = frame::Video::new(
                     self.decoder.format(),
                     self.video_details.width as u32,
                     self.video_details.height as u32,
                 );
-                if packet.pts().is_none() {
-                    packet.set_pts(Some(self.frameno as i64));
-                    packet.set_dts(Some(self.frameno as i64));
-                }
+                packet.set_pts(Some(self.frameno as i64));
+                packet.set_dts(Some(self.frameno as i64));
 
-                // If there is an error sending a packet, skip to the next packet
-                if self.decoder.send_packet(&packet).is_err() && !self.end_of_stream {
-                    continue;
+                if !self.end_of_stream {
+                    let _ = self.decoder.send_packet(&packet);
                 }
 
                 if self.decoder.receive_frame(&mut decoded).is_ok() {
-                    let mut f: Frame<T> = Frame::new_with_padding(
-                        self.video_details.width,
-                        self.video_details.height,
-                        self.video_details.chroma_sampling,
-                        0,
-                    );
-                    let width = self.video_details.width;
-                    let height = self.video_details.height;
-                    let bit_depth = self.video_details.bit_depth;
-                    let bytes = if bit_depth > 8 { 2 } else { 1 };
-                    let (chroma_width, _) = self
-                        .video_details
-                        .chroma_sampling
-                        .get_chroma_dimensions(width, height);
-                    f.planes[0].copy_from_raw_u8(decoded.data(0), width * bytes, bytes);
-                    convert_chroma_data(
-                        &mut f.planes[1],
-                        self.video_details.chroma_sample_position,
-                        bit_depth,
-                        decoded.data(1),
-                        chroma_width * bytes,
-                        bytes,
-                    );
-                    convert_chroma_data(
-                        &mut f.planes[2],
-                        self.video_details.chroma_sample_position,
-                        bit_depth,
-                        decoded.data(2),
-                        chroma_width * bytes,
-                        bytes,
-                    );
-
+                    let f = self.decode_frame(&decoded);
                     self.frameno += 1;
                     return Some(f);
+                } else if self.end_of_stream {
+                    return None;
                 }
-            }
-            // Close decoder
-            if self.end_of_stream {
-                let _ = self.decoder.send_eof();
-                let _ = self.decoder.receive_frame(&mut Video::empty());
-                return None;
             }
         }
     }

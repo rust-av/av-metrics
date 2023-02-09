@@ -1,3 +1,8 @@
+## decoder Version 0.2.1
+
+- Fixes to ffmpeg decoder frame accuracy
+- Migrate to forked ffmpeg crate that is maintained
+
 ## decoder Version 0.2.0
 
 - Add Vapoursynth decoder, available with `vapoursynth` cargo feature

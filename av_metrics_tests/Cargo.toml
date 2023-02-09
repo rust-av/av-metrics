@@ -8,7 +8,7 @@ publish = false
 
 [dependencies]
 av-metrics = { version = "0.9", features = ["serde"] }
-av-metrics-decoders = "0.1"
+av-metrics-decoders = "0.2.1"
 
 [features]
 default = ["y4m"]

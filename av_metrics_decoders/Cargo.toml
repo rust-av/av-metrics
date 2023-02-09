@@ -1,6 +1,6 @@
 [package]
 name = "av-metrics-decoders"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
 edition = "2021"
 description = "Decoders for use with av-metrics"
@@ -13,7 +13,7 @@ include = ["src/**/*"]
 [dependencies]
 anyhow = "1.0.66"
 av-metrics = "0.9"
-ffmpeg-next = { version = "5.0.3", optional = true, default-features = false, features = [
+ffmpeg-the-third = { version = "1.1.2", optional = true, default-features = false, features = [
     "codec",
     "format",
 ] }
@@ -26,8 +26,8 @@ vapoursynth = { version = "0.4.0", features = [
 y4m = { version = "0.7", optional = true }
 
 [features]
-ffmpeg = ["ffmpeg-next"]
+ffmpeg = ["ffmpeg-the-third"]
 # Link a FFmpeg version built statically
-ffmpeg_static = ["ffmpeg-next/static"]
+ffmpeg_static = ["ffmpeg-the-third/static"]
 # Build FFmpeg statically (https://github.com/zmwangx/rust-ffmpeg-sys/blob/master/Cargo.toml)
-ffmpeg_build = ["ffmpeg-next/build", "ffmpeg-next/build-lib-dav1d"]
+ffmpeg_build = ["ffmpeg-the-third/build", "ffmpeg-the-third/build-lib-dav1d"]
