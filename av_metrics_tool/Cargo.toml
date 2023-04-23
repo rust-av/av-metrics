@@ -1,6 +1,6 @@
 [package]
 name = "av-metrics-tool"
-version = "0.9.0"
+version = "0.9.1"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
 edition = "2021"
 description = "A CLI tool for measuring audio/video metrics"

@@ -1,6 +1,6 @@
 [package]
 name = "av-metrics-decoders"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
 edition = "2021"
 description = "Decoders for use with av-metrics"
@@ -13,7 +13,7 @@ include = ["src/**/*"]
 [dependencies]
 anyhow = "1.0.66"
 av-metrics = "0.9"
-ffmpeg-the-third = { version = "1.1.2", optional = true, default-features = false, features = [
+ffmpeg-the-third = { version = "1.2.2", optional = true, default-features = false, features = [
     "codec",
     "format",
 ] }
@@ -23,7 +23,7 @@ vapoursynth = { version = "0.4.0", features = [
     "vapoursynth-api-36",
     "vsscript-api-32",
 ], optional = true }
-y4m = { version = "0.7", optional = true }
+y4m = { version = "0.8", optional = true }
 
 [features]
 ffmpeg = ["ffmpeg-the-third"]

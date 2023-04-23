@@ -63,11 +63,12 @@ impl ChromaWeight for ChromaSampling {
 }
 
 /// Sample position for subsampled chroma
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
 pub enum ChromaSamplePosition {
     /// The source video transfer function is not signaled. This crate will assume
     /// no transformation needs to be done on this data, but there is a risk of metric
     /// calculations being inaccurate.
+    #[default]
     Unknown,
     /// Horizontally co-located with (0, 0) luma sample, vertically positioned
     /// in the middle between two luma samples.
@@ -78,12 +79,6 @@ pub enum ChromaSamplePosition {
     Bilateral,
     /// Interlaced content with interpolated chroma samples.
     Interpolated,
-}
-
-impl Default for ChromaSamplePosition {
-    fn default() -> Self {
-        ChromaSamplePosition::Unknown
-    }
 }
 
 /// Certain metrics return a value per plane. This struct contains the output

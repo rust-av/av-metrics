@@ -1,6 +1,6 @@
 [package]
 name = "av-metrics"
-version = "0.9.0"
+version = "0.9.1"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
 edition = "2021"
 description = "A collection of algorithms for measuring audio/video metrics"
@@ -20,7 +20,7 @@ v_frame = "0.3.1"
 
 [dev-dependencies]
 criterion = "0.4"
-y4m = "0.7.0"
+y4m = "0.8.0"
 
 [lib]
 bench = false
