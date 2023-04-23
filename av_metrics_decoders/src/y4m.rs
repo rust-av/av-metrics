@@ -1,12 +1,12 @@
 use av_metrics::video::decode::*;
 use av_metrics::video::*;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{stdin, BufReader};
 use std::path::Path;
 
 /// A decoder for a y4m input stream
-pub struct Y4MDecoder {
-    inner: y4m::Decoder<BufReader<File>>,
+pub struct Y4MDecoder<R: Read> {
+    inner: y4m::Decoder<R>,
 }
 
 /// Function to map y4m color space
@@ -32,6 +32,12 @@ impl Y4MDecoder {
         let file = File::open(input).map_err(|e| e.to_string())?;
         let inner = y4m::Decoder::new(BufReader::new(file)).map_err(|e| e.to_string())?;
         Ok(Self { inner })
+    }
+
+    pub fn from_stdin() -> Result<Self, String> {
+        Ok(Self {
+            inner: y4m::Decoder::new(stdin()).map_err(|e| e.to_string())?,
+        })
     }
 }
 

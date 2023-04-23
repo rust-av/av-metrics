@@ -1,3 +1,7 @@
+## decoder Version 0.3.0
+
+- Add `Y4MDecoder::from_stdin` method
+
 ## decoder Version 0.2.1
 
 - Fixes to ffmpeg decoder frame accuracy
