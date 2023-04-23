@@ -7,7 +7,8 @@
 #![deny(missing_docs)]
 
 #[cfg(feature = "y4m")]
-mod y4m;
+/// Items related to decoding y4m video
+pub mod y4m;
 
 #[cfg(feature = "y4m")]
 pub use crate::y4m::Y4MDecoder;

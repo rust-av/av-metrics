@@ -1,11 +1,11 @@
 use av_metrics::video::decode::*;
 use av_metrics::video::*;
 use std::fs::File;
-use std::io::{stdin, BufReader, Read};
+use std::io::{stdin, BufReader, Read, Stdin};
 use std::path::Path;
 
 /// A decoder for a y4m input stream
-pub struct Y4MDecoder<R: Read> {
+pub struct Y4MDecoder<R: Read + Send> {
     inner: y4m::Decoder<R>,
 }
 
@@ -26,22 +26,26 @@ fn map_y4m_color_space(color_space: y4m::Colorspace) -> (ChromaSampling, ChromaS
     }
 }
 
-impl Y4MDecoder {
-    /// Initialize a new Y4M decoder for a given input file
-    pub fn new<P: AsRef<Path>>(input: P) -> Result<Self, String> {
-        let file = File::open(input).map_err(|e| e.to_string())?;
-        let inner = y4m::Decoder::new(BufReader::new(file)).map_err(|e| e.to_string())?;
-        Ok(Self { inner })
-    }
-
-    pub fn from_stdin() -> Result<Self, String> {
-        Ok(Self {
-            inner: y4m::Decoder::new(stdin()).map_err(|e| e.to_string())?,
-        })
-    }
+/// Initialize a new Y4M decoder for a given input file
+pub fn new_decoder_from_file<P: AsRef<Path>>(
+    input: P,
+) -> Result<Y4MDecoder<BufReader<File>>, String> {
+    let file = File::open(input).map_err(|e| e.to_string())?;
+    let inner = y4m::Decoder::new(BufReader::new(file)).map_err(|e| e.to_string())?;
+    Ok(Y4MDecoder { inner })
 }
 
-impl Decoder for Y4MDecoder {
+/// Initialize a new Y4M decoder from stdin
+pub fn new_decoder_from_stdin() -> Result<Y4MDecoder<BufReader<Stdin>>, String> {
+    Ok(Y4MDecoder {
+        inner: y4m::Decoder::new(BufReader::new(stdin())).map_err(|e| e.to_string())?,
+    })
+}
+
+impl<R> Decoder for Y4MDecoder<R>
+where
+    R: Read + Send,
+{
     fn get_video_details(&self) -> VideoDetails {
         let width = self.inner.get_width();
         let height = self.inner.get_height();

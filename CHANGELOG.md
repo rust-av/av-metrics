@@ -1,6 +1,6 @@
-## decoder Version 0.3.0
+## decoder Version 0.3.1
 
-- Add `Y4MDecoder::from_stdin` method
+- Rework y4m decoder to support stdin and other `Read` types
 
 ## decoder Version 0.2.1
 
