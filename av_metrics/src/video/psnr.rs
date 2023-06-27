@@ -33,6 +33,32 @@ pub fn calculate_video_psnr<D: Decoder, F: Fn(usize) + Send>(
     Ok(metrics.psnr)
 }
 
+/// Calculates the MSE for two Videos. Lower is better
+///
+/// MSE is Mean Square Error for a video.
+pub fn calculate_video_mse<D: Decoder, F: Fn(usize) + Send>(
+    decoder1: &mut D,
+    decoder2: &mut D,
+    frame_limit: Option<usize>,
+    progress_callback: F,
+) -> Result<PlanarMetrics, Box<dyn Error>> {
+    let metrics = Psnr.process_video(decoder1, decoder2, frame_limit, progress_callback)?;
+    Ok(metrics.mse)
+}
+
+/// Calculates the RMSE for two Videos. Lower is better
+///
+/// Root Mean Square MSE is Root of Mean Square Error for a video.
+pub fn calculate_video_rmse<D: Decoder, F: Fn(usize) + Send>(
+    decoder1: &mut D,
+    decoder2: &mut D,
+    frame_limit: Option<usize>,
+    progress_callback: F,
+) -> Result<PlanarMetrics, Box<dyn Error>> {
+    let metrics = Psnr.process_video(decoder1, decoder2, frame_limit, progress_callback)?;
+    Ok(metrics.rmse)
+}
+
 /// Calculates the APSNR for two videos. Higher is better.
 ///
 /// APSNR is capped at 100 in order to avoid skewed statistics
@@ -74,6 +100,8 @@ pub fn calculate_frame_psnr<T: Pixel>(
 struct PsnrResults {
     psnr: PlanarMetrics,
     apsnr: PlanarMetrics,
+    mse: PlanarMetrics,
+    rmse: PlanarMetrics,
 }
 
 struct Psnr;
@@ -137,7 +165,24 @@ impl VideoMetric for Psnr {
                 .sum::<f64>()
                 / metrics.len() as f64,
         };
-        Ok(PsnrResults { psnr, apsnr })
+        let mse = PlanarMetrics {
+            y: return_summed_mse(&metrics.iter().map(|m| m[0]).collect::<Vec<_>>()),
+            u: return_summed_mse(&metrics.iter().map(|m| m[1]).collect::<Vec<_>>()),
+            v: return_summed_mse(&metrics.iter().map(|m| m[2]).collect::<Vec<_>>()),
+            avg: return_summed_mse(&metrics.iter().flatten().copied().collect::<Vec<_>>()),
+        };
+        let rmse = PlanarMetrics {
+            y: mse.y.sqrt(),
+            u: mse.u.sqrt(),
+            v: mse.v.sqrt(),
+            avg: mse.avg.sqrt(),
+        };
+        Ok(PsnrResults {
+            psnr,
+            apsnr,
+            mse,
+            rmse,
+        })
     }
 }
 
@@ -150,6 +195,18 @@ struct PsnrMetrics {
 
 fn calculate_summed_psnr(metrics: &[PsnrMetrics]) -> f64 {
     calculate_psnr(
+        metrics
+            .iter()
+            .fold(PsnrMetrics::default(), |acc, plane| PsnrMetrics {
+                sq_err: acc.sq_err + plane.sq_err,
+                sample_max: plane.sample_max,
+                n_pixels: acc.n_pixels + plane.n_pixels,
+            }),
+    )
+}
+
+fn return_summed_mse(metrics: &[PsnrMetrics]) -> f64 {
+    return_mse(
         metrics
             .iter()
             .fold(PsnrMetrics::default(), |acc, plane| PsnrMetrics {
@@ -182,6 +239,10 @@ fn calculate_psnr(metrics: PsnrMetrics) -> f64 {
     }
     10.0 * ((metrics.sample_max.pow(2) as f64).log10() + (metrics.n_pixels as f64).log10()
         - metrics.sq_err.log10())
+}
+
+fn return_mse(metrics: PsnrMetrics) -> f64 {
+    metrics.sq_err
 }
 
 /// Calculate the squared error for a `Plane` by comparing the original (uncompressed)

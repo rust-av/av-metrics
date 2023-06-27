@@ -16,6 +16,8 @@
  - [X] SSIM
  - [X] MSSSIM
  - [X] CIEDE2000
+ - [X] MSE
+ - [X] RMSE
 
 ## Installation
 

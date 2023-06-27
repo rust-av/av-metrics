@@ -40,6 +40,8 @@ fn main() -> Result<(), String> {
                 .takes_value(true)
                 .possible_value("psnr")
                 .possible_value("apsnr")
+                .possible_value("mse")
+                .possible_value("rmse")
                 .possible_value("psnrhvs")
                 .possible_value("ssim")
                 .possible_value("msssim")
@@ -186,6 +188,10 @@ struct MetricsResults {
     #[serde(skip_serializing_if = "Option::is_none")]
     psnr: Option<PlanarMetrics>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    mse: Option<PlanarMetrics>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    rmse: Option<PlanarMetrics>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     apsnr: Option<PlanarMetrics>,
     #[serde(skip_serializing_if = "Option::is_none")]
     psnr_hvs: Option<PlanarMetrics>,
@@ -246,6 +252,18 @@ fn run_video_metrics(
         progress.set_prefix("Computing PSNR");
         progress.reset();
         results.psnr = Psnr::run(input1, input2, progress_fn);
+    }
+
+    if metric.is_none() || metric == Some("mse") {
+        progress.set_prefix("Computing MSE");
+        progress.reset();
+        results.mse = Mse::run(input1, input2, progress_fn);
+    }
+
+    if metric.is_none() || metric == Some("rmse") {
+        progress.set_prefix("Computing RMSE");
+        progress.reset();
+        results.rmse = Rmse::run(input1, input2, progress_fn);
     }
 
     if metric.is_none() || metric == Some("apsnr") {
@@ -317,19 +335,24 @@ impl Report<'_> {
                     .map_err(|err| err.to_string())?;
             }
             OutputType::CSV(w) => {
-                writeln!(w, "filename,psnr,apsnr,psnr_hvs,ssim,msssim,ciede2000")
-                    .map_err(|err| err.to_string())?;
+                writeln!(
+                    w,
+                    "filename,psnr,apsnr,psnr_hvs,ssim,msssim,ciede2000,mse,rmse"
+                )
+                .map_err(|err| err.to_string())?;
                 for cmp in self.comparisons.iter() {
                     writeln!(
                         w,
-                        "{},{},{},{},{},{},{}",
+                        "{},{},{},{},{},{},{},{},{}",
                         cmp.filename,
                         cmp.psnr.map(|v| v.avg).unwrap_or(-0.0),
                         cmp.apsnr.map(|v| v.avg).unwrap_or(-0.0),
                         cmp.psnr_hvs.map(|v| v.avg).unwrap_or(-0.0),
                         cmp.ssim.map(|v| v.avg).unwrap_or(-0.0),
                         cmp.msssim.map(|v| v.avg).unwrap_or(-0.0),
-                        cmp.ciede2000.unwrap_or(-0.0)
+                        cmp.ciede2000.unwrap_or(-0.0),
+                        cmp.mse.map(|v| v.avg).unwrap_or(-0.0),
+                        cmp.rmse.map(|v| v.avg).unwrap_or(-0.0)
                     )
                     .map_err(|err| err.to_string())?;
                 }
@@ -337,21 +360,23 @@ impl Report<'_> {
             OutputType::Markdown(w) => {
                 writeln!(
                     w,
-                    "|filename|psnr|apsnr|psnr_hvs|ssim|msssim|ciede2000|\n\
-                     |-|-|-|-|-|-|-|"
+                    "|filename|psnr|apsnr|psnr_hvs|ssim|msssim|ciede2000|mse|rmse|\n\
+                     |-|-|-|-|-|-|-|-|-|"
                 )
                 .map_err(|err| err.to_string())?;
                 for cmp in self.comparisons.iter() {
                     writeln!(
                         w,
-                        "|{}|{}|{}|{}|{}|{}|{}|",
+                        "|{}|{}|{}|{}|{}|{}|{}|{}|{}|",
                         cmp.filename,
                         cmp.psnr.map(|v| v.avg).unwrap_or(-0.0),
                         cmp.apsnr.map(|v| v.avg).unwrap_or(-0.0),
                         cmp.psnr_hvs.map(|v| v.avg).unwrap_or(-0.0),
                         cmp.ssim.map(|v| v.avg).unwrap_or(-0.0),
                         cmp.msssim.map(|v| v.avg).unwrap_or(-0.0),
-                        cmp.ciede2000.unwrap_or(-0.0)
+                        cmp.ciede2000.unwrap_or(-0.0),
+                        cmp.mse.map(|v| v.avg).unwrap_or(-0.0),
+                        cmp.rmse.map(|v| v.avg).unwrap_or(-0.0)
                     )
                     .map_err(|err| err.to_string())?;
                 }
@@ -373,6 +398,8 @@ impl Report<'_> {
                     Text::print_result(writer, "SSIM", cmp.ssim)?;
                     Text::print_result(writer, "MSSSIM", cmp.msssim)?;
                     Text::print_result(writer, "CIEDE2000", cmp.ciede2000)?;
+                    Text::print_result(writer, "MSE", cmp.mse)?;
+                    Text::print_result(writer, "RMSE", cmp.rmse)?;
                 }
             }
         }
@@ -442,6 +469,34 @@ impl CliMetric for Psnr {
         progress_callback: F,
     ) -> Result<Self::VideoResult, Box<dyn Error>> {
         psnr::calculate_video_psnr(dec1, dec2, None, progress_callback)
+    }
+}
+
+struct Mse;
+
+impl CliMetric for Mse {
+    type VideoResult = PlanarMetrics;
+
+    fn calculate_video_metric<D: Decoder, F: Fn(usize) + Send>(
+        dec1: &mut D,
+        dec2: &mut D,
+        progress_callback: F,
+    ) -> Result<Self::VideoResult, Box<dyn Error>> {
+        psnr::calculate_video_mse(dec1, dec2, None, progress_callback)
+    }
+}
+
+struct Rmse;
+
+impl CliMetric for Rmse {
+    type VideoResult = PlanarMetrics;
+
+    fn calculate_video_metric<D: Decoder, F: Fn(usize) + Send>(
+        dec1: &mut D,
+        dec2: &mut D,
+        progress_callback: F,
+    ) -> Result<Self::VideoResult, Box<dyn Error>> {
+        psnr::calculate_video_rmse(dec1, dec2, None, progress_callback)
     }
 }
 
