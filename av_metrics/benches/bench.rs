@@ -53,13 +53,14 @@ fn map_y4m_color_space(color_space: y4m::Colorspace) -> (ChromaSampling, ChromaS
     use av_metrics::video::ChromaSampling::*;
     use y4m::Colorspace::*;
     match color_space {
-        Cmono => (Cs400, Unknown),
+        Cmono | Cmono12 => (Cs400, Unknown),
         C420jpeg => (Cs420, Bilateral),
         C420paldv => (Cs420, Interpolated),
         C420mpeg2 => (Cs420, Vertical),
         C420 | C420p10 | C420p12 => (Cs420, Colocated),
         C422 | C422p10 | C422p12 => (Cs422, Vertical),
         C444 | C444p10 | C444p12 => (Cs444, Colocated),
+        _ => unimplemented!(),
     }
 }
 

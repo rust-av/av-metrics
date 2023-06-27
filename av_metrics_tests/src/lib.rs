@@ -22,12 +22,12 @@ mod tests {
 
     #[test]
     fn psnr_yuv420p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -41,12 +41,12 @@ mod tests {
 
     #[test]
     fn psnr_yuv422p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -60,12 +60,12 @@ mod tests {
 
     #[test]
     fn psnr_yuv444p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -79,12 +79,12 @@ mod tests {
 
     #[test]
     fn psnr_yuv420p10() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -98,12 +98,12 @@ mod tests {
 
     #[test]
     fn apsnr_yuv420p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -117,12 +117,12 @@ mod tests {
 
     #[test]
     fn apsnr_yuv422p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -136,12 +136,12 @@ mod tests {
 
     #[test]
     fn apsnr_yuv444p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -155,12 +155,12 @@ mod tests {
 
     #[test]
     fn apsnr_yuv420p10() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -174,12 +174,12 @@ mod tests {
 
     #[test]
     fn psnr_hvs_yuv420p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -193,12 +193,12 @@ mod tests {
 
     #[test]
     fn psnr_hvs_yuv422p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -212,12 +212,12 @@ mod tests {
 
     #[test]
     fn psnr_hvs_yuv444p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -231,12 +231,12 @@ mod tests {
 
     #[test]
     fn psnr_hvs_yuv420p10() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -250,12 +250,12 @@ mod tests {
 
     #[test]
     fn ssim_yuv420p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -269,12 +269,12 @@ mod tests {
 
     #[test]
     fn msssim_yuv420p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -288,12 +288,12 @@ mod tests {
 
     #[test]
     fn ssim_yuv422p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -307,12 +307,12 @@ mod tests {
 
     #[test]
     fn msssim_yuv422p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -326,12 +326,12 @@ mod tests {
 
     #[test]
     fn ssim_yuv444p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -345,12 +345,12 @@ mod tests {
 
     #[test]
     fn msssim_yuv444p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -364,12 +364,12 @@ mod tests {
 
     #[test]
     fn ssim_yuv420p10() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -383,12 +383,12 @@ mod tests {
 
     #[test]
     fn msssim_yuv420p10() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -402,12 +402,12 @@ mod tests {
 
     #[test]
     fn ciede2000_yuv420p8_nosimd() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -418,12 +418,12 @@ mod tests {
 
     #[test]
     fn ciede2000_yuv420p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -434,12 +434,12 @@ mod tests {
 
     #[test]
     fn ciede2000_yuv422p8_nosimd() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -450,12 +450,12 @@ mod tests {
 
     #[test]
     fn ciede2000_yuv422p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv422p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -466,12 +466,12 @@ mod tests {
 
     #[test]
     fn ciede2000_yuv444p8_nosimd() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -482,12 +482,12 @@ mod tests {
 
     #[test]
     fn ciede2000_yuv444p8() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv444p8_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -498,12 +498,12 @@ mod tests {
 
     #[test]
     fn ciede2000_yuv420p10_nosimd() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
@@ -514,12 +514,12 @@ mod tests {
 
     #[test]
     fn ciede2000_yuv420p10() {
-        let mut dec1 = get_decoder(&format!(
+        let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_input.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
         .unwrap();
-        let mut dec2 = get_decoder(&format!(
+        let mut dec2 = get_decoder(format!(
             "{}/../testfiles/yuv420p10_output.y4m",
             env!("CARGO_MANIFEST_DIR")
         ))
