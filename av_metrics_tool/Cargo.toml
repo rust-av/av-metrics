@@ -6,7 +6,7 @@ edition = "2021"
 description = "A CLI tool for measuring audio/video metrics"
 license = "MIT"
 repository = "https://github.com/rust-av/av-metrics"
-include = ["src/**/*"]
+include = ["src/**/*", "LICENSE"]
 
 [dependencies]
 av-metrics = { version = "0.9", features = ["serde"] }
