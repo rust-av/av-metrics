@@ -6,7 +6,7 @@ edition = "2021"
 description = "Decoders for use with av-metrics"
 license = "MIT"
 repository = "https://github.com/rust-av/av-metrics"
-include = ["src/**/*"]
+include = ["src/**/*", "LICENSE"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

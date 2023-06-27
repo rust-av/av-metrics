@@ -6,7 +6,7 @@ edition = "2021"
 description = "A collection of algorithms for measuring audio/video metrics"
 license = "MIT"
 repository = "https://github.com/rust-av/av-metrics"
-include = ["src/**/*"]
+include = ["src/**/*", "LICENSE"]
 
 [dependencies]
 crossbeam = "0.8"
