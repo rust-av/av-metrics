@@ -120,7 +120,7 @@ name = "av-metrics-tool"
 version = "0.9.1"
 dependencies = [
  "av-metrics",
- "av-metrics-decoders 0.2.3",
+ "av-metrics-decoders 0.3.1",
  "clap",
  "console",
  "indicatif",
