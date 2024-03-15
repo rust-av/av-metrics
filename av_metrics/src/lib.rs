@@ -19,6 +19,7 @@ pub mod video;
 ///
 /// This enum may be added to in the future and should not be assumed to be exhaustive.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum MetricsError {
     /// Indicates an input file could not be read for some reason.
     #[error("Could not read input file: {reason}")]
@@ -56,8 +57,4 @@ pub enum MetricsError {
         #[doc(hidden)]
         reason: String,
     },
-    /// Placeholder
-    #[doc(hidden)]
-    #[error("Unreachable")]
-    NonExhaustive,
 }
