@@ -159,7 +159,7 @@ trait VideoMetric: Send + Sync {
         let (send, recv) = crossbeam::channel::bounded(num_threads);
         let vid_info = decoder1.get_video_details();
 
-        match crossbeam::scope(|s| {
+        let scope_result = crossbeam::scope(|s| {
             let send_result = s.spawn(move |_| {
                 let mut decoded = 0;
                 while frame_limit.map(|limit| limit > decoded).unwrap_or(true) {
@@ -224,7 +224,9 @@ trait VideoMetric: Send + Sync {
                     .unwrap_or_else(|_| Err("Failed joining the sender thread".to_owned())),
                 process_error,
             )
-        }) {
+        });
+
+        match scope_result {
             Ok((send_error, process_error)) => {
                 if let Err(error) = send_error {
                     return Err(MetricsError::SendError { reason: error }.into());

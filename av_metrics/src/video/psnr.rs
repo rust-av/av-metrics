@@ -97,7 +97,6 @@ impl VideoMetric for Psnr {
 
         frame1.can_compare(frame2)?;
 
-        let bit_depth = bit_depth;
         let mut y = Default::default();
         let mut u = Default::default();
         let mut v = Default::default();

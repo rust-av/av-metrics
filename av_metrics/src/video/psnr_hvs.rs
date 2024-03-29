@@ -85,7 +85,6 @@ impl VideoMetric for PsnrHvs {
 
         frame1.can_compare(frame2)?;
 
-        let bit_depth = bit_depth;
         let mut y = 0.0;
         let mut u = 0.0;
         let mut v = 0.0;
