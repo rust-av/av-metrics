@@ -38,12 +38,7 @@ fn main() -> Result<(), String> {
                 .help("Run only one metric, instead of the entire suite")
                 .long("metric")
                 .takes_value(true)
-                .possible_value("psnr")
-                .possible_value("apsnr")
-                .possible_value("psnrhvs")
-                .possible_value("ssim")
-                .possible_value("msssim")
-                .possible_value("ciede2000"),
+                .value_parser(["psnr", "apsnr", "psnrhvs", "ssim", "msssim", "ciede2000"]),
         )
         .arg(
             Arg::new("JSON")
@@ -86,36 +81,36 @@ fn main() -> Result<(), String> {
                 .takes_value(false),
         )
         .get_matches();
-    let base = cli.value_of("BASE").unwrap();
-    let inputs = cli.values_of("FILES").unwrap();
+    let base = cli.get_one::<String>("BASE").unwrap();
+    let inputs = cli.get_many::<String>("FILES").unwrap();
     let mut writers = vec![];
-    if let Some(filename) = cli.value_of("FILE") {
+    if let Some(filename) = cli.get_one::<String>("FILE") {
         writers.push(OutputType::TEXT(BufWriter::new(
             File::create(filename).map_err(|err| err.to_string())?,
         )));
     };
-    if let Some(filename) = cli.value_of("JSON") {
+    if let Some(filename) = cli.get_one::<String>("JSON") {
         writers.push(OutputType::JSON(BufWriter::new(
             File::create(filename).map_err(|err| err.to_string())?,
         )));
     };
-    if let Some(filename) = cli.value_of("CSV") {
+    if let Some(filename) = cli.get_one::<String>("CSV") {
         writers.push(OutputType::CSV(BufWriter::new(
             File::create(filename).map_err(|err| err.to_string())?,
         )));
     };
-    if let Some(filename) = cli.value_of("MARKDOWN") {
+    if let Some(filename) = cli.get_one::<String>("MARKDOWN") {
         writers.push(OutputType::Markdown(BufWriter::new(
             File::create(filename).map_err(|err| err.to_string())?,
         )));
     };
-    if !cli.is_present("QUIET") {
+    if !cli.contains_id("QUIET") {
         writers.push(OutputType::Stdout(BufWriter::new(std::io::stdout())));
     }
 
     let base_type = InputType::detect(base);
 
-    let metrics = cli.value_of("METRIC");
+    let metrics = cli.get_one::<String>("METRIC").map(String::as_str);
 
     let mut report = Report {
         base,
@@ -131,8 +126,8 @@ fn main() -> Result<(), String> {
                     base,
                     input,
                     metrics,
-                    cli.is_present("QUIET"),
-                    cli.is_present("FRAMES"),
+                    cli.contains_id("QUIET"),
+                    cli.contains_id("FRAMES"),
                 ));
             }
             (InputType::Audio, InputType::Audio) => {
