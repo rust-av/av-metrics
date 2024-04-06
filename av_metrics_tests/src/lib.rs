@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests {
+    #![allow(unused_imports)]
+
     use av_metrics::video::ciede::{calculate_video_ciede, calculate_video_ciede_nosimd};
     use av_metrics::video::psnr::{calculate_video_apsnr, calculate_video_psnr};
     use av_metrics::video::psnr_hvs::calculate_video_psnr_hvs;
