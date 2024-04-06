@@ -30,55 +30,55 @@ fn main() -> Result<(), String> {
             Arg::new("FILES")
                 .help("The alternate input files to compare with the base file")
                 .required(true)
-                .multiple_values(true)
+                .num_args(1..)
                 .index(2),
         )
         .arg(
             Arg::new("METRIC")
                 .help("Run only one metric, instead of the entire suite")
                 .long("metric")
-                .takes_value(true)
+                .num_args(1)
                 .value_parser(["psnr", "apsnr", "psnrhvs", "ssim", "msssim", "ciede2000"]),
         )
         .arg(
             Arg::new("JSON")
                 .help("Output results as JSON--useful for piping to other programs")
                 .long("export-json")
-                .takes_value(true)
+                .num_args(1)
                 .value_name("FILE"),
         )
         .arg(
             Arg::new("CSV")
                 .help("Output results as CSV")
                 .long("export-csv")
-                .takes_value(true)
+                .num_args(1)
                 .value_name("FILE"),
         )
         .arg(
             Arg::new("MARKDOWN")
                 .help("Output results as Markdown")
                 .long("export-markdown")
-                .takes_value(true)
+                .num_args(1)
                 .value_name("FILE"),
         )
         .arg(
             Arg::new("FILE")
                 .help("Output results to a file")
                 .long("export-file")
-                .takes_value(true)
+                .num_args(1)
                 .value_name("FILE"),
         )
         .arg(
             Arg::new("QUIET")
                 .help("Do not output to stdout")
                 .long("quiet")
-                .takes_value(false),
+                .num_args(0),
         )
         .arg(
             Arg::new("FRAMES")
                 .help("Count the number of frames in a file")
                 .long("frames")
-                .takes_value(false),
+                .num_args(0),
         )
         .get_matches();
     let base = cli.get_one::<String>("BASE").unwrap();

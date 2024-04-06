@@ -11,7 +11,7 @@ include = ["src/**/*", "LICENSE"]
 [dependencies]
 av-metrics = { version = "0.9", features = ["serde"] }
 av-metrics-decoders = "0.2.1"
-clap = "3.1"
+clap = "4"
 console = "0.15.0"
 indicatif = "0.17.1"
 serde = "1"
