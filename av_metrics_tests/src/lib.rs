@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests {
+    #![allow(unused_imports)]
+
     use av_metrics::video::ciede::{calculate_video_ciede, calculate_video_ciede_nosimd};
     use av_metrics::video::psnr::{calculate_video_apsnr, calculate_video_psnr};
     use av_metrics::video::psnr_hvs::calculate_video_psnr_hvs;
@@ -8,11 +10,13 @@ mod tests {
     use av_metrics_decoders::FfmpegDecoder;
     #[cfg(not(feature = "ffmpeg"))]
     use av_metrics_decoders::Y4MDecoder;
+    use std::fs::File;
+    use std::io::BufReader;
     use std::path::Path;
 
     #[cfg(not(feature = "ffmpeg"))]
-    fn get_decoder<P: AsRef<Path>>(input: P) -> Result<Y4MDecoder, String> {
-        Y4MDecoder::new(input)
+    fn get_decoder<P: AsRef<Path>>(input: P) -> Result<Y4MDecoder<BufReader<File>>, String> {
+        av_metrics_decoders::y4m::new_decoder_from_file(input)
     }
 
     #[cfg(feature = "ffmpeg")]
