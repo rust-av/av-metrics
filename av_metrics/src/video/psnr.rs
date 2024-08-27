@@ -176,7 +176,7 @@ fn calculate_plane_psnr_metrics<T: Pixel>(
 }
 
 fn calculate_psnr(metrics: PsnrMetrics) -> f64 {
-    if metrics.sq_err <= std::f64::EPSILON {
+    if metrics.sq_err <= f64::EPSILON {
         return 100.0;
     }
     10.0 * ((metrics.sample_max.pow(2) as f64).log10() + (metrics.n_pixels as f64).log10()
