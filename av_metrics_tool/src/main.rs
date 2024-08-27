@@ -12,7 +12,9 @@ use indicatif::{ProgressBar, ProgressStyle};
 use serde::Serialize;
 use std::error::Error;
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Stdout, Write};
+#[cfg(not(feature = "ffmpeg"))]
+use std::io::BufReader;
+use std::io::{BufWriter, Stdout, Write};
 use std::path::Path;
 
 fn main() -> Result<(), String> {
