@@ -86,18 +86,6 @@ dependencies = [
 
 [[package]]
 name = "av-metrics-decoders"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "347427ab632003ebaba20436bb60584dd396f50d4c0093044dcd6191991274e3"
-dependencies = [
- "anyhow",
- "av-metrics",
- "ffmpeg-the-third",
- "y4m",
-]
-
-[[package]]
-name = "av-metrics-decoders"
 version = "0.3.1"
 dependencies = [
  "anyhow",
@@ -112,7 +100,7 @@ name = "av-metrics-tests"
 version = "0.0.1"
 dependencies = [
  "av-metrics",
- "av-metrics-decoders 0.2.3",
+ "av-metrics-decoders",
 ]
 
 [[package]]
@@ -120,7 +108,7 @@ name = "av-metrics-tool"
 version = "0.9.1"
 dependencies = [
  "av-metrics",
- "av-metrics-decoders 0.2.3",
+ "av-metrics-decoders",
  "clap",
  "console",
  "indicatif",
@@ -140,7 +128,7 @@ dependencies = [
  "itertools",
  "lazy_static",
  "lazycell",
-  "proc-macro2",
+ "proc-macro2",
  "quote",
  "regex",
  "rustc-hash",
@@ -623,12 +611,6 @@ name = "oorandom"
 version = "11.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
-
-[[package]]
-name = "peeking_take_while"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19b17cddbe7ec3f8bc800887bab5e717348c95ea2ca0b1bf0837fb964dc67099"
 
 [[package]]
 name = "pkg-config"

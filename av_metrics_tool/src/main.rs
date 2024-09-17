@@ -12,6 +12,8 @@ use indicatif::{ProgressBar, ProgressStyle};
 use serde::Serialize;
 use std::error::Error;
 use std::fs::File;
+#[cfg(not(feature = "ffmpeg"))]
+use std::io::BufReader;
 use std::io::{BufWriter, Stdout, Write};
 use std::path::Path;
 
@@ -166,8 +168,8 @@ impl InputType {
 }
 
 #[cfg(not(feature = "ffmpeg"))]
-pub fn get_decoder<P: AsRef<Path>>(input: P) -> Result<Y4MDecoder, String> {
-    Y4MDecoder::new(input)
+pub fn get_decoder<P: AsRef<Path>>(input: P) -> Result<Y4MDecoder<BufReader<File>>, String> {
+    av_metrics_decoders::y4m::new_decoder_from_file(input)
 }
 
 #[cfg(feature = "ffmpeg")]
