@@ -1,3 +1,7 @@
+## decoder Version 0.3.2
+
+- Dependency bumps
+
 ## decoder Version 0.3.1
 
 - Rework y4m decoder to support stdin and other `Read` types

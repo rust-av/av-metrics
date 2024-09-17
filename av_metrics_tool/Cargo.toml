@@ -1,6 +1,6 @@
 [package]
 name = "av-metrics-tool"
-version = "0.9.1"
+version = "0.9.2"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
 edition = "2021"
 description = "A CLI tool for measuring audio/video metrics"
@@ -10,7 +10,7 @@ include = ["src/**/*", "LICENSE"]
 
 [dependencies]
 av-metrics = { version = "0.9", features = ["serde"] }
-av-metrics-decoders = "0.3.1"
+av-metrics-decoders = "0.3.2"
 clap = "4"
 console = "0.15.0"
 indicatif = "0.17.1"
