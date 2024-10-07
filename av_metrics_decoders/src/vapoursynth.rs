@@ -50,12 +50,12 @@ clip.set_output(0)
                 VapoursynthDecoderPlugin::LSmash => "core.lsmas.LWLibavSource",
                 VapoursynthDecoderPlugin::BestSource => "core.bs.VideoSource",
             },
+            escaped_filename,
             if plugin == VapoursynthDecoderPlugin::BestSource {
                 ", cachepath=\"/\""
             } else {
                 ""
-            },
-            escaped_filename
+            }
         );
         let env = Environment::from_script(&script)?;
         let this = Self { env, cur_frame: 0 };
