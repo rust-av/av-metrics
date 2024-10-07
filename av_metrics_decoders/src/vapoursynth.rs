@@ -17,11 +17,20 @@ use vapoursynth::{
 pub struct VapoursynthDecoder {
     env: Environment,
     cur_frame: usize,
+    plugin: VapoursynthDecoderPlugin,
 }
 
 impl VapoursynthDecoder {
-    /// Loads a video file using `LSmashSource`
+    /// Loads a video file using the default decoder plugin (currently `LSmashSource`)
     pub fn new_from_video(filename: &Path) -> Result<Self> {
+        Self::new_from_video_with_decoder(filename, VapoursynthDecoderPlugin::default())
+    }
+
+    /// Loads a video file using the specified decoder plugin
+    pub fn new_from_video_with_decoder(
+        filename: &Path,
+        plugin: VapoursynthDecoderPlugin,
+    ) -> Result<Self> {
         let script = format!(
             r#"
 import vapoursynth as vs
@@ -217,4 +226,11 @@ impl Decoder for VapoursynthDecoder {
             luma_padding: 0,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub enum VapoursynthDecoderPlugin {
+    #[default]
+    LSmash,
+    BestSource,
 }
