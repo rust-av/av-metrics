@@ -47,7 +47,7 @@ clip = {}(source="{}"{})
 clip.set_output(0)
         "#,
             match plugin {
-                VapoursynthDecoderPlugin::Lsmash => "core.lsmas.LWLibavSource",
+                VapoursynthDecoderPlugin::LSmash => "core.lsmas.LWLibavSource",
                 VapoursynthDecoderPlugin::BestSource => "core.bs.VideoSource",
             },
             if plugin == VapoursynthDecoderPlugin::BestSource {
