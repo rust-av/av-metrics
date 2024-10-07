@@ -17,7 +17,6 @@ use vapoursynth::{
 pub struct VapoursynthDecoder {
     env: Environment,
     cur_frame: usize,
-    plugin: VapoursynthDecoderPlugin,
 }
 
 impl VapoursynthDecoder {
@@ -31,22 +30,32 @@ impl VapoursynthDecoder {
         filename: &Path,
         plugin: VapoursynthDecoderPlugin,
     ) -> Result<Self> {
+        let escaped_filename = filename
+            .canonicalize()
+            .unwrap()
+            .to_string_lossy()
+            .trim_start_matches(r"\\?\")
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"");
         let script = format!(
             r#"
 import vapoursynth as vs
 
 core = vs.core
 
-clip = core.lsmas.LWLibavSource(source="{}")
+clip = {}(source="{}"{})
 clip.set_output(0)
         "#,
-            filename
-                .canonicalize()
-                .unwrap()
-                .to_string_lossy()
-                .trim_start_matches(r"\\?\")
-                .replace('\\', "\\\\")
-                .replace('"', "\\\"")
+            match plugin {
+                VapoursynthDecoderPlugin::Lsmash => "core.lsmas.LWLibavSource",
+                VapoursynthDecoderPlugin::BestSource => "core.bs.VideoSource",
+            },
+            if plugin == VapoursynthDecoderPlugin::BestSource {
+                ", cachepath=\"/\""
+            } else {
+                ""
+            },
+            escaped_filename
         );
         let env = Environment::from_script(&script)?;
         let this = Self { env, cur_frame: 0 };
@@ -228,7 +237,7 @@ impl Decoder for VapoursynthDecoder {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub enum VapoursynthDecoderPlugin {
     #[default]
     LSmash,
