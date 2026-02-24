@@ -316,7 +316,7 @@ fn calculate_plane_psnr_hvs<T: Pixel>(
 }
 
 fn log10_convert(score: f64, weight: f64) -> f64 {
-    10.0 * (-1.0 * (weight * score).log10())
+    -10.0 * (weight * score).log10()
 }
 
 const DCT_STRIDE: usize = 8;
