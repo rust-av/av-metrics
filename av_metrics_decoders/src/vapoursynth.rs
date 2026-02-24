@@ -13,7 +13,7 @@ use vapoursynth::{
     video_info::{Framerate, Resolution},
 };
 
-/// A video decoder implementation using Vaopursynth
+/// A video decoder implementation using Vapoursynth
 pub struct VapoursynthDecoder {
     env: Environment,
     cur_frame: usize,
@@ -237,9 +237,12 @@ impl Decoder for VapoursynthDecoder {
     }
 }
 
+/// Specifies a Vapoursynth plugin to use for video decoding.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub enum VapoursynthDecoderPlugin {
+    /// L-SMASH decoding (default), custom video demuxer and decoder
     #[default]
     LSmash,
+    /// BestSource, cross-platform wrapper around FFmpeg
     BestSource,
 }
