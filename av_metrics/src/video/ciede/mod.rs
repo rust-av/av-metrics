@@ -182,10 +182,10 @@ pub(crate) struct FrameRow<'a, T: Pixel> {
 
 type DeltaERowFn<T> = unsafe fn(FrameRow<T>, FrameRow<T>, &mut [f32]);
 
-fn get_delta_e_row_fn<T: Pixel>(bit_depth: usize, xdec: usize, simd: bool) -> DeltaERowFn<T> {
+fn get_delta_e_row_fn<T: Pixel>(bit_depth: usize, xdec: usize, _simd: bool) -> DeltaERowFn<T> {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     {
-        if is_x86_feature_detected!("avx2") && xdec == 1 && simd {
+        if is_x86_feature_detected!("avx2") && xdec == 1 && _simd {
             return match bit_depth {
                 8 => BD8::delta_e_row_avx2,
                 10 => BD10::delta_e_row_avx2,
