@@ -11,10 +11,6 @@ include = ["src/**/*", "LICENSE"]
 [dependencies]
 anyhow = "1.0.66"
 av-metrics = "0.9"
-ffmpeg-the-third = { version = "2.0", optional = true, default-features = false, features = [
-    "codec",
-    "format",
-] }
 vapoursynth = { version = "0.4.0", features = [
     "vsscript-functions",
     "vapoursynth-functions",
@@ -23,8 +19,14 @@ vapoursynth = { version = "0.4.0", features = [
 ], optional = true }
 y4m = { version = "0.8", optional = true }
 
+[dependencies.ffmpeg-the-third]
+version = "4.0"
+optional = true
+default-features = false
+features = ["codec", "format", "non-exhaustive-enums"]
+
 [features]
-ffmpeg = ["ffmpeg-the-third"]
+ffmpeg = ["dep:ffmpeg-the-third"]
 # Link a FFmpeg version built statically
 ffmpeg_static = ["ffmpeg-the-third/static"]
 # Build FFmpeg statically (https://github.com/zmwangx/rust-ffmpeg-sys/blob/master/Cargo.toml)
