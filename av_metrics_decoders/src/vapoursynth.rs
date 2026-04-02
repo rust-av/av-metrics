@@ -93,10 +93,7 @@ clip.set_output(0)
     }
 
     fn get_format(&self) -> Result<Format<'_>> {
-        match self.get_node()?.info().format {
-            Property::Constant(format) => Ok(format),
-            Property::Variable => Err(anyhow::anyhow!("Variable format videos are not supported")),
-        }
+        Ok(self.get_node()?.info().format)
     }
 
     fn get_frame_rate(&self) -> Result<Framerate> {

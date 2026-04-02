@@ -11,13 +11,11 @@ include = ["src/**/*", "LICENSE"]
 [dependencies]
 anyhow = "1.0.66"
 av-metrics = "0.9"
-vapoursynth = { version = "0.4.0", features = [
-    "vsscript-functions",
-    "vapoursynth-functions",
-    "vapoursynth-api-36",
-    "vsscript-api-32",
-], optional = true }
 y4m = { version = "0.8", optional = true }
+
+[dependencies.vapoursynth]
+version = "0.5"
+optional = true
 
 [dependencies.ffmpeg-the-third]
 version = "4.0"
@@ -26,6 +24,7 @@ default-features = false
 features = ["codec", "format", "non-exhaustive-enums"]
 
 [features]
+vapoursynth = ["dep:vapoursynth"]
 ffmpeg = ["dep:ffmpeg-the-third"]
 # Link a FFmpeg version built statically
 ffmpeg_static = ["ffmpeg-the-third/static"]

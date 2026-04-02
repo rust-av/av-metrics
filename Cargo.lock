@@ -88,7 +88,7 @@ dependencies = [
  "num-traits",
  "rayon",
  "serde",
- "thiserror 2.0.18",
+ "thiserror",
  "v_frame",
  "y4m",
 ]
@@ -131,7 +131,7 @@ version = "0.72.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "993776b509cfb49c750f11b8f07a46fa23e0a1386ffc01fb1e7d343efc387895"
 dependencies = [
- "bitflags 2.11.0",
+ "bitflags",
  "cexpr",
  "clang-sys",
  "itertools 0.13.0",
@@ -142,12 +142,6 @@ dependencies = [
  "shlex",
  "syn 2.0.117",
 ]
-
-[[package]]
-name = "bitflags"
-version = "1.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
@@ -416,7 +410,7 @@ version = "4.1.0+ffmpeg-8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71a274244c87178cd01144536061d63114cecea74cb1037a3614c81cc7ca01e0"
 dependencies = [
- "bitflags 2.11.0",
+ "bitflags",
  "ffmpeg-sys-the-third",
  "libc",
 ]
@@ -842,31 +836,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
-dependencies = [
- "thiserror-impl 1.0.69",
-]
-
-[[package]]
-name = "thiserror"
 version = "2.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4288b5bcbc7920c07a1149a35cf9590a2aa808e0bc1eafaade0b80947865fbc4"
 dependencies = [
- "thiserror-impl 2.0.18",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
+ "thiserror-impl",
 ]
 
 [[package]]
@@ -924,25 +898,20 @@ dependencies = [
 
 [[package]]
 name = "vapoursynth"
-version = "0.4.0"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c7df702c65dec1cfa3b93f824a1e58d5b0fdb82ac8a722596f43d7214282f56"
+checksum = "f627c30b1a3e4dbd16ad7c31e2730faf950b7fc743dd0e9eae9b479714e0db11"
 dependencies = [
  "anyhow",
- "bitflags 1.3.2",
- "lazy_static",
- "thiserror 1.0.69",
+ "thiserror",
  "vapoursynth-sys",
 ]
 
 [[package]]
 name = "vapoursynth-sys"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fc59bbb7980ce21ece45bc5b3e316bf27ac164b7b1c273ce4846c29d0642a9c"
-dependencies = [
- "cfg-if",
-]
+checksum = "0dc01f455bc7ef73678bbcab5332fbe745892fa9466ccefe086de52a32fbce19"
 
 [[package]]
 name = "vcpkg"
