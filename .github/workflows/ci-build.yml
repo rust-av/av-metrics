@@ -8,27 +8,24 @@ on:
     branches:
       - master
 
+env:
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: "-Dwarnings"
+
 jobs:
   clippy-rustfmt:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
 
     - name: Install stable
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
-        profile: minimal
-        toolchain: stable
-        override: true
         components: clippy, rustfmt
 
-    - name: Run rustfmt
-      uses: actions-rs/cargo@v1
-      with:
-        command: fmt
-        args: -- --check --verbose
+    - name: Check format
+      run: cargo fmt --check
 
     - name: Install ffmpeg for Ubuntu
       run: |
@@ -37,19 +34,12 @@ jobs:
         sudo apt-get install libavutil-dev libavcodec-dev libavformat-dev libclang-dev
 
     - name: Run cargo clippy (y4m)
-      uses: actions-rs/clippy-check@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        args: --all-targets --tests --benches -- -D warnings
+      run: cargo clippy --all-targets 
 
     - name: Run cargo clippy (ffmpeg)
-      uses: actions-rs/clippy-check@v1
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        args: --all-targets --features ffmpeg --tests --benches -- -D warnings
+      run: cargo clippy --all-targets --features ffmpeg
 
   build:
-
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
@@ -57,14 +47,10 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
 
     - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+      uses: dtolnay/rust-toolchain@stable
 
     - name: Install FFmpeg for Ubuntu
       if: matrix.platform == 'ubuntu-latest'
