@@ -5,6 +5,7 @@ authors = ["Josh Holmer <jholmer.in@gmail.com>"]
 edition = "2021"
 description = "A CLI tool for measuring audio/video metrics"
 license = "MIT"
+rust-version = "1.95"
 repository = "https://github.com/rust-av/av-metrics"
 include = ["src/**/*", "LICENSE"]
 
