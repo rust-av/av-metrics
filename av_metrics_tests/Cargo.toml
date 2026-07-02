@@ -2,7 +2,7 @@
 name = "av-metrics-tests"
 version = "0.0.1"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
-edition = "2021"
+edition = "2024"
 repository = "https://github.com/rust-av/av-metrics"
 publish = false
 

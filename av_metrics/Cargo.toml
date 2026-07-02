@@ -2,7 +2,7 @@
 name = "av-metrics"
 version = "0.9.1"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
-edition = "2021"
+edition = "2024"
 description = "A collection of algorithms for measuring audio/video metrics"
 license = "MIT"
 rust-version = "1.95"

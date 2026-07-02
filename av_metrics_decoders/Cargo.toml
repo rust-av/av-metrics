@@ -2,7 +2,7 @@
 name = "av-metrics-decoders"
 version = "0.3.2"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
-edition = "2021"
+edition = "2024"
 description = "Decoders for use with av-metrics"
 license = "MIT"
 rust-version = "1.95"
