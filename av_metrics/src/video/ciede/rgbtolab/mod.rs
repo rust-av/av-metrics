@@ -253,14 +253,14 @@ mod avx2 {
     }
 
     #[target_feature(enable = "avx2")]
-    pub unsafe fn rgb_to_lab_avx2(rgb: &[__m256; 3]) -> [Lab; 8] {
+    pub fn rgb_to_lab_avx2(rgb: &[__m256; 3]) -> [Lab; 8] {
         xyz_to_lab_avx2(rgb_to_xyz_avx2(rgb))
     }
 
     #[target_feature(enable = "avx2")]
     #[allow(clippy::excessive_precision)]
     #[allow(clippy::many_single_char_names)]
-    unsafe fn rgb_to_xyz_avx2(rgb: &[__m256; 3]) -> [__m256; 3] {
+    fn rgb_to_xyz_avx2(rgb: &[__m256; 3]) -> [__m256; 3] {
         let r = rgb_to_xyz_map_avx2(rgb[0]);
         let g = rgb_to_xyz_map_avx2(rgb[1]);
         let b = rgb_to_xyz_map_avx2(rgb[2]);
@@ -286,7 +286,7 @@ mod avx2 {
 
     #[inline]
     #[target_feature(enable = "avx2")]
-    unsafe fn rgb_to_xyz_map_avx2(c: __m256) -> __m256 {
+    fn rgb_to_xyz_map_avx2(c: __m256) -> __m256 {
         let low = _mm256_mul_ps(c, _mm256_set1_ps(1.0 / 12.92));
         let hi = pow_2_4_avx2(_mm256_mul_ps(
             _mm256_add_ps(c, _mm256_set1_ps(0.055)),
@@ -299,7 +299,7 @@ mod avx2 {
     #[inline]
     #[target_feature(enable = "avx2")]
     #[allow(clippy::many_single_char_names)]
-    unsafe fn xyz_to_lab_avx2(xyz: [__m256; 3]) -> [Lab; 8] {
+    fn xyz_to_lab_avx2(xyz: [__m256; 3]) -> [Lab; 8] {
         let x = xyz_to_lab_map_avx2(_mm256_mul_ps(xyz[0], _mm256_set1_ps(1.0 / 0.95047)));
         let y = xyz_to_lab_map_avx2(xyz[1]);
         let z = xyz_to_lab_map_avx2(_mm256_mul_ps(xyz[2], _mm256_set1_ps(1.0 / 1.08883)));
@@ -312,8 +312,11 @@ mod avx2 {
         let b = _mm256_mul_ps(_mm256_sub_ps(y, z), _mm256_set1_ps(200.0));
 
         #[target_feature(enable = "avx2")]
-        unsafe fn to_array(reg: __m256) -> [f32; 8] {
-            std::mem::transmute(reg)
+        fn to_array(reg: __m256) -> [f32; 8] {
+            // SAFETY: __m256 and [f32; 8] have the same memory layout and validity invariants.
+            //         __m256 has a higher alignment than [f32; 8], so the returned value will
+            //         be overaligned at worst (but never underaligned).
+            unsafe { std::mem::transmute(reg) }
         }
         let l = to_array(l);
         let a = to_array(a);
@@ -336,7 +339,7 @@ mod avx2 {
 
     #[inline]
     #[target_feature(enable = "avx2")]
-    unsafe fn xyz_to_lab_map_avx2(c: __m256) -> __m256 {
+    fn xyz_to_lab_map_avx2(c: __m256) -> __m256 {
         let low = _mm256_mul_ps(
             _mm256_add_ps(
                 _mm256_mul_ps(c, _mm256_set1_ps(KAPPA)),
@@ -350,7 +353,7 @@ mod avx2 {
     }
 
     #[target_feature(enable = "avx2")]
-    unsafe fn pow_2_4_avx2(x: __m256) -> __m256 {
+    fn pow_2_4_avx2(x: __m256) -> __m256 {
         // See non-avx2 version
 
         const FRAC_BITS: u32 = 3;
@@ -407,7 +410,7 @@ mod avx2 {
     }
 
     #[target_feature(enable = "avx2")]
-    unsafe fn cbrt_approx_avx2(x: __m256) -> __m256 {
+    fn cbrt_approx_avx2(x: __m256) -> __m256 {
         // See non-avx2 version
 
         const FRAC_BITS: u32 = 3;

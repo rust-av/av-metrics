@@ -2,10 +2,9 @@
 //! Prebuilt decoders are included in the `av-metrics-decoders` crate.
 
 use crate::video::pixel::Pixel;
-use crate::video::{ChromaSamplePosition, ChromaSampling};
+use crate::video::{ChromaSamplePosition, ChromaSubsampling};
 use std::cmp;
 use v_frame::frame::Frame;
-use v_frame::pixel::CastFromPrimitive;
 use v_frame::plane::Plane;
 
 /// A trait for allowing metrics to decode generic video formats.
@@ -48,7 +47,7 @@ pub struct VideoDetails {
     /// Bit-depth of the Video
     pub bit_depth: usize,
     /// ChromaSampling of the Video.
-    pub chroma_sampling: ChromaSampling,
+    pub chroma_sampling: ChromaSubsampling,
     /// Chroma Sampling Position of the Video.
     pub chroma_sample_position: ChromaSamplePosition,
     /// Add Time base of the Video.
@@ -63,7 +62,7 @@ impl Default for VideoDetails {
             width: 640,
             height: 480,
             bit_depth: 8,
-            chroma_sampling: ChromaSampling::Cs420,
+            chroma_sampling: ChromaSubsampling::Yuv420,
             chroma_sample_position: ChromaSamplePosition::Unknown,
             time_base: Rational { num: 30, den: 1 },
             luma_padding: 0,
@@ -112,81 +111,78 @@ pub fn convert_chroma_data<T: Pixel>(
 ) {
     if chroma_pos != ChromaSamplePosition::Vertical {
         // TODO: Also convert Interpolated chromas
-        plane_data.copy_from_raw_u8(source, source_stride, source_bytewidth);
+        plane_data
+            .copy_from_u8_slice_with_stride(source, source_stride)
+            .expect("can copy");
         return;
     }
 
     let get_pixel = if source_bytewidth == 1 {
         fn convert_u8(line: &[u8], index: usize) -> i32 {
-            i32::cast_from(line[index])
+            i32::from(line[index])
         }
         convert_u8
     } else {
         fn convert_u16(line: &[u8], index: usize) -> i32 {
             let index = index * 2;
-            i32::cast_from(u16::cast_from(line[index + 1]) << 8 | u16::cast_from(line[index]))
+            i32::from(u16::from_ne_bytes([line[index + 1], line[index]]))
         }
         convert_u16
     };
 
-    let output_data = &mut plane_data.data;
-    let width = plane_data.cfg.width;
-    let height = plane_data.cfg.height;
+    let width = plane_data.width();
+    let height = plane_data.height();
+    let output_data = plane_data.data_mut();
     for y in 0..height {
         // Filter: [4 -17 114 35 -9 1]/128, derived from a 6-tap Lanczos window.
         let in_row = &source[(y * source_stride)..];
         let out_row = &mut output_data[(y * width)..];
         let breakpoint = cmp::min(width, 2);
         for x in 0..breakpoint {
-            out_row[x] = T::cast_from(clamp(
-                (4 * get_pixel(in_row, 0) - 17 * get_pixel(in_row, x.saturating_sub(1))
-                    + 114 * get_pixel(in_row, x)
-                    + 35 * get_pixel(in_row, cmp::min(x + 1, width - 1))
-                    - 9 * get_pixel(in_row, cmp::min(x + 2, width - 1))
-                    + get_pixel(in_row, cmp::min(x + 3, width - 1))
-                    + 64)
-                    >> 7,
-                0,
-                (1 << bit_depth) - 1,
-            ));
+            let val = (4 * get_pixel(in_row, 0) - 17 * get_pixel(in_row, x.saturating_sub(1))
+                + 114 * get_pixel(in_row, x)
+                + 35 * get_pixel(in_row, cmp::min(x + 1, width - 1))
+                - 9 * get_pixel(in_row, cmp::min(x + 2, width - 1))
+                + get_pixel(in_row, cmp::min(x + 3, width - 1))
+                + 64)
+                >> 7;
+
+            let clamped = val
+                .clamp(0, (1 << bit_depth) - 1)
+                .try_into()
+                .expect("fits into u16");
+            out_row[x] = T::try_from(clamped).expect("clamped value fits into T");
         }
         let breakpoint2 = width - 3;
         for x in breakpoint..breakpoint2 {
-            out_row[x] = T::cast_from(clamp(
-                (4 * get_pixel(in_row, x - 2) - 17 * get_pixel(in_row, x - 1)
-                    + 114 * get_pixel(in_row, x)
-                    + 35 * get_pixel(in_row, x + 1)
-                    - 9 * get_pixel(in_row, x + 2)
-                    + get_pixel(in_row, x + 3)
-                    + 64)
-                    >> 7,
-                0,
-                (1 << bit_depth) - 1,
-            ));
+            let val = (4 * get_pixel(in_row, x - 2) - 17 * get_pixel(in_row, x - 1)
+                + 114 * get_pixel(in_row, x)
+                + 35 * get_pixel(in_row, x + 1)
+                - 9 * get_pixel(in_row, x + 2)
+                + get_pixel(in_row, x + 3)
+                + 64)
+                >> 7;
+
+            let clamped = val
+                .clamp(0, (1 << bit_depth) - 1)
+                .try_into()
+                .expect("fits into u16");
+            out_row[x] = T::try_from(clamped).expect("clamped value fits into T");
         }
         for x in breakpoint2..width {
-            out_row[x] = T::cast_from(clamp(
-                (4 * get_pixel(in_row, x - 2) - 17 * get_pixel(in_row, x - 1)
-                    + 114 * get_pixel(in_row, x)
-                    + 35 * get_pixel(in_row, cmp::min(x + 1, width - 1))
-                    - 9 * get_pixel(in_row, cmp::min(x + 2, width - 1))
-                    + get_pixel(in_row, width - 1)
-                    + 64)
-                    >> 7,
-                0,
-                (1 << bit_depth) - 1,
-            ));
-        }
-    }
-}
+            let val = (4 * get_pixel(in_row, x - 2) - 17 * get_pixel(in_row, x - 1)
+                + 114 * get_pixel(in_row, x)
+                + 35 * get_pixel(in_row, cmp::min(x + 1, width - 1))
+                - 9 * get_pixel(in_row, cmp::min(x + 2, width - 1))
+                + get_pixel(in_row, width - 1)
+                + 64)
+                >> 7;
 
-#[inline]
-fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
-    if input < min {
-        min
-    } else if input > max {
-        max
-    } else {
-        input
+            let clamped = val
+                .clamp(0, (1 << bit_depth) - 1)
+                .try_into()
+                .expect("fits into u16");
+            out_row[x] = T::try_from(clamped).expect("clamped value fits into T");
+        }
     }
 }

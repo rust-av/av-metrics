@@ -2,13 +2,13 @@
 name = "av-metrics-tests"
 version = "0.0.1"
 authors = ["Josh Holmer <jholmer.in@gmail.com>"]
-edition = "2021"
+edition = "2024"
 repository = "https://github.com/rust-av/av-metrics"
 publish = false
 
 [dependencies]
-av-metrics = { version = "0.9", features = ["serde"] }
-av-metrics-decoders = "0.3.1"
+av-metrics = { workspace = true, features = ["serde"] }
+av-metrics-decoders = { workspace = true }
 
 [features]
 default = ["y4m"]

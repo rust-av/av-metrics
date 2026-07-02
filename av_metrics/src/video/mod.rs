@@ -12,8 +12,9 @@ use decode::*;
 use std::error::Error;
 
 pub use pixel::*;
-pub use v_frame::frame::Frame;
-pub use v_frame::plane::Plane;
+pub use v_frame::chroma::ChromaSubsampling;
+pub use v_frame::frame::{Frame, FrameBuilder, FrameError};
+pub use v_frame::plane::{CopyError, Plane, PlaneGeometry, SubsamplingError};
 
 trait FrameCompare {
     fn can_compare(&self, other: &Self) -> Result<(), MetricsError>;
@@ -21,9 +22,9 @@ trait FrameCompare {
 
 impl<T: Pixel> FrameCompare for Frame<T> {
     fn can_compare(&self, other: &Self) -> Result<(), MetricsError> {
-        self.planes[0].can_compare(&other.planes[0])?;
-        self.planes[1].can_compare(&other.planes[1])?;
-        self.planes[2].can_compare(&other.planes[2])?;
+        self.plane(0).can_compare(&other.plane(0))?;
+        self.plane(1).can_compare(&other.plane(1))?;
+        self.plane(2).can_compare(&other.plane(2))?;
 
         Ok(())
     }
@@ -33,31 +34,29 @@ pub(crate) trait PlaneCompare {
     fn can_compare(&self, other: &Self) -> Result<(), MetricsError>;
 }
 
-impl<T: Pixel> PlaneCompare for Plane<T> {
+impl<T: Pixel> PlaneCompare for Option<&Plane<T>> {
     fn can_compare(&self, other: &Self) -> Result<(), MetricsError> {
-        if self.cfg != other.cfg {
-            return Err(MetricsError::InputMismatch {
+        match (self, other) {
+            (Some(s), Some(o)) if s.geometry() == o.geometry() => Ok(()),
+            _ => Err(MetricsError::InputMismatch {
                 reason: "Video resolution does not match",
-            });
+            }),
         }
-        Ok(())
     }
 }
-
-pub use v_frame::pixel::ChromaSampling;
 
 pub(crate) trait ChromaWeight {
     fn get_chroma_weight(self) -> f64;
 }
 
-impl ChromaWeight for ChromaSampling {
+impl ChromaWeight for ChromaSubsampling {
     /// The relative impact of chroma planes compared to luma
     fn get_chroma_weight(self) -> f64 {
         match self {
-            ChromaSampling::Cs420 => 0.25,
-            ChromaSampling::Cs422 => 0.5,
-            ChromaSampling::Cs444 => 1.0,
-            ChromaSampling::Cs400 => 0.0,
+            ChromaSubsampling::Yuv420 => 0.25,
+            ChromaSubsampling::Yuv422 => 0.5,
+            ChromaSubsampling::Yuv444 => 1.0,
+            ChromaSubsampling::Monochrome => 0.0,
         }
     }
 }
@@ -137,7 +136,7 @@ trait VideoMetric: Send + Sync {
         frame1: &Frame<T>,
         frame2: &Frame<T>,
         bit_depth: usize,
-        chroma_sampling: ChromaSampling,
+        chroma_sampling: ChromaSubsampling,
     ) -> Result<Self::FrameResult, Box<dyn Error>>;
 
     fn aggregate_frame_results(

@@ -9,8 +9,6 @@
 #![deny(missing_docs)]
 
 #[macro_use]
-extern crate itertools;
-#[macro_use]
 extern crate thiserror;
 
 pub mod video;
