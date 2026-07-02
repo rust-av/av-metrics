@@ -5,11 +5,11 @@
 //! CIEDE2000 implementation adapted from
 //! [Kyle Siefring's](https://github.com/KyleSiefring/dump_ciede2000).
 
-use crate::video::decode::Decoder;
-use crate::video::pixel::Pixel;
+use crate::MetricsError;
 use crate::video::ChromaSubsampling;
 use crate::video::VideoMetric;
-use crate::MetricsError;
+use crate::video::decode::Decoder;
+use crate::video::pixel::Pixel;
 
 use super::FrameCompare;
 

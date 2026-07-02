@@ -1,7 +1,7 @@
 use av_metrics::video::decode::*;
 use av_metrics::video::*;
 use std::fs::File;
-use std::io::{stdin, BufReader, Read, Stdin};
+use std::io::{BufReader, Read, Stdin, stdin};
 use std::path::Path;
 
 /// A decoder for a y4m input stream

@@ -1,7 +1,7 @@
-use anyhow::{ensure, Result};
+use anyhow::{Result, ensure};
 use av_metrics::video::{
-    decode::{Decoder, Rational, VideoDetails},
     ChromaSubsampling,
+    decode::{Decoder, Rational, VideoDetails},
 };
 use std::{
     mem::{size_of, transmute},

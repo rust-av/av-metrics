@@ -514,7 +514,7 @@ impl CliMetric for Ciede2000 {
 
 trait PrintResult<T> {
     fn print_result(writer: &mut OutputType, header: &str, result: Option<T>)
-        -> Result<(), String>;
+    -> Result<(), String>;
 }
 
 struct Text;

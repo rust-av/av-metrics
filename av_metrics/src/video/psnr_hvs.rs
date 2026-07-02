@@ -6,11 +6,11 @@
 //!
 //! See https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio for more details.
 
+use crate::MetricsError;
+use crate::video::ChromaWeight;
 use crate::video::decode::Decoder;
 use crate::video::pixel::Pixel;
-use crate::video::ChromaWeight;
 use crate::video::{PlanarMetrics, VideoMetric};
-use crate::MetricsError;
 use std::error::Error;
 use std::mem::size_of;
 use v_frame::frame::Frame;

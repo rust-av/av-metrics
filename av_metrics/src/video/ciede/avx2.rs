@@ -7,7 +7,7 @@ use crate::video::pixel::Pixel;
 
 use super::delta_e_row_scalar;
 use super::rgbtolab::rgb_to_lab_avx2;
-use super::{Colorspace, FrameRow, DE2000, K_SUB};
+use super::{Colorspace, DE2000, FrameRow, K_SUB};
 
 #[target_feature(enable = "avx2")]
 fn yuv_to_rgb<BD: Colorspace>(yuv: (__m256, __m256, __m256)) -> (__m256, __m256, __m256) {

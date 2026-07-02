@@ -8,11 +8,11 @@
 //!
 //! See https://en.wikipedia.org/wiki/Structural_similarity for more details.
 
+use crate::MetricsError;
+use crate::video::ChromaWeight;
 use crate::video::decode::Decoder;
 use crate::video::pixel::Pixel;
-use crate::video::ChromaWeight;
 use crate::video::{PlanarMetrics, VideoMetric};
-use crate::MetricsError;
 use std::cmp;
 use std::error::Error;
 use std::f64::consts::{E, PI};
