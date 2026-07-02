@@ -243,15 +243,6 @@ impl Colorspace for BD12_444 {
     const X_DECIMATION: u32 = 0;
 }
 
-fn twice<T>(
-    i: T,
-) -> itertools::Interleave<<T as IntoIterator>::IntoIter, <T as IntoIterator>::IntoIter>
-where
-    T: IntoIterator + Clone,
-{
-    itertools::interleave(i.clone(), i)
-}
-
 pub(crate) trait DeltaEScalar: Colorspace {
     fn delta_e_scalar(yuv1: (u16, u16, u16), yuv2: (u16, u16, u16)) -> f32 {
         let scale = (1 << (Self::BIT_DEPTH - 8)) as f32;
@@ -281,30 +272,19 @@ pub(crate) trait DeltaEScalar: Colorspace {
         row2: FrameRow<T>,
         res_row: &mut [f32],
     ) {
-        if Self::X_DECIMATION == 1 {
-            for (y1, u1, v1, y2, u2, v2, res) in izip!(
-                row1.y,
-                twice(row1.u),
-                twice(row1.v),
-                row2.y,
-                twice(row2.u),
-                twice(row2.v),
-                res_row
-            ) {
-                *res = Self::delta_e_scalar(
-                    ((*y1).into(), (*u1).into(), (*v1).into()),
-                    ((*y2).into(), (*u2).into(), (*v2).into()),
-                );
-            }
-        } else {
-            for (y1, u1, v1, y2, u2, v2, res) in
-                izip!(row1.y, row1.u, row1.v, row2.y, row2.u, row2.v, res_row)
-            {
-                *res = Self::delta_e_scalar(
-                    ((*y1).into(), (*u1).into(), (*v1).into()),
-                    ((*y2).into(), (*u2).into(), (*v2).into()),
-                );
-            }
+        for idx in 0..row1.y.len() {
+            res_row[idx] = Self::delta_e_scalar(
+                (
+                    row1.y[idx].into(),
+                    row1.u[idx >> Self::X_DECIMATION].into(),
+                    row1.v[idx >> Self::X_DECIMATION].into(),
+                ),
+                (
+                    row2.y[idx].into(),
+                    row2.u[idx >> Self::X_DECIMATION].into(),
+                    row2.v[idx >> Self::X_DECIMATION].into(),
+                ),
+            );
         }
     }
 }
@@ -366,7 +346,7 @@ mod avx2 {
         unsafe fn delta_e_avx2(
             yuv1: (__m256, __m256, __m256),
             yuv2: (__m256, __m256, __m256),
-            res_chunk: &mut [f32],
+            res_chunk: &mut [f32; 8],
         ) {
             let (r1, g1, b1) = Self::yuv_to_rgb(yuv1);
             let (r2, g2, b2) = Self::yuv_to_rgb(yuv2);
@@ -384,150 +364,92 @@ mod avx2 {
             row2: FrameRow<T>,
             res_row: &mut [f32],
         ) {
-            // Only one version should be compiled for each trait
-            if Self::BIT_DEPTH == 8 {
-                for (chunk1_y, chunk1_u, chunk1_v, chunk2_y, chunk2_u, chunk2_v, res_chunk) in izip!(
-                    row1.y.chunks(8),
-                    row1.u.chunks(4),
-                    row1.v.chunks(4),
-                    row2.y.chunks(8),
-                    row2.u.chunks(4),
-                    row2.v.chunks(4),
-                    res_row.chunks_mut(8)
-                ) {
-                    if chunk1_y.len() == 8 {
-                        #[inline(always)]
-                        unsafe fn load_luma(chunk: &[u8]) -> __m256 {
-                            let tmp = _mm_loadl_epi64(chunk.as_ptr() as *const _);
-                            _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(tmp))
-                        }
+            let (r1_y_chunks, r1_y_rest) = row1.y.as_chunks::<8>();
+            let (r1_u_chunks, r1_u_rest) = row1.u.as_chunks::<4>();
+            let (r1_v_chunks, r1_v_rest) = row1.v.as_chunks::<4>();
+            let (r2_y_chunks, r2_y_rest) = row2.y.as_chunks::<8>();
+            let (r2_u_chunks, r2_u_rest) = row2.u.as_chunks::<4>();
+            let (r2_v_chunks, r2_v_rest) = row2.v.as_chunks::<4>();
+            let (res_chunks, res_rest) = res_row.as_chunks_mut::<8>();
 
-                        #[inline(always)]
-                        unsafe fn load_chroma(chunk: &[u8]) -> __m256 {
-                            let tmp = _mm_cvtsi32_si128(*(chunk.as_ptr() as *const i32));
-                            _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(_mm_unpacklo_epi8(tmp, tmp)))
-                        }
+            for idx in 0..r1_y_chunks.len() {
+                let chunk1_y = r1_y_chunks[idx];
+                let chunk1_u = r1_u_chunks[idx];
+                let chunk1_v = r1_v_chunks[idx];
+                let chunk2_y = r2_y_chunks[idx];
+                let chunk2_u = r2_u_chunks[idx];
+                let chunk2_v = r2_v_chunks[idx];
+                let res_chunk = &mut res_chunks[idx];
 
-                        Self::delta_e_avx2(
-                            (
-                                load_luma(
-                                    &chunk1_y
-                                        .iter()
-                                        .map(|&p| p.try_into().expect("Pixel is u8"))
-                                        .collect::<Vec<_>>(),
-                                ),
-                                load_chroma(
-                                    &chunk1_u
-                                        .iter()
-                                        .map(|&p| p.try_into().expect("Pixel is u8"))
-                                        .collect::<Vec<_>>(),
-                                ),
-                                load_chroma(
-                                    &chunk1_v
-                                        .iter()
-                                        .map(|&p| p.try_into().expect("Pixel is u8"))
-                                        .collect::<Vec<_>>(),
-                                ),
-                            ),
-                            (
-                                load_luma(
-                                    &chunk2_y
-                                        .iter()
-                                        .map(|&p| p.try_into().expect("Pixel is u8"))
-                                        .collect::<Vec<_>>(),
-                                ),
-                                load_chroma(
-                                    &chunk2_u
-                                        .iter()
-                                        .map(|&p| p.try_into().expect("Pixel is u8"))
-                                        .collect::<Vec<_>>(),
-                                ),
-                                load_chroma(
-                                    &chunk2_v
-                                        .iter()
-                                        .map(|&p| p.try_into().expect("Pixel is u8"))
-                                        .collect::<Vec<_>>(),
-                                ),
-                            ),
-                            res_chunk,
-                        );
-                    } else {
-                        Self::delta_e_row_scalar(
-                            FrameRow {
-                                y: chunk1_y,
-                                u: chunk1_u,
-                                v: chunk1_v,
-                            },
-                            FrameRow {
-                                y: chunk2_y,
-                                u: chunk2_u,
-                                v: chunk2_v,
-                            },
-                            res_chunk,
-                        );
+                // Only one version should be compiled for each trait
+                if Self::BIT_DEPTH == 8 {
+                    #[inline(always)]
+                    unsafe fn load_luma(chunk: &[u8; 8]) -> __m256 {
+                        let tmp = _mm_loadl_epi64(chunk.as_ptr().cast());
+                        _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(tmp))
                     }
-                }
-            } else {
-                for (chunk1_y, chunk1_u, chunk1_v, chunk2_y, chunk2_u, chunk2_v, res_chunk) in izip!(
-                    row1.y.chunks(8),
-                    row1.u.chunks(4),
-                    row1.v.chunks(4),
-                    row2.y.chunks(8),
-                    row2.u.chunks(4),
-                    row2.v.chunks(4),
-                    res_row.chunks_mut(8)
-                ) {
-                    if chunk1_y.len() == 8 {
-                        #[inline(always)]
-                        unsafe fn load_luma(chunk: &[u16]) -> __m256 {
-                            let tmp = _mm_loadu_si128(chunk.as_ptr() as *const _);
-                            _mm256_cvtepi32_ps(_mm256_cvtepu16_epi32(tmp))
-                        }
 
-                        #[inline(always)]
-                        unsafe fn load_chroma(chunk: &[u16]) -> __m256 {
-                            let tmp = _mm_loadl_epi64(chunk.as_ptr() as *const _);
-                            _mm256_cvtepi32_ps(_mm256_cvtepu16_epi32(_mm_unpacklo_epi16(tmp, tmp)))
-                        }
-
-                        Self::delta_e_avx2(
-                            (
-                                load_luma(&chunk1_y.iter().map(|&p| p.into()).collect::<Vec<_>>()),
-                                load_chroma(
-                                    &chunk1_u.iter().map(|&p| p.into()).collect::<Vec<_>>(),
-                                ),
-                                load_chroma(
-                                    &chunk1_v.iter().map(|&p| p.into()).collect::<Vec<_>>(),
-                                ),
-                            ),
-                            (
-                                load_luma(&chunk2_y.iter().map(|&p| p.into()).collect::<Vec<_>>()),
-                                load_chroma(
-                                    &chunk2_u.iter().map(|&p| p.into()).collect::<Vec<_>>(),
-                                ),
-                                load_chroma(
-                                    &chunk2_v.iter().map(|&p| p.into()).collect::<Vec<_>>(),
-                                ),
-                            ),
-                            res_chunk,
-                        );
-                    } else {
-                        Self::delta_e_row_scalar(
-                            FrameRow {
-                                y: chunk1_y,
-                                u: chunk1_u,
-                                v: chunk1_v,
-                            },
-                            FrameRow {
-                                y: chunk2_y,
-                                u: chunk2_u,
-                                v: chunk2_v,
-                            },
-                            res_chunk,
-                        );
+                    #[inline(always)]
+                    unsafe fn load_chroma(chunk: [u8; 4]) -> __m256 {
+                        let tmp = _mm_cvtsi32_si128(i32::from_ne_bytes(chunk));
+                        _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(_mm_unpacklo_epi8(tmp, tmp)))
                     }
+
+                    Self::delta_e_avx2(
+                        (
+                            load_luma(&chunk1_y.map(|p| p.try_into().expect("Pixel is u8"))),
+                            load_chroma(chunk1_u.map(|p| p.try_into().expect("Pixel is u8"))),
+                            load_chroma(chunk1_v.map(|p| p.try_into().expect("Pixel is u8"))),
+                        ),
+                        (
+                            load_luma(&chunk2_y.map(|p| p.try_into().expect("Pixel is u8"))),
+                            load_chroma(chunk2_u.map(|p| p.try_into().expect("Pixel is u8"))),
+                            load_chroma(chunk2_v.map(|p| p.try_into().expect("Pixel is u8"))),
+                        ),
+                        res_chunk,
+                    );
+                } else {
+                    #[inline(always)]
+                    unsafe fn load_luma(chunk: &[u16; 8]) -> __m256 {
+                        let tmp = _mm_loadu_si128(chunk.as_ptr().cast());
+                        _mm256_cvtepi32_ps(_mm256_cvtepu16_epi32(tmp))
+                    }
+
+                    #[inline(always)]
+                    unsafe fn load_chroma(chunk: &[u16; 4]) -> __m256 {
+                        let tmp = _mm_loadl_epi64(chunk.as_ptr().cast());
+                        _mm256_cvtepi32_ps(_mm256_cvtepu16_epi32(_mm_unpacklo_epi16(tmp, tmp)))
+                    }
+
+                    Self::delta_e_avx2(
+                        (
+                            load_luma(&chunk1_y.map(|p| p.into())),
+                            load_chroma(&chunk1_u.map(|p| p.into())),
+                            load_chroma(&chunk1_v.map(|p| p.into())),
+                        ),
+                        (
+                            load_luma(&chunk2_y.map(|p| p.into())),
+                            load_chroma(&chunk2_u.map(|p| p.into())),
+                            load_chroma(&chunk2_v.map(|p| p.into())),
+                        ),
+                        res_chunk,
+                    );
                 }
             }
+
+            Self::delta_e_row_scalar(
+                FrameRow {
+                    y: r1_y_rest,
+                    u: r1_u_rest,
+                    v: r1_v_rest,
+                },
+                FrameRow {
+                    y: r2_y_rest,
+                    u: r2_u_rest,
+                    v: r2_v_rest,
+                },
+                res_rest,
+            );
         }
     }
 
