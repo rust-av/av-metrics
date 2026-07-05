@@ -10,18 +10,18 @@ pub struct Y4MDecoder<R: Read + Send> {
 }
 
 /// Function to map y4m color space
-fn map_y4m_color_space(color_space: y4m::Colorspace) -> (ChromaSampling, ChromaSamplePosition) {
+fn map_y4m_color_space(color_space: y4m::Colorspace) -> (ChromaSubsampling, ChromaSamplePosition) {
     use av_metrics::video::ChromaSamplePosition::*;
-    use av_metrics::video::ChromaSampling::*;
+    use av_metrics::video::ChromaSubsampling::*;
     use y4m::Colorspace::*;
     match color_space {
-        Cmono | Cmono12 => (Cs400, Unknown),
-        C420jpeg => (Cs420, Bilateral),
-        C420paldv => (Cs420, Interpolated),
-        C420mpeg2 => (Cs420, Vertical),
-        C420 | C420p10 | C420p12 => (Cs420, Colocated),
-        C422 | C422p10 | C422p12 => (Cs422, Vertical),
-        C444 | C444p10 | C444p12 => (Cs444, Colocated),
+        Cmono | Cmono12 => (Monochrome, Unknown),
+        C420jpeg => (Yuv420, Bilateral),
+        C420paldv => (Yuv420, Interpolated),
+        C420mpeg2 => (Yuv420, Vertical),
+        C420 | C420p10 | C420p12 => (Yuv420, Colocated),
+        C422 | C422p10 | C422p12 => (Yuv422, Vertical),
+        C444 | C444p10 | C444p12 => (Yuv444, Colocated),
         _ => unimplemented!(),
     }
 }
@@ -75,12 +75,19 @@ where
         let height = self.inner.get_height();
         let bytes = self.inner.get_bytes_per_sample();
         self.inner.read_frame().ok().map(|frame| {
-            let mut f: Frame<T> = Frame::new_with_padding(width, height, chroma_sampling, 0);
+            let mut f: Frame<T> =
+                FrameBuilder::new(width, height, chroma_sampling, bit_depth as u8)
+                    .build()
+                    .expect("can build frame");
 
-            let (chroma_width, _) = chroma_sampling.get_chroma_dimensions(width, height);
-            f.planes[0].copy_from_raw_u8(frame.get_y_plane(), width * bytes, bytes);
+            let (chroma_width, _) = chroma_sampling
+                .chroma_dimensions(width, height)
+                .expect("can subsample");
+            f.y_plane
+                .copy_from_u8_slice_with_stride(frame.get_y_plane(), width * bytes)
+                .expect("can copy");
             convert_chroma_data(
-                &mut f.planes[1],
+                f.plane_mut(1).expect("has plane 1"),
                 chroma_sample_pos,
                 bit_depth,
                 frame.get_u_plane(),
@@ -88,7 +95,7 @@ where
                 bytes,
             );
             convert_chroma_data(
-                &mut f.planes[2],
+                f.plane_mut(2).expect("has plane 2"),
                 chroma_sample_pos,
                 bit_depth,
                 frame.get_v_plane(),

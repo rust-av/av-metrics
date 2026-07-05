@@ -6,7 +6,8 @@
 //! [Kyle Siefring's](https://github.com/KyleSiefring/dump_ciede2000).
 
 use crate::video::decode::Decoder;
-use crate::video::pixel::{CastFromPrimitive, Pixel};
+use crate::video::pixel::Pixel;
+use crate::video::ChromaSubsampling;
 use crate::video::VideoMetric;
 use crate::MetricsError;
 use std::f64;
@@ -61,7 +62,7 @@ pub fn calculate_frame_ciede<T: Pixel>(
     frame1: &Frame<T>,
     frame2: &Frame<T>,
     bit_depth: usize,
-    chroma_sampling: ChromaSampling,
+    chroma_sampling: ChromaSubsampling,
 ) -> Result<f64, Box<dyn Error>> {
     Ciede2000::default().process_frame(frame1, frame2, bit_depth, chroma_sampling)
 }
@@ -76,7 +77,7 @@ pub fn calculate_frame_ciede_nosimd<T: Pixel>(
     frame1: &Frame<T>,
     frame2: &Frame<T>,
     bit_depth: usize,
-    chroma_sampling: ChromaSampling,
+    chroma_sampling: ChromaSubsampling,
 ) -> Result<f64, Box<dyn Error>> {
     (Ciede2000 { use_simd: false }).process_frame(frame1, frame2, bit_depth, chroma_sampling)
 }
@@ -93,7 +94,6 @@ impl Default for Ciede2000 {
 
 use rayon::prelude::*;
 use v_frame::frame::Frame;
-use v_frame::prelude::ChromaSampling;
 
 impl VideoMetric for Ciede2000 {
     type FrameResult = f64;
@@ -104,7 +104,7 @@ impl VideoMetric for Ciede2000 {
         frame1: &Frame<T>,
         frame2: &Frame<T>,
         bit_depth: usize,
-        chroma_sampling: ChromaSampling,
+        chroma_sampling: ChromaSubsampling,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
         if (size_of::<T>() == 1 && bit_depth > 8) || (size_of::<T>() == 2 && bit_depth <= 8) {
             return Err(Box::new(MetricsError::InputMismatch {
@@ -114,17 +114,17 @@ impl VideoMetric for Ciede2000 {
 
         frame1.can_compare(frame2)?;
 
-        let dec = chroma_sampling.get_decimation().unwrap_or((1, 1));
-        let y_width = frame1.planes[0].cfg.width;
-        let y_height = frame1.planes[0].cfg.height;
-        let c_width = frame1.planes[1].cfg.width;
-        let delta_e_row_fn = get_delta_e_row_fn(bit_depth, dec.0, self.use_simd);
+        let (x_ratio, y_ratio) = chroma_sampling.subsample_ratio().expect("not monochrome");
+        let y_width = frame1.y_plane.width();
+        let y_height = frame1.y_plane.height();
+        let c_width = frame1.plane(1).expect("has U plane").width();
+        let delta_e_row_fn = get_delta_e_row_fn(bit_depth, x_ratio.get(), self.use_simd);
         // let mut delta_e_vec: Vec<f32> = vec![0.0; y_width * y_height];
 
         let delta_e_per_line = (0..y_height).into_par_iter().map(|i| {
             let y_start = i * y_width;
             let y_end = y_start + y_width;
-            let c_start = (i >> dec.1) * c_width;
+            let c_start = (i / usize::from(y_ratio.get())) * c_width;
             let c_end = c_start + c_width;
 
             let y_range = y_start..y_end;
@@ -135,14 +135,14 @@ impl VideoMetric for Ciede2000 {
             unsafe {
                 delta_e_row_fn(
                     FrameRow {
-                        y: &frame1.planes[0].data[y_range.clone()],
-                        u: &frame1.planes[1].data[c_range.clone()],
-                        v: &frame1.planes[2].data[c_range.clone()],
+                        y: &frame1.plane(0).expect("frame 1 has plane 0").data()[y_range.clone()],
+                        u: &frame1.plane(1).expect("frame 1 has plane 1").data()[c_range.clone()],
+                        v: &frame1.plane(2).expect("frame 1 has plane 2").data()[c_range.clone()],
                     },
                     FrameRow {
-                        y: &frame2.planes[0].data[y_range],
-                        u: &frame2.planes[1].data[c_range.clone()],
-                        v: &frame2.planes[2].data[c_range],
+                        y: &frame2.plane(0).expect("frame 2 has plane 0").data()[y_range],
+                        u: &frame2.plane(1).expect("frame 2 has plane 1").data()[c_range.clone()],
+                        v: &frame2.plane(2).expect("frame 2 has plane 2").data()[c_range],
                     },
                     &mut delta_e_vec[..],
                 );
@@ -182,10 +182,10 @@ pub(crate) struct FrameRow<'a, T: Pixel> {
 
 type DeltaERowFn<T> = unsafe fn(FrameRow<T>, FrameRow<T>, &mut [f32]);
 
-fn get_delta_e_row_fn<T: Pixel>(bit_depth: usize, xdec: usize, _simd: bool) -> DeltaERowFn<T> {
+fn get_delta_e_row_fn<T: Pixel>(bit_depth: usize, x_ratio: u8, _simd: bool) -> DeltaERowFn<T> {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     {
-        if is_x86_feature_detected!("avx2") && xdec == 1 && _simd {
+        if is_x86_feature_detected!("avx2") && x_ratio == 2 && _simd {
             return match bit_depth {
                 8 => BD8::delta_e_row_avx2,
                 10 => BD10::delta_e_row_avx2,
@@ -194,13 +194,13 @@ fn get_delta_e_row_fn<T: Pixel>(bit_depth: usize, xdec: usize, _simd: bool) -> D
             };
         }
     }
-    match (bit_depth, xdec) {
-        (8, 1) => BD8::delta_e_row_scalar,
-        (10, 1) => BD10::delta_e_row_scalar,
-        (12, 1) => BD12::delta_e_row_scalar,
-        (8, 0) => BD8_444::delta_e_row_scalar,
-        (10, 0) => BD10_444::delta_e_row_scalar,
-        (12, 0) => BD12_444::delta_e_row_scalar,
+    match (bit_depth, x_ratio) {
+        (8, 2) => BD8::delta_e_row_scalar,
+        (10, 2) => BD10::delta_e_row_scalar,
+        (12, 2) => BD12::delta_e_row_scalar,
+        (8, 1) => BD8_444::delta_e_row_scalar,
+        (10, 1) => BD10_444::delta_e_row_scalar,
+        (12, 1) => BD12_444::delta_e_row_scalar,
         _ => unreachable!(),
     }
 }
@@ -292,16 +292,8 @@ pub(crate) trait DeltaEScalar: Colorspace {
                 res_row
             ) {
                 *res = Self::delta_e_scalar(
-                    (
-                        u16::cast_from(*y1),
-                        u16::cast_from(*u1),
-                        u16::cast_from(*v1),
-                    ),
-                    (
-                        u16::cast_from(*y2),
-                        u16::cast_from(*u2),
-                        u16::cast_from(*v2),
-                    ),
+                    ((*y1).into(), (*u1).into(), (*v1).into()),
+                    ((*y2).into(), (*u2).into(), (*v2).into()),
                 );
             }
         } else {
@@ -309,16 +301,8 @@ pub(crate) trait DeltaEScalar: Colorspace {
                 izip!(row1.y, row1.u, row1.v, row2.y, row2.u, row2.v, res_row)
             {
                 *res = Self::delta_e_scalar(
-                    (
-                        u16::cast_from(*y1),
-                        u16::cast_from(*u1),
-                        u16::cast_from(*v1),
-                    ),
-                    (
-                        u16::cast_from(*y2),
-                        u16::cast_from(*u2),
-                        u16::cast_from(*v2),
-                    ),
+                    ((*y1).into(), (*u1).into(), (*v1).into()),
+                    ((*y2).into(), (*u2).into(), (*v2).into()),
                 );
             }
         }
@@ -429,19 +413,19 @@ mod avx2 {
                                 load_luma(
                                     &chunk1_y
                                         .iter()
-                                        .map(|p| u8::cast_from(*p))
+                                        .map(|&p| p.try_into().expect("Pixel is u8"))
                                         .collect::<Vec<_>>(),
                                 ),
                                 load_chroma(
                                     &chunk1_u
                                         .iter()
-                                        .map(|p| u8::cast_from(*p))
+                                        .map(|&p| p.try_into().expect("Pixel is u8"))
                                         .collect::<Vec<_>>(),
                                 ),
                                 load_chroma(
                                     &chunk1_v
                                         .iter()
-                                        .map(|p| u8::cast_from(*p))
+                                        .map(|&p| p.try_into().expect("Pixel is u8"))
                                         .collect::<Vec<_>>(),
                                 ),
                             ),
@@ -449,19 +433,19 @@ mod avx2 {
                                 load_luma(
                                     &chunk2_y
                                         .iter()
-                                        .map(|p| u8::cast_from(*p))
+                                        .map(|&p| p.try_into().expect("Pixel is u8"))
                                         .collect::<Vec<_>>(),
                                 ),
                                 load_chroma(
                                     &chunk2_u
                                         .iter()
-                                        .map(|p| u8::cast_from(*p))
+                                        .map(|&p| p.try_into().expect("Pixel is u8"))
                                         .collect::<Vec<_>>(),
                                 ),
                                 load_chroma(
                                     &chunk2_v
                                         .iter()
-                                        .map(|p| u8::cast_from(*p))
+                                        .map(|&p| p.try_into().expect("Pixel is u8"))
                                         .collect::<Vec<_>>(),
                                 ),
                             ),
@@ -508,43 +492,21 @@ mod avx2 {
 
                         Self::delta_e_avx2(
                             (
-                                load_luma(
-                                    &chunk1_y
-                                        .iter()
-                                        .map(|p| u16::cast_from(*p))
-                                        .collect::<Vec<_>>(),
+                                load_luma(&chunk1_y.iter().map(|&p| p.into()).collect::<Vec<_>>()),
+                                load_chroma(
+                                    &chunk1_u.iter().map(|&p| p.into()).collect::<Vec<_>>(),
                                 ),
                                 load_chroma(
-                                    &chunk1_u
-                                        .iter()
-                                        .map(|p| u16::cast_from(*p))
-                                        .collect::<Vec<_>>(),
-                                ),
-                                load_chroma(
-                                    &chunk1_v
-                                        .iter()
-                                        .map(|p| u16::cast_from(*p))
-                                        .collect::<Vec<_>>(),
+                                    &chunk1_v.iter().map(|&p| p.into()).collect::<Vec<_>>(),
                                 ),
                             ),
                             (
-                                load_luma(
-                                    &chunk2_y
-                                        .iter()
-                                        .map(|p| u16::cast_from(*p))
-                                        .collect::<Vec<_>>(),
+                                load_luma(&chunk2_y.iter().map(|&p| p.into()).collect::<Vec<_>>()),
+                                load_chroma(
+                                    &chunk2_u.iter().map(|&p| p.into()).collect::<Vec<_>>(),
                                 ),
                                 load_chroma(
-                                    &chunk2_u
-                                        .iter()
-                                        .map(|p| u16::cast_from(*p))
-                                        .collect::<Vec<_>>(),
-                                ),
-                                load_chroma(
-                                    &chunk2_v
-                                        .iter()
-                                        .map(|p| u16::cast_from(*p))
-                                        .collect::<Vec<_>>(),
+                                    &chunk2_v.iter().map(|&p| p.into()).collect::<Vec<_>>(),
                                 ),
                             ),
                             res_chunk,

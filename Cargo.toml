@@ -7,13 +7,13 @@ members = [
     "av_metrics_tests",
 ]
 
+[workspace.dependencies]
+av-metrics = { version = "0.9.1", path = "av_metrics" }
+av-metrics-decoders = { version = "0.3.2", path = "av_metrics_decoders" }
+
 [profile.dev]
 opt-level = 1
 
 [profile.release]
 lto = "thin"
 codegen-units = 1
-
-[patch.crates-io]
-av-metrics = { path = "av_metrics" }
-av-metrics-decoders = { path = "av_metrics_decoders" }

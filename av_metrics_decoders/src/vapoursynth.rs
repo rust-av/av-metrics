@@ -1,7 +1,7 @@
 use anyhow::{ensure, Result};
 use av_metrics::video::{
     decode::{Decoder, Rational, VideoDetails},
-    ChromaSampling,
+    ChromaSubsampling,
 };
 use std::{
     mem::{size_of, transmute},
@@ -124,73 +124,78 @@ impl Decoder for VapoursynthDecoder {
             panic!("Unsupported bit depth");
         }
 
-        let mut f: av_metrics::video::Frame<T> = av_metrics::video::Frame::new_with_padding(
+        let mut f: av_metrics::video::Frame<T> = av_metrics::video::FrameBuilder::new(
             details.width,
             details.height,
             details.chroma_sampling,
-            0,
-        );
+            details.bit_depth as u8,
+        )
+        .build()
+        .expect("can build frame");
 
         {
-            let frame = self.get_node().unwrap().get_frame(self.cur_frame);
-            if frame.is_err() {
+            let Ok(frame) = self.get_node().unwrap().get_frame(self.cur_frame) else {
                 return None;
-            }
-            let frame = frame.unwrap();
+            };
+
             match size_of::<T>() {
                 1 => {
-                    for (out_row, in_row) in f.planes[0]
-                        .rows_iter_mut()
+                    for (out_row, in_row) in f
+                        .y_plane
+                        .rows_mut()
                         .zip((0..details.height).map(|y| frame.plane_row::<u8>(0, y)))
                     {
                         // SAFETY: We know that `T` is `u8` here.
                         out_row[..in_row.len()].copy_from_slice(unsafe { transmute(in_row) });
                     }
-                    if details.chroma_sampling != ChromaSampling::Cs400 {
-                        for (out_row, in_row) in f.planes[1].rows_iter_mut().zip(
-                            (0..(details.height
-                                >> details.chroma_sampling.get_decimation().unwrap().1))
-                                .map(|y| frame.plane_row::<u8>(1, y)),
-                        ) {
+                    if let Some((_, y_ratio)) = details.chroma_sampling.subsample_ratio() {
+                        for (out_row, in_row) in
+                            f.plane_mut(1).expect("has plane 1").rows_mut().zip(
+                                (0..(details.height / usize::from(y_ratio.get())))
+                                    .map(|y| frame.plane_row::<u8>(1, y)),
+                            )
+                        {
                             // SAFETY: We know that `T` is `u8` here.
                             out_row[..in_row.len()].copy_from_slice(unsafe { transmute(in_row) });
                         }
-                    }
-                    if details.chroma_sampling != ChromaSampling::Cs400 {
-                        for (out_row, in_row) in f.planes[2].rows_iter_mut().zip(
-                            (0..(details.height
-                                >> details.chroma_sampling.get_decimation().unwrap().1))
-                                .map(|y| frame.plane_row::<u8>(2, y)),
-                        ) {
+
+                        for (out_row, in_row) in
+                            f.plane_mut(2).expect("has plane 2").rows_mut().zip(
+                                (0..(details.height / usize::from(y_ratio.get())))
+                                    .map(|y| frame.plane_row::<u8>(2, y)),
+                            )
+                        {
                             // SAFETY: We know that `T` is `u8` here.
                             out_row[..in_row.len()].copy_from_slice(unsafe { transmute(in_row) });
                         }
                     }
                 }
                 2 => {
-                    for (out_row, in_row) in f.planes[0]
-                        .rows_iter_mut()
+                    for (out_row, in_row) in f
+                        .y_plane
+                        .rows_mut()
                         .zip((0..details.height).map(|y| frame.plane_row::<u16>(0, y)))
                     {
                         // SAFETY: We know that `T` is `u16` here.
                         out_row[..in_row.len()].copy_from_slice(unsafe { transmute(in_row) });
                     }
-                    if details.chroma_sampling != ChromaSampling::Cs400 {
-                        for (out_row, in_row) in f.planes[1].rows_iter_mut().zip(
-                            (0..(details.height
-                                >> details.chroma_sampling.get_decimation().unwrap().1))
-                                .map(|y| frame.plane_row::<u16>(1, y)),
-                        ) {
+                    if let Some((_, y_ratio)) = details.chroma_sampling.subsample_ratio() {
+                        for (out_row, in_row) in
+                            f.plane_mut(1).expect("has plane 1").rows_mut().zip(
+                                (0..(details.height / usize::from(y_ratio.get())))
+                                    .map(|y| frame.plane_row::<u16>(1, y)),
+                            )
+                        {
                             // SAFETY: We know that `T` is `u16` here.
                             out_row[..in_row.len()].copy_from_slice(unsafe { transmute(in_row) });
                         }
-                    }
-                    if details.chroma_sampling != ChromaSampling::Cs400 {
-                        for (out_row, in_row) in f.planes[2].rows_iter_mut().zip(
-                            (0..(details.height
-                                >> details.chroma_sampling.get_decimation().unwrap().1))
-                                .map(|y| frame.plane_row::<u16>(2, y)),
-                        ) {
+
+                        for (out_row, in_row) in
+                            f.plane_mut(2).expect("has plane 2").rows_mut().zip(
+                                (0..(details.height / usize::from(y_ratio.get())))
+                                    .map(|y| frame.plane_row::<u16>(2, y)),
+                            )
+                        {
                             // SAFETY: We know that `T` is `u16` here.
                             out_row[..in_row.len()].copy_from_slice(unsafe { transmute(in_row) });
                         }
@@ -217,10 +222,10 @@ impl Decoder for VapoursynthDecoder {
             format.color_family(),
             format.sub_sampling_w() + format.sub_sampling_h(),
         ) {
-            (ColorFamily::Gray, _) => ChromaSampling::Cs400,
-            (_, 0) => ChromaSampling::Cs444,
-            (_, 1) => ChromaSampling::Cs422,
-            _ => ChromaSampling::Cs420,
+            (ColorFamily::Gray, _) => ChromaSubsampling::Monochrome,
+            (_, 0) => ChromaSubsampling::Yuv444,
+            (_, 1) => ChromaSubsampling::Yuv422,
+            _ => ChromaSubsampling::Yuv420,
         };
         VideoDetails {
             width: res.width,
