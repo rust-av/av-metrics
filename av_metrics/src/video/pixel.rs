@@ -2,4 +2,4 @@
 //!
 //! Borrowed from rav1e.
 
-pub use v_frame::pixel::{CastFromPrimitive, Pixel};
+pub use v_frame::pixel::Pixel;
