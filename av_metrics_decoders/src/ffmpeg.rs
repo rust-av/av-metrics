@@ -27,6 +27,8 @@ pub struct FfmpegDecoder {
 impl FfmpegDecoder {
     /// Initialize a new FFMpeg decoder for a given input file
     pub fn new<P: AsRef<Path>>(input: P) -> Result<Self, String> {
+        use ffmpeg::format::Pixel as PixFmt;
+
         ffmpeg::init().map_err(|e| e.to_string())?;
 
         let input_ctx = format::input(input.as_ref()).map_err(|e| e.to_string())?;
@@ -50,43 +52,39 @@ impl FfmpegDecoder {
                 width: decoder.width() as usize,
                 height: decoder.height() as usize,
                 bit_depth: match decoder.format() {
-                    format::pixel::Pixel::YUV420P
-                    | format::pixel::Pixel::YUV422P
-                    | format::pixel::Pixel::YUV444P
-                    | format::pixel::Pixel::YUVJ420P
-                    | format::pixel::Pixel::YUVJ422P
-                    | format::pixel::Pixel::YUVJ444P => 8,
-                    format::pixel::Pixel::YUV420P10LE
-                    | format::pixel::Pixel::YUV422P10LE
-                    | format::pixel::Pixel::YUV444P10LE => 10,
-                    format::pixel::Pixel::YUV420P12LE
-                    | format::pixel::Pixel::YUV422P12LE
-                    | format::pixel::Pixel::YUV444P12LE => 12,
-                    _ => {
-                        return Err(format!("Unsupported pixel format {:?}", decoder.format()));
+                    PixFmt::YUV420P
+                    | PixFmt::YUV422P
+                    | PixFmt::YUV444P
+                    | PixFmt::YUVJ420P
+                    | PixFmt::YUVJ422P
+                    | PixFmt::YUVJ444P => 8,
+                    PixFmt::YUV420P10LE | PixFmt::YUV422P10LE | PixFmt::YUV444P10LE => 10,
+                    PixFmt::YUV420P12LE | PixFmt::YUV422P12LE | PixFmt::YUV444P12LE => 12,
+                    fmt => {
+                        return Err(format!("Unsupported pixel format {fmt:?}"));
                     }
                 },
                 chroma_sampling: match decoder.format() {
-                    format::pixel::Pixel::YUV420P
-                    | format::pixel::Pixel::YUVJ420P
-                    | format::pixel::Pixel::YUV420P10LE
-                    | format::pixel::Pixel::YUV420P12LE => ChromaSampling::Cs420,
-                    format::pixel::Pixel::YUV422P
-                    | format::pixel::Pixel::YUVJ422P
-                    | format::pixel::Pixel::YUV422P10LE
-                    | format::pixel::Pixel::YUV422P12LE => ChromaSampling::Cs422,
-                    format::pixel::Pixel::YUV444P
-                    | format::pixel::Pixel::YUVJ444P
-                    | format::pixel::Pixel::YUV444P10LE
-                    | format::pixel::Pixel::YUV444P12LE => ChromaSampling::Cs444,
-                    _ => {
-                        return Err(format!("Unsupported pixel format {:?}", decoder.format()));
+                    PixFmt::YUV420P
+                    | PixFmt::YUVJ420P
+                    | PixFmt::YUV420P10LE
+                    | PixFmt::YUV420P12LE => ChromaSubsampling::Yuv420,
+                    PixFmt::YUV422P
+                    | PixFmt::YUVJ422P
+                    | PixFmt::YUV422P10LE
+                    | PixFmt::YUV422P12LE => ChromaSubsampling::Yuv422,
+                    PixFmt::YUV444P
+                    | PixFmt::YUVJ444P
+                    | PixFmt::YUV444P10LE
+                    | PixFmt::YUV444P12LE => ChromaSubsampling::Yuv444,
+                    fmt => {
+                        return Err(format!("Unsupported pixel format {fmt:?}"));
                     }
                 },
                 chroma_sample_position: match decoder.format() {
-                    format::pixel::Pixel::YUV422P
-                    | format::pixel::Pixel::YUV422P10LE
-                    | format::pixel::Pixel::YUV422P12LE => ChromaSamplePosition::Vertical,
+                    PixFmt::YUV422P | PixFmt::YUV422P10LE | PixFmt::YUV422P12LE => {
+                        ChromaSamplePosition::Vertical
+                    }
                     _ => ChromaSamplePosition::Colocated,
                 },
                 time_base: Rational::new(
@@ -105,23 +103,23 @@ impl FfmpegDecoder {
     }
 
     fn decode_frame<T: Pixel>(&self, decoded: &frame::Video) -> Frame<T> {
-        let mut f: Frame<T> = Frame::new_with_padding(
-            self.video_details.width,
-            self.video_details.height,
-            self.video_details.chroma_sampling,
-            0,
-        );
         let width = self.video_details.width;
         let height = self.video_details.height;
+        let chroma_sampling = self.video_details.chroma_sampling;
         let bit_depth = self.video_details.bit_depth;
+
+        let mut f: Frame<T> = FrameBuilder::new(width, height, chroma_sampling, bit_depth as u8)
+            .build()
+            .expect("can build frame");
         let bytes = if bit_depth > 8 { 2 } else { 1 };
-        let (chroma_width, _) = self
-            .video_details
-            .chroma_sampling
-            .get_chroma_dimensions(width, height);
-        f.planes[0].copy_from_raw_u8(decoded.data(0), width * bytes, bytes);
+        let (chroma_width, _) = chroma_sampling
+            .chroma_dimensions(width, height)
+            .expect("has chroma dimensions");
+        f.y_plane
+            .copy_from_u8_slice_with_stride(decoded.data(0), width * bytes)
+            .expect("can copy data");
         convert_chroma_data(
-            &mut f.planes[1],
+            f.plane_mut(1).expect("has plane 1"),
             self.video_details.chroma_sample_position,
             bit_depth,
             decoded.data(1),
@@ -129,7 +127,7 @@ impl FfmpegDecoder {
             bytes,
         );
         convert_chroma_data(
-            &mut f.planes[2],
+            f.plane_mut(2).expect("has plane 2"),
             self.video_details.chroma_sample_position,
             bit_depth,
             decoded.data(2),
