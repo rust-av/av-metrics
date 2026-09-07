@@ -79,7 +79,7 @@ impl VideoMetric for Ssim {
         frame1: &Frame<T>,
         frame2: &Frame<T>,
         bit_depth: usize,
-        _chroma_sampling: ChromaSampling,
+        chroma_sampling: ChromaSampling,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
         if (size_of::<T>() == 1 && bit_depth > 8) || (size_of::<T>() == 2 && bit_depth <= 8) {
             return Err(Box::new(MetricsError::InputMismatch {
@@ -94,8 +94,8 @@ impl VideoMetric for Ssim {
         let sample_max = (1 << bit_depth) - 1;
 
         let mut y = 0.0;
-        let mut u = 0.0;
-        let mut v = 0.0;
+        let mut u = 1.0;
+        let mut v = 1.0;
 
         rayon::scope(|s| {
             s.spawn(|_| {
@@ -113,35 +113,37 @@ impl VideoMetric for Ssim {
                 )
             });
 
-            s.spawn(|_| {
-                let u_kernel = build_gaussian_kernel(
-                    frame1.planes[1].cfg.height as f64 * 1.5 / 256.0,
-                    cmp::min(frame1.planes[1].cfg.width, frame1.planes[1].cfg.height),
-                    KERNEL_WEIGHT,
-                );
-                u = calculate_plane_ssim(
-                    &frame1.planes[1],
-                    &frame2.planes[1],
-                    sample_max,
-                    &u_kernel,
-                    &u_kernel,
-                )
-            });
+            if chroma_sampling != ChromaSampling::Cs400 {
+                s.spawn(|_| {
+                    let u_kernel = build_gaussian_kernel(
+                        frame1.planes[1].cfg.height as f64 * 1.5 / 256.0,
+                        cmp::min(frame1.planes[1].cfg.width, frame1.planes[1].cfg.height),
+                        KERNEL_WEIGHT,
+                    );
+                    u = calculate_plane_ssim(
+                        &frame1.planes[1],
+                        &frame2.planes[1],
+                        sample_max,
+                        &u_kernel,
+                        &u_kernel,
+                    )
+                });
 
-            s.spawn(|_| {
-                let v_kernel = build_gaussian_kernel(
-                    frame1.planes[2].cfg.height as f64 * 1.5 / 256.0,
-                    cmp::min(frame1.planes[2].cfg.width, frame1.planes[2].cfg.height),
-                    KERNEL_WEIGHT,
-                );
-                v = calculate_plane_ssim(
-                    &frame1.planes[2],
-                    &frame2.planes[2],
-                    sample_max,
-                    &v_kernel,
-                    &v_kernel,
-                )
-            });
+                s.spawn(|_| {
+                    let v_kernel = build_gaussian_kernel(
+                        frame1.planes[2].cfg.height as f64 * 1.5 / 256.0,
+                        cmp::min(frame1.planes[2].cfg.width, frame1.planes[2].cfg.height),
+                        KERNEL_WEIGHT,
+                    );
+                    v = calculate_plane_ssim(
+                        &frame1.planes[2],
+                        &frame2.planes[2],
+                        sample_max,
+                        &v_kernel,
+                        &v_kernel,
+                    )
+                });
+            }
         });
 
         Ok(PlanarMetrics {
@@ -236,7 +238,7 @@ impl VideoMetric for MsSsim {
         frame1: &Frame<T>,
         frame2: &Frame<T>,
         bit_depth: usize,
-        _chroma_sampling: ChromaSampling,
+        chroma_sampling: ChromaSampling,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
         if (size_of::<T>() == 1 && bit_depth > 8) || (size_of::<T>() == 2 && bit_depth <= 8) {
             return Err(Box::new(MetricsError::InputMismatch {
@@ -247,19 +249,21 @@ impl VideoMetric for MsSsim {
         frame1.can_compare(frame2)?;
 
         let mut y = 0.0;
-        let mut u = 0.0;
-        let mut v = 0.0;
+        let mut u = 1.0;
+        let mut v = 1.0;
 
         rayon::scope(|s| {
             s.spawn(|_| {
                 y = calculate_plane_msssim(&frame1.planes[0], &frame2.planes[0], bit_depth)
             });
-            s.spawn(|_| {
-                u = calculate_plane_msssim(&frame1.planes[1], &frame2.planes[1], bit_depth)
-            });
-            s.spawn(|_| {
-                v = calculate_plane_msssim(&frame1.planes[2], &frame2.planes[2], bit_depth)
-            });
+            if chroma_sampling != ChromaSampling::Cs400 {
+                s.spawn(|_| {
+                    u = calculate_plane_msssim(&frame1.planes[1], &frame2.planes[1], bit_depth)
+                });
+                s.spawn(|_| {
+                    v = calculate_plane_msssim(&frame1.planes[2], &frame2.planes[2], bit_depth)
+                });
+            }
         });
 
         Ok(PlanarMetrics {

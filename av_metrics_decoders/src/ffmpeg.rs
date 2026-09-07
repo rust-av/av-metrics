@@ -50,6 +50,7 @@ impl FfmpegDecoder {
                 width: decoder.width() as usize,
                 height: decoder.height() as usize,
                 bit_depth: match decoder.format() {
+                    format::pixel::Pixel::GRAY8 => 8,
                     format::pixel::Pixel::YUV420P
                     | format::pixel::Pixel::YUV422P
                     | format::pixel::Pixel::YUV444P
@@ -67,6 +68,7 @@ impl FfmpegDecoder {
                     }
                 },
                 chroma_sampling: match decoder.format() {
+                    format::pixel::Pixel::GRAY8 => ChromaSampling::Cs400,
                     format::pixel::Pixel::YUV420P
                     | format::pixel::Pixel::YUVJ420P
                     | format::pixel::Pixel::YUV420P10LE
@@ -120,22 +122,24 @@ impl FfmpegDecoder {
             .chroma_sampling
             .get_chroma_dimensions(width, height);
         f.planes[0].copy_from_raw_u8(decoded.data(0), width * bytes, bytes);
-        convert_chroma_data(
-            &mut f.planes[1],
-            self.video_details.chroma_sample_position,
-            bit_depth,
-            decoded.data(1),
-            chroma_width * bytes,
-            bytes,
-        );
-        convert_chroma_data(
-            &mut f.planes[2],
-            self.video_details.chroma_sample_position,
-            bit_depth,
-            decoded.data(2),
-            chroma_width * bytes,
-            bytes,
-        );
+        if chroma_width > 0 {
+            convert_chroma_data(
+                &mut f.planes[1],
+                self.video_details.chroma_sample_position,
+                bit_depth,
+                decoded.data(1),
+                chroma_width * bytes,
+                bytes,
+            );
+            convert_chroma_data(
+                &mut f.planes[2],
+                self.video_details.chroma_sample_position,
+                bit_depth,
+                decoded.data(2),
+                chroma_width * bytes,
+                bytes,
+            );
+        }
         f
     }
 }

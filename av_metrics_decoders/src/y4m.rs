@@ -79,22 +79,24 @@ where
 
             let (chroma_width, _) = chroma_sampling.get_chroma_dimensions(width, height);
             f.planes[0].copy_from_raw_u8(frame.get_y_plane(), width * bytes, bytes);
-            convert_chroma_data(
-                &mut f.planes[1],
-                chroma_sample_pos,
-                bit_depth,
-                frame.get_u_plane(),
-                chroma_width * bytes,
-                bytes,
-            );
-            convert_chroma_data(
-                &mut f.planes[2],
-                chroma_sample_pos,
-                bit_depth,
-                frame.get_v_plane(),
-                chroma_width * bytes,
-                bytes,
-            );
+            if chroma_width > 0 {
+                convert_chroma_data(
+                    &mut f.planes[1],
+                    chroma_sample_pos,
+                    bit_depth,
+                    frame.get_u_plane(),
+                    chroma_width * bytes,
+                    bytes,
+                );
+                convert_chroma_data(
+                    &mut f.planes[2],
+                    chroma_sample_pos,
+                    bit_depth,
+                    frame.get_v_plane(),
+                    chroma_width * bytes,
+                    bytes,
+                );
+            }
 
             f
         })

@@ -25,6 +25,25 @@ mod tests {
     }
 
     #[test]
+    fn psnr_gray8() {
+        let mut dec1 = get_decoder(format!(
+            "{}/../testfiles/gray8_input.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let mut dec2 = get_decoder(format!(
+            "{}/../testfiles/gray8_output.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let result = calculate_video_psnr(&mut dec1, &mut dec2, None, |_| ()).unwrap();
+        assert_metric_eq(31.1927, result.y);
+        assert_metric_eq(100.0, result.u);
+        assert_metric_eq(100.0, result.v);
+        assert_metric_eq(31.1927, result.avg);
+    }
+
+    #[test]
     fn psnr_yuv420p8() {
         let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_input.y4m",
@@ -98,6 +117,25 @@ mod tests {
         assert_metric_eq(36.4922, result.u);
         assert_metric_eq(39.8558, result.v);
         assert_metric_eq(33.7071, result.avg);
+    }
+
+    #[test]
+    fn apsnr_gray8() {
+        let mut dec1 = get_decoder(format!(
+            "{}/../testfiles/gray8_input.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let mut dec2 = get_decoder(format!(
+            "{}/../testfiles/gray8_output.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let result = calculate_video_apsnr(&mut dec1, &mut dec2, None, |_| ()).unwrap();
+        assert_metric_eq(31.2095, result.y);
+        assert_metric_eq(100.0, result.u);
+        assert_metric_eq(100.0, result.v);
+        assert_metric_eq(31.2095, result.avg);
     }
 
     #[test]
@@ -177,6 +215,25 @@ mod tests {
     }
 
     #[test]
+    fn psnr_hvs_gray8() {
+        let mut dec1 = get_decoder(format!(
+            "{}/../testfiles/gray8_input.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let mut dec2 = get_decoder(format!(
+            "{}/../testfiles/gray8_output.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let result = calculate_video_psnr_hvs(&mut dec1, &mut dec2, None, |_| ()).unwrap();
+        assert_metric_eq(33.0032, result.y);
+        assert_metric_eq(f64::INFINITY, result.u);
+        assert_metric_eq(f64::INFINITY, result.v);
+        assert_metric_eq(33.0032, result.avg);
+    }
+
+    #[test]
     fn psnr_hvs_yuv420p8() {
         let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_input.y4m",
@@ -253,6 +310,25 @@ mod tests {
     }
 
     #[test]
+    fn ssim_gray8() {
+        let mut dec1 = get_decoder(format!(
+            "{}/../testfiles/gray8_input.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let mut dec2 = get_decoder(format!(
+            "{}/../testfiles/gray8_output.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let result = calculate_video_ssim(&mut dec1, &mut dec2, None, |_| ()).unwrap();
+        assert_metric_eq(12.7288, result.y);
+        assert_metric_eq(f64::INFINITY, result.u);
+        assert_metric_eq(f64::INFINITY, result.v);
+        assert_metric_eq(12.7288, result.avg);
+    }
+
+    #[test]
     fn ssim_yuv420p8() {
         let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_input.y4m",
@@ -269,6 +345,25 @@ mod tests {
         assert_metric_eq(10.8624, result.u);
         assert_metric_eq(12.8369, result.v);
         assert_metric_eq(12.6899, result.avg);
+    }
+
+    #[test]
+    fn msssim_gray8() {
+        let mut dec1 = get_decoder(format!(
+            "{}/../testfiles/gray8_input.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let mut dec2 = get_decoder(format!(
+            "{}/../testfiles/gray8_output.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let result = calculate_video_msssim(&mut dec1, &mut dec2, None, |_| ()).unwrap();
+        assert_metric_eq(18.2143, result.y);
+        assert_metric_eq(f64::INFINITY, result.u);
+        assert_metric_eq(f64::INFINITY, result.v);
+        assert_metric_eq(18.2143, result.avg);
     }
 
     #[test]
@@ -405,6 +500,22 @@ mod tests {
     }
 
     #[test]
+    fn ciede2000_gray8_nosimd() {
+        let mut dec1 = get_decoder(format!(
+            "{}/../testfiles/gray8_input.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let mut dec2 = get_decoder(format!(
+            "{}/../testfiles/gray8_output.y4m",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let result = calculate_video_ciede_nosimd(&mut dec1, &mut dec2, None, |_| ()).unwrap();
+        assert_metric_eq(39.0916, result);
+    }
+
+    #[test]
     fn ciede2000_yuv420p8_nosimd() {
         let mut dec1 = get_decoder(format!(
             "{}/../testfiles/yuv420p8_input.y4m",
@@ -534,7 +645,7 @@ mod tests {
 
     fn assert_metric_eq(expected: f64, value: f64) {
         assert!(
-            (expected - value).abs() < 0.01,
+            (expected - value).abs() < 0.01 || value == expected,
             "Expected {}, got {}",
             expected,
             value

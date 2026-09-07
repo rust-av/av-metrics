@@ -75,7 +75,7 @@ impl VideoMetric for PsnrHvs {
         frame1: &Frame<T>,
         frame2: &Frame<T>,
         bit_depth: usize,
-        _chroma_sampling: ChromaSampling,
+        chroma_sampling: ChromaSampling,
     ) -> Result<Self::FrameResult, Box<dyn Error>> {
         if (size_of::<T>() == 1 && bit_depth > 8) || (size_of::<T>() == 2 && bit_depth <= 8) {
             return Err(Box::new(MetricsError::InputMismatch {
@@ -93,12 +93,14 @@ impl VideoMetric for PsnrHvs {
             s.spawn(|_| {
                 y = calculate_plane_psnr_hvs(&frame1.planes[0], &frame2.planes[0], 0, bit_depth)
             });
-            s.spawn(|_| {
-                u = calculate_plane_psnr_hvs(&frame1.planes[1], &frame2.planes[1], 1, bit_depth)
-            });
-            s.spawn(|_| {
-                v = calculate_plane_psnr_hvs(&frame1.planes[2], &frame2.planes[2], 2, bit_depth)
-            });
+            if chroma_sampling != ChromaSampling::Cs400 {
+                s.spawn(|_| {
+                    u = calculate_plane_psnr_hvs(&frame1.planes[1], &frame2.planes[1], 1, bit_depth)
+                });
+                s.spawn(|_| {
+                    v = calculate_plane_psnr_hvs(&frame1.planes[2], &frame2.planes[2], 2, bit_depth)
+                });
+            }
         });
 
         Ok(PlanarMetrics {
