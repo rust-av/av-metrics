@@ -14,6 +14,7 @@ use crate::video::pixel::Pixel;
 use crate::video::ChromaWeight;
 use crate::video::{PlanarMetrics, VideoMetric};
 use crate::MetricsError;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::cmp;
 use std::error::Error;
 use std::f64::consts::{E, PI};
@@ -291,16 +292,6 @@ impl VideoMetric for MsSsim {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-struct SsimMoments {
-    mux: i64,
-    muy: i64,
-    x2: i64,
-    xy: i64,
-    y2: i64,
-    w: i64,
-}
-
 const SSIM_K1: f64 = 0.01 * 0.01;
 const SSIM_K2: f64 = 0.03 * 0.03;
 
@@ -325,6 +316,43 @@ fn calculate_plane_ssim<T: Pixel>(
     .0
 }
 
+/// Weighted moments of a row of pixels, stored as one array per moment so
+/// the convolution loops run over contiguous memory and vectorize.
+struct MomentRows {
+    mux: Box<[i64]>,
+    muy: Box<[i64]>,
+    x2: Box<[i64]>,
+    xy: Box<[i64]>,
+    y2: Box<[i64]>,
+}
+
+impl MomentRows {
+    fn new(width: usize) -> Self {
+        Self {
+            mux: vec![0; width].into_boxed_slice(),
+            muy: vec![0; width].into_boxed_slice(),
+            x2: vec![0; width].into_boxed_slice(),
+            xy: vec![0; width].into_boxed_slice(),
+            y2: vec![0; width].into_boxed_slice(),
+        }
+    }
+
+    fn clear(&mut self) {
+        self.mux.fill(0);
+        self.muy.fill(0);
+        self.x2.fill(0);
+        self.xy.fill(0);
+        self.y2.fill(0);
+    }
+}
+
+/// Range of kernel taps `k` such that `pos + k - offset` lies in `0..len`.
+fn kernel_taps(pos: usize, offset: usize, kernel_len: usize, len: usize) -> std::ops::Range<usize> {
+    let k_min = offset.saturating_sub(pos);
+    let k_max = kernel_len - (pos + offset + 1).saturating_sub(len);
+    k_min..k_max
+}
+
 fn calculate_plane_ssim_internal(
     plane1: &[u32],
     plane2: &[u32],
@@ -335,69 +363,94 @@ fn calculate_plane_ssim_internal(
     horiz_kernel: &[i64],
 ) -> (f64, f64) {
     let vert_offset = vert_kernel.len() >> 1;
-    let line_size = vert_kernel.len().next_power_of_two();
-    let line_mask = line_size - 1;
-    let mut lines = vec![vec![SsimMoments::default(); width]; line_size];
     let horiz_offset = horiz_kernel.len() >> 1;
-    let mut ssim = 0.0;
-    let mut ssimw = 0.0;
-    let mut cs = 0.0;
-    for y in 0..(height + vert_offset) {
-        if y < height {
-            let buf = &mut lines[y & line_mask];
-            let line1 = &plane1[(y * width)..];
-            let line2 = &plane2[(y * width)..];
-            for x in 0..width {
-                let mut moments = SsimMoments::default();
-                let k_min = horiz_offset.saturating_sub(x);
-                let tmp_offset = (x + horiz_offset + 1).saturating_sub(width);
-                let k_max = horiz_kernel.len() - tmp_offset;
-                for k in k_min..k_max {
-                    let window = horiz_kernel[k];
-                    let target_x = (x + k).saturating_sub(horiz_offset);
-                    let pix1 = line1[target_x] as i64;
-                    let pix2 = line2[target_x] as i64;
-                    moments.mux += window * pix1;
-                    moments.muy += window * pix2;
-                    moments.x2 += window * pix1 * pix1;
-                    moments.xy += window * pix1 * pix2;
-                    moments.y2 += window * pix2 * pix2;
-                    moments.w += window;
-                }
-                buf[x] = moments;
-            }
-        }
-        if y >= vert_offset {
-            let k_min = vert_kernel.len().saturating_sub(y + 1);
-            let tmp_offset = (y + 1).saturating_sub(height);
-            let k_max = vert_kernel.len() - tmp_offset;
-            for x in 0..width {
-                let mut moments = SsimMoments::default();
-                for k in k_min..k_max {
-                    let buf = lines[(y + 1 + k - vert_kernel.len()) & line_mask][x];
-                    let window = vert_kernel[k];
-                    moments.mux += window * buf.mux;
-                    moments.muy += window * buf.muy;
-                    moments.x2 += window * buf.x2;
-                    moments.xy += window * buf.xy;
-                    moments.y2 += window * buf.y2;
-                    moments.w += window * buf.w;
-                }
-                let w = moments.w as f64;
-                let c1 = sample_max.pow(2) as f64 * SSIM_K1 * w.powi(2);
-                let c2 = sample_max.pow(2) as f64 * SSIM_K2 * w.powi(2);
-                let mx2 = (moments.mux as f64).powi(2);
-                let mxy = moments.mux as f64 * moments.muy as f64;
-                let my2 = (moments.muy as f64).powi(2);
-                let cs_tmp = w * (c2 + 2.0 * (moments.xy as f64 * w - mxy))
-                    / (moments.x2 as f64 * w - mx2 + moments.y2 as f64 * w - my2 + c2);
-                cs += cs_tmp;
-                ssim += cs_tmp * (2.0 * mxy + c1) / (mx2 + my2 + c1);
-                ssimw += w;
-            }
-        }
-    }
+    // The kernels are truncated at the plane borders, so the total weight of
+    // each window is the product of the in-bounds horizontal and vertical taps.
+    let horiz_weights: Vec<i64> = (0..width)
+        .map(|x| {
+            horiz_kernel[kernel_taps(x, horiz_offset, horiz_kernel.len(), width)]
+                .iter()
+                .sum()
+        })
+        .collect();
+    let c1_scale = sample_max.pow(2) as f64 * SSIM_K1;
+    let c2_scale = sample_max.pow(2) as f64 * SSIM_K2;
 
+    // The Gaussian is separable and all sums are exact integers, so running
+    // the vertical pass first, straight from the input planes, gives the same
+    // moments as the horizontal-first order while keeping each row independent.
+    let rows: Vec<(f64, f64, f64)> = (0..height)
+        .into_par_iter()
+        .map_init(
+            || (MomentRows::new(width), MomentRows::new(width)),
+            |(vert, moments), y| {
+                vert.clear();
+                let taps = kernel_taps(y, vert_offset, vert_kernel.len(), height);
+                let vert_weight: i64 = vert_kernel[taps.clone()].iter().sum();
+                for k in taps {
+                    let window = vert_kernel[k];
+                    let start = (y + k - vert_offset) * width;
+                    let line1 = &plane1[start..start + width];
+                    let line2 = &plane2[start..start + width];
+                    for x in 0..width {
+                        let pix1 = line1[x] as i64;
+                        let pix2 = line2[x] as i64;
+                        vert.mux[x] += window * pix1;
+                        vert.muy[x] += window * pix2;
+                        vert.x2[x] += window * pix1 * pix1;
+                        vert.xy[x] += window * pix1 * pix2;
+                        vert.y2[x] += window * pix2 * pix2;
+                    }
+                }
+
+                moments.clear();
+                for (k, &window) in horiz_kernel.iter().enumerate() {
+                    // Output columns whose window tap `k` falls inside the row.
+                    let x_min = horiz_offset.saturating_sub(k);
+                    let x_max = (width + horiz_offset).saturating_sub(k).min(width);
+                    if x_min >= x_max {
+                        continue;
+                    }
+                    let src = x_min + k - horiz_offset..x_max + k - horiz_offset;
+                    let accumulate = |dst: &mut [i64], src: &[i64]| {
+                        for (d, s) in dst.iter_mut().zip(src) {
+                            *d += window * s;
+                        }
+                    };
+                    accumulate(&mut moments.mux[x_min..x_max], &vert.mux[src.clone()]);
+                    accumulate(&mut moments.muy[x_min..x_max], &vert.muy[src.clone()]);
+                    accumulate(&mut moments.x2[x_min..x_max], &vert.x2[src.clone()]);
+                    accumulate(&mut moments.xy[x_min..x_max], &vert.xy[src.clone()]);
+                    accumulate(&mut moments.y2[x_min..x_max], &vert.y2[src]);
+                }
+
+                let mut ssim = 0.0;
+                let mut cs = 0.0;
+                let mut ssimw = 0.0;
+                for x in 0..width {
+                    let w = (horiz_weights[x] * vert_weight) as f64;
+                    let c1 = c1_scale * w.powi(2);
+                    let c2 = c2_scale * w.powi(2);
+                    let mux = moments.mux[x] as f64;
+                    let muy = moments.muy[x] as f64;
+                    let mx2 = mux.powi(2);
+                    let mxy = mux * muy;
+                    let my2 = muy.powi(2);
+                    let cs_tmp = w * (c2 + 2.0 * (moments.xy[x] as f64 * w - mxy))
+                        / (moments.x2[x] as f64 * w - mx2 + moments.y2[x] as f64 * w - my2 + c2);
+                    cs += cs_tmp;
+                    ssim += cs_tmp * (2.0 * mxy + c1) / (mx2 + my2 + c1);
+                    ssimw += w;
+                }
+                (ssim, cs, ssimw)
+            },
+        )
+        .collect();
+
+    // Sum the rows in order so the result does not depend on thread scheduling.
+    let (ssim, cs, ssimw) = rows.iter().fold((0.0, 0.0, 0.0), |acc, row| {
+        (acc.0 + row.0, acc.1 + row.1, acc.2 + row.2)
+    });
     (ssim / ssimw, cs / ssimw)
 }
 
